@@ -1,0 +1,27 @@
+import { Bartable } from "./bartable";
+import { Discount } from "./discount";
+import { Employee } from "./employee";
+
+export interface Sale {
+  id: number;
+  dateTime: Date;
+  total: number;
+  bartable?: Bartable | null;
+  employee?: Employee | null;
+  open: boolean;
+  hasDiscount: boolean;
+  discount: number;
+  payment: Payment | null;
+}
+
+export interface CreateSaleFormData {
+  idBartable?: number | null;
+  idEmployee?: number | null;
+}
+
+export interface UpdateSaleFormData extends Partial<CreateSaleFormData> {
+  id: number;
+  hasDiscount: boolean;
+  idPayment: number;
+  open: boolean;
+}

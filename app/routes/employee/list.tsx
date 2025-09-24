@@ -1,15 +1,4 @@
-<<<<<<< HEAD
 import { useLoaderData, useFetcher, Link } from "react-router-dom";
-=======
-import {
-  useLoaderData,
-  useFetcher,
-  Link,
-  Form,
-  useRouteError,
-  isRouteErrorResponse,
-} from "react-router-dom";
->>>>>>> 2c21897ddc037d935a9673d29fec969a36085b87
 import type { Employee } from "~/types/employee";
 import { employeeListLoader } from "~/loaders/employeeLoader";
 export { employeeListLoader as loader };
@@ -20,11 +9,7 @@ export default function EmployeeListPage() {
 
   return (
     <div>
-<<<<<<< HEAD
       <h1>Empleados</h1>
-=======
-      <h1>Proveedores</h1>
->>>>>>> 2c21897ddc037d935a9673d29fec969a36085b87
       <ul>
         {employees.map((employee) => (
           <li key={employee.id}>

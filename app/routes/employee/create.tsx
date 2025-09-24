@@ -61,11 +61,7 @@ export default function CreateEmployeePage() {
       <label>Dirección:</label>
       <input name="address" type="text" maxLength={255} />
 
-<<<<<<< HEAD
-      <button type="submit">Crear empleado</button>
-=======
       <button type="submit">Crear proveedor</button>
->>>>>>> 2c21897ddc037d935a9673d29fec969a36085b87
 
       {actionData?.error && (
         <p style={{ color: actionData.source === "server" ? "red" : "orange" }}>

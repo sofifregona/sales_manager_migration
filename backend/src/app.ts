@@ -9,10 +9,7 @@ import employeeRoutes from "./routes/employeeRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import providerRoutes from "./routes/providerRoutes.js";
 import productRoutes from "./routes/productRoutes.js";
-<<<<<<< HEAD
 import saleRoutes from "./routes/saleRoutes.js";
-=======
->>>>>>> 2c21897ddc037d935a9673d29fec969a36085b87
 import morgan from "morgan";
 
 const app = express();
@@ -28,10 +25,7 @@ app.use("/api", employeeRoutes);
 app.use("/api", paymentRoutes);
 app.use("/api", providerRoutes);
 app.use("/api", productRoutes);
-<<<<<<< HEAD
 app.use("/api", saleRoutes);
-=======
->>>>>>> 2c21897ddc037d935a9673d29fec969a36085b87
 
 AppDataSource.initialize()
   .then(() => {

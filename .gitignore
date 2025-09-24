@@ -1,6 +1,21 @@
-.DS_Store
-/node_modules/
+# Front (React Router framework)
+build/
+.react-router/
+.vite/
 
-# React Router
-/.react-router/
-/build/
+# Back (TypeScript)
+backend/dist/
+*.tsbuildinfo
+
+# Generales
+node_modules/
+.env
+.env*.local
+*.env.*
+*.log
+coverage/
+.eslintcache
+.DS_Store
+Thumbs.db
+.vscode/
+!.vscode/extensions.json

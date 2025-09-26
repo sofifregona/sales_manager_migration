@@ -1,7 +1,6 @@
 import { productRepo } from "../repositories/productRepo.js";
 import { Product } from "../entities/Product.js";
 import { AppError } from "../errors/AppError.js";
-import util from "node:util";
 
 import { normalizeText } from "../utils/helpers/normalizeText.js";
 import {
@@ -27,7 +26,7 @@ import { getProviderById } from "./providerService.js";
 import { getCategoryById } from "./categoryService.js";
 import { getBrandById } from "./brandService.js";
 
-// SERVICE FOR CREATE A BARTABLE
+// SERVICE FOR CREATE A PRODUCT
 export const createProduct = async (data: {
   name: string;
   code: number;
@@ -85,7 +84,7 @@ export const createProduct = async (data: {
   return await productRepo.save(newProduct);
 };
 
-// SERVICE FOR UPDATE OR DEACTIVATE A BARTABLE
+// SERVICE FOR UPDATE OR DEACTIVATE A PRODUCT
 export const updateProduct = async (updatedData: {
   id: number;
   name?: string;
@@ -188,7 +187,7 @@ export const incrementProduct = async (params: {
     .execute();
 };
 
-// SERVICE FOR GETTING ALL BARTABLES
+// SERVICE FOR GETTING ALL PRODUCTS
 export const getListOfProducts = async (params: {
   name?: string;
   code?: string;
@@ -294,7 +293,7 @@ export const getListOfProducts = async (params: {
   });
 };
 
-// SERVICE FOR GETTING A BARTABLE BY ID
+// SERVICE FOR GETTING A PRODUCT BY ID
 export const getProductById = async (id: number) => {
   validateNumberID(id);
   const existing = await productRepo.findOne({

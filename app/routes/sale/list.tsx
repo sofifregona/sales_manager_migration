@@ -50,7 +50,7 @@ export default function SaleListPage() {
               ) : (
                 <bartableFetcher.Form method="post" action=".">
                   <input type="hidden" name="idBartable" value={bartable.id} />
-                  <input type="hidden" name="idProp" value="bartable" />
+                  <input type="hidden" name="prop" value="bartable" />
                   <button type="submit" className="btn btn--gray">
                     <div className="btn__inner">{bartable.number}</div>
                   </button>
@@ -75,7 +75,7 @@ export default function SaleListPage() {
               ) : (
                 <employeeFetcher.Form method="post" action=".">
                   <input type="hidden" name="idEmployee" value={employee.id} />
-                  <input type="hidden" name="idProp" value="employee" />
+                  <input type="hidden" name="prop" value="employee" />
                   <button type="submit" className="btn btn--grey">
                     <div className="btn__inner">{employee.name}</div>
                   </button>

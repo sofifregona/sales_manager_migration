@@ -11,44 +11,47 @@ import {
 export async function createSaleAction({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
 
-  const idProp = formData.get("idProp");
-  const idPropError = validateRequired(idProp, "Correspondencia de venta");
-  if (idPropError) return idPropError;
-  const idPropStrError = validateType(
-    idProp,
-    "string",
-    "Correspondencia de venta"
+  // Validations for idProp (input)
+  const prop = formData.get("idProp");
+  const propError = validateRequiredAndType(
+    prop,
+    "Correspondencia de venta",
+    "string"
   );
-  if (idPropStrError) return idPropStrError;
-  const idPropStr = idProp!.toString();
+  if (propError) return propError;
 
-  let idBartableNum: number | null = null;
-  let idEmployeeNum: number | null = null;
-  let hasDiscount: boolean = false;
+  let idBartable: number | null = null;
+  let idEmployee: number | null = null;
 
-  if (idPropStr === "bartable") {
-    const idBartable = formData.get("idBartable");
-    const idBartableError = validateRequiredAndType(
-      idBartable,
-      "string",
-      "ID Mesa"
+  if (prop === "bartable") {
+    const idBartableStr = formData.get("idBartable");
+    // Validations for idBartable (input) if exists
+    const idBartableStrError = validateRequiredAndType(
+      idBartableStr,
+      "ID Mesa",
+      "string"
     );
+    if (idBartableStrError) return idBartableStrError;
+
+    // Validations for idBartable (number) if exists
+    idBartable = Number(idBartableStr);
+    const idBartableError = validateNumberID(idBartable, "ID Mesa");
     if (idBartableError) return idBartableError;
-    idBartableNum = Number(idBartable);
-    const idBartableNumError = validateNumberID(idBartableNum, "ID Mesa");
-    if (idBartableNumError) return idBartableNumError;
-  } else if (idPropStr === "employee") {
-    const idEmployee = formData.get("idEmployee");
-    const idEmployeeError = validateRequiredAndType(
+  } else if (prop === "employee") {
+    const idEmployeeStr = formData.get("idEmployee");
+
+    // Validations for idEmployee (inputs) if exists
+    const idEmployeeStrError = validateRequiredAndType(
       idEmployee,
-      "string",
-      "ID Empleado"
+      "ID Empleado",
+      "string"
     );
+    if (idEmployeeStrError) return idEmployeeStrError;
+
+    // Validations for idEmployee (number) if exists
+    idEmployee = Number(idEmployeeStr);
+    const idEmployeeError = validateNumberID(idEmployee, "ID Empleado");
     if (idEmployeeError) return idEmployeeError;
-    idEmployeeNum = Number(idEmployee);
-    const idEmployeeNumError = validateNumberID(idEmployeeNum, "ID Empleado");
-    if (idEmployeeNumError) return idEmployeeNumError;
-    hasDiscount = true;
   } else {
     return {
       error:
@@ -58,13 +61,13 @@ export async function createSaleAction({ request }: ActionFunctionArgs) {
   }
 
   const data: CreateSaleFormData = {
-    idBartable: idBartableNum,
-    idEmployee: idEmployeeNum,
-    hasDiscount,
+    idBartable,
+    idEmployee,
   };
 
   try {
     const newSale = await createSale(data);
+
     return redirect(`/sale/${newSale.id}/edit`);
   } catch (error) {
     let parsed = { message: "Error al crear la venta", status: 500 };

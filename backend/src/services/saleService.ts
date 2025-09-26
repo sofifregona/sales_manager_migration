@@ -52,10 +52,9 @@ export const createSale = async (data: {
     open: true,
     bartable: bartable,
     employee: employee,
-    hasDiscount: employee ? true : false,
-    discount: 0.2,
+    discount: employee ? 0.2 : 0,
     payment: null,
-    productSold: null,
+    products: null,
   });
 
   return await saleRepo.save(newSale);
@@ -145,7 +144,10 @@ export const getAllSales = async () => {
 // SERVICE FOR GETTING A BARTABLE BY ID
 export const getSaleById = async (id: number) => {
   validateNumberID(id);
-  const existing = await saleRepo.findOneBy({ id, open: true });
+  const existing = await saleRepo.findOne({
+    where: { id, open: true },
+    relations: { bartable: true, employee: true },
+  });
   if (!existing) throw new AppError("Venta no encontrada", 404);
   return existing;
 };

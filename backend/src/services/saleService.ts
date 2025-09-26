@@ -2,11 +2,18 @@ import { saleRepo } from "../repositories/saleRepo.js";
 import { Sale } from "../entities/Sale.js";
 import { AppError } from "../errors/AppError.js";
 
-import { validateNumberID } from "../utils/validations/validationHelpers.js";
+import {
+  validateNumber,
+  validateNumberID,
+  validatePositiveInteger,
+} from "../utils/validations/validationHelpers.js";
 import { Bartable } from "../entities/Bartable.js";
 import type { Employee } from "../entities/Employee.js";
 import { getBartableById } from "./bartableService.js";
 import { getEmployeeById } from "./employeeService.js";
+import { getProductById } from "./productService.js";
+import { productSoldRepo } from "../repositories/productSoldRepo.js";
+import { getPaymentById } from "./paymentService.js";
 
 // SERVICE FOR CREATE A BARTABLE
 export const createSale = async (data: {
@@ -60,78 +67,67 @@ export const createSale = async (data: {
   return await saleRepo.save(newSale);
 };
 
-// SERVICE FOR UPDATE OR DEACTIVATE A BARTABLE
-// export const updateSale = async (updatedData: {
-//   id: number;
-//   name?: string;
-//   cuit?: number | null;
-//   telephone?: number | null;
-//   email?: string | null;
-//   address?: string | null;
-//   active?: boolean;
-// }) => {
-//   const { id, name, cuit, telephone, email, address, active } = updatedData;
-//   validateNumberID(id);
-//   const existing = await saleRepo.findOneBy({ id, active: true });
-//   if (!existing) throw new AppError("Proveedor no encontrado", 404);
+// SERVICE FOR UPDATE A SALE
+export const updateSale = async (updatedData: {
+  id: number;
+  productsSold: { idProduct: number; op: string } | null;
+  idPayment: number | null;
+  open: boolean;
+}) => {
+  const { id, productsSold, idPayment, open } = updatedData;
+  validateNumberID(id);
+  const actualSale = await getSaleById(id);
 
-//   const data: Partial<Sale> = {};
+  if (!actualSale.open) {
+    throw new AppError(
+      "No se puede reabrir una venta que ya ha sido cerrada",
+      400
+    );
+  }
 
-//   if (name !== undefined) {
-//     const normalizedName = normalizeText(name);
-//     const duplicate = await saleRepo.findOneBy({ normalizedName });
-//     if (duplicate && duplicate.id !== id && duplicate.active) {
-//       throw new AppError("Ya existe una categoría con este nombre", 409);
-//     }
-//     if (duplicate && !duplicate.active) {
-//       data.active = true;
-//       await saleRepo.update(duplicate.id, data);
-//       data.name = existing.name;
-//       data.normalizedName = existing.normalizedName;
-//       data.active = false;
-//     } else {
-//       data.name = name;
-//       data.normalizedName = normalizedName;
-//     }
-//   }
+  const data: Partial<Sale> = {};
 
-//   if (cuit !== undefined) {
-//     if (cuit !== null) {
-//       validateCUI(cuit, 11);
-//       const duplicate = await saleRepo.findOneBy({ cuit });
-//       if (duplicate && duplicate.id !== id && duplicate.active) {
-//         throw new AppError("Ya existe un proveedor con este cuit.", 409);
-//       }
-//     }
-//     data.cuit = cuit;
-//   }
+  if (productsSold) {
+    const { idProduct, op } = productsSold;
+    validateNumberID(idProduct);
+    const product = await getProductById(idProduct);
+    const existingItem = actualSale.products.find(
+      (p) => p.product.id === idProduct
+    );
+    if (existingItem) {
+      let newQuantity: number;
+      op === "adition"
+        ? (newQuantity = existingItem.quantity + 1)
+        : op === "substract"
+        ? (newQuantity = existingItem.quantity - 1)
+        : (newQuantity = 0);
+      const newSubtotal = newQuantity * product.price;
+      if (newQuantity > 0) {
+        await productSoldRepo.update(
+          { id: existingItem.id },
+          { quantity: newQuantity, subtotal: newSubtotal }
+        );
+      } else {
+        await productSoldRepo.delete({ id: existingItem.id });
+      }
+    } else {
+      await productSoldRepo.create({
+        product: product,
+        quantity: 1,
+        subtotal: product.price,
+        sale: actualSale,
+      });
+    }
+  }
+  if (idPayment) {
+    validatePositiveInteger(idPayment);
+    const payment = await getPaymentById(idPayment);
+    await saleRepo.update({ id }, { payment: payment });
+  }
+  return await saleRepo.findOneBy({ id });
+};
 
-//   if (telephone !== undefined) {
-//     if (telephone !== null) {
-//       validateTelephone(telephone);
-//     }
-//     data.telephone = telephone;
-//   }
-
-//   if (email !== undefined) {
-//     if (email !== null) {
-//       validateEmailFormat(email);
-//     }
-//     data.email = email;
-//   }
-
-//   if (address !== undefined) {
-//     data.address = address;
-//   }
-
-//   if (active !== undefined) {
-//     data.active = active;
-//   }
-//   await saleRepo.update(id, data);
-//   return await saleRepo.findOneBy({ id });
-// };
-
-// SERVICE FOR GETTING ALL BARTABLES
+// SERVICE FOR GETTING ALL OPEN SALES
 export const getAllSales = async () => {
   return await saleRepo.find({
     where: {
@@ -141,7 +137,7 @@ export const getAllSales = async () => {
   });
 };
 
-// SERVICE FOR GETTING A BARTABLE BY ID
+// SERVICE FOR GETTING A SALE BY ID
 export const getSaleById = async (id: number) => {
   validateNumberID(id);
   const existing = await saleRepo.findOne({

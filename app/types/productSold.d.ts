@@ -5,14 +5,14 @@ import { Product } from "./product";
 export interface ProductSold {
   id: number;
   product: Product;
-  units: number;
+  quantity: number;
   subtotal: number;
   sale: Sale;
 }
 
 export interface CreateProductSoldFormData {
   idProduct: number;
-  units: number;
+  quantity: number;
   subtotal: number;
   idSale: number;
 }

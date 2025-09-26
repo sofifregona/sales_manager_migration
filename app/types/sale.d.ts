@@ -13,7 +13,7 @@ export interface Sale {
   hasDiscount: boolean;
   discount: number;
   payment: Payment | null;
-  productsSold: ProductSold[] | null;
+  products: ProductSold[] | null;
 }
 
 export interface CreateSaleFormData {
@@ -23,10 +23,7 @@ export interface CreateSaleFormData {
 
 export interface UpdateSaleFormData extends Partial<CreateSaleFormData> {
   id: number;
-  idPayment: number;
+  product: { idProduct?: number; op?: string };
+  idPayment?: number;
   open: boolean;
-  productsSold?: Array<
-    | { productId: number; quantity: number } // create (sin id) o update (con id)
-    | { id: number; _delete: true } // delete
-  >;
 }

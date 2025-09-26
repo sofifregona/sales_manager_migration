@@ -21,7 +21,14 @@ export class Sale {
   @Index()
   dateTime!: Date;
 
-  @Column("decimal", { precision: 10, scale: 2 })
+  @Column("decimal", {
+    precision: 10,
+    scale: 2,
+    transformer: {
+      to: (value?: number) => (value != null ? value.toFixed(2) : null), // JS -> DB (string)
+      from: (value: string | null) => (value != null ? Number(value) : null), // DB -> JS (number)
+    },
+  })
   total!: number;
 
   @ManyToOne(() => Bartable, { nullable: true })

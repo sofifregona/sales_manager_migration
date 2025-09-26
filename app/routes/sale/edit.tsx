@@ -1,6 +1,11 @@
 // **IMPORTS**
 // Libraries
-import { Form, useLoaderData, useActionData } from "react-router-dom";
+import {
+  Form,
+  useLoaderData,
+  useActionData,
+  useFetcher,
+} from "react-router-dom";
 import { useEffect, useMemo, useState, useRef } from "react";
 // Types
 import type { Bartable } from "~/types/bartable";
@@ -11,11 +16,13 @@ import type { Product } from "~/types/product";
 import type { Sale } from "~/types/sale";
 // loader & Action
 import { saleLoader } from "~/loaders/saleLoader";
+import { updateSaleAction } from "~/actions/sale/updateSale";
 
 // Helpers
 import { normalizeText } from "~/utils/helpers/normalizeText";
 
 export { saleLoader as loader };
+export { updateSaleAction as action };
 
 export default function SaleEditPage() {
   const actionData = useActionData() as {
@@ -33,6 +40,8 @@ export default function SaleEditPage() {
       propType: string;
     };
 
+  const fetcher = useFetcher();
+
   const [code, setCode] = useState("");
   const [nameFilter, setNameFilter] = useState<string>("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>();
@@ -48,7 +57,6 @@ export default function SaleEditPage() {
     } else {
       setCode(result.padStart(3, "0"));
     }
-    console.log(code);
   };
 
   const nf = normalizeText(nameFilter);
@@ -152,23 +160,21 @@ export default function SaleEditPage() {
         <div className="productList">
           <ul>
             {filteredProducts.map((p) => (
-              <li key={p.id}>
-                <bartableFetcher.Form method="post" action=".">
-                  <input type="hidden" name="idBartable" value={bartable.id} />
-                  <input type="hidden" name="idProp" value="bartable" />
-                  <button type="submit" className="btn btn--gray">
-                    <div className="btn__inner">{bartable.number}</div>
+              <li key={`li_filteredProduct_${p.id}`}>
+                <fetcher.Form method="post" action=".">
+                  <button
+                    type="submit"
+                    name="idProduct"
+                    value={String(p.id)}
+                    className="productBtn"
+                  >
+                    <span className="productName">{p.name}</span>{" "}
+                    <span className="productCode">
+                      ({String(p.code ?? "").padStart(3, "0")})
+                    </span>
+                    <input type="hidden" name="op" value="add" />
                   </button>
-                </bartableFetcher.Form>
-                <span
-                  className="productName"
-                  onClick={() => handleListProducts(p, "add")}
-                >
-                  {p.name}
-                </span>{" "}
-                <span className="productCode">
-                  ({String(p.code ?? "").padStart(3, "0")})
-                </span>
+                </fetcher.Form>
               </li>
             ))}
             {filteredProducts.length === 0 && (
@@ -180,11 +186,55 @@ export default function SaleEditPage() {
         <h2>Lista de productos agregados</h2>
         <div className="addedProducts">
           <ul className="addedProductsList" ref={ulRef}>
-            <li></li>
+            {(sale.products ?? []).map((ps) => (
+              <li key={`li_addedElement_${ps.id}`}>
+                <fetcher.Form method="post" action=".">
+                  <button type="submit" name="op" value="substract">
+                    <span>(-)</span>
+                    <input
+                      type="hidden"
+                      value={ps.product.id}
+                      name="idProduct"
+                    />
+                  </button>
+                </fetcher.Form>
+                <span>
+                  {ps.product.name} {`Unidades: ${ps.quantity}`}{" "}
+                  {`Subtotal: ${ps.subtotal}`}
+                </span>
+                <fetcher.Form method="post" action=".">
+                  <button type="submit" name="op" value="add">
+                    <span>(+)</span>
+                    <input
+                      type="hidden"
+                      value={ps.product.id}
+                      name="idProduct"
+                    />
+                  </button>
+                </fetcher.Form>
+              </li>
+            ))}
           </ul>
         </div>
 
+        <h2>Total</h2>
+        <span>{sale.total}</span>
         <h2>Cerrar venta</h2>
+        <fetcher.Form method="post" action=".">
+          {payments.length === 0 && (
+            <span>No hay métodos de pago configurados</span>
+          )}
+          <select className={"payments"} name={"idPayment"}>
+            {payments.map((pym) => (
+              <option key={`opt_paymentId_${pym.id}`} value={pym.id}>
+                {pym.name}
+              </option>
+            ))}
+          </select>
+          <button type="submit" name={"open"} value="false">
+            Cerrar venta
+          </button>
+        </fetcher.Form>
       </Form>
     </div>
   );

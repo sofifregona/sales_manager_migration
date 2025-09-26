@@ -17,7 +17,14 @@ export class Product {
   @Column({ name: "normalized_name" })
   normalizedName!: string;
 
-  @Column("decimal", { precision: 10, scale: 2 })
+  @Column("decimal", {
+    precision: 10,
+    scale: 2,
+    transformer: {
+      to: (value?: number) => (value != null ? value.toFixed(2) : null), // JS -> DB (string)
+      from: (value: string | null) => (value != null ? Number(value) : null), // DB -> JS (number)
+    },
+  })
   price!: number;
 
   @ManyToOne(() => Category, { nullable: true })

@@ -70,11 +70,11 @@ export const createSale = async (data: {
 // SERVICE FOR UPDATE A SALE
 export const updateSale = async (updatedData: {
   id: number;
-  productsSold: { idProduct: number; op: string } | null;
+  product: { idProduct: number; op: string } | null;
   idPayment: number | null;
   open: boolean;
 }) => {
-  const { id, productsSold, idPayment, open } = updatedData;
+  const { id, product, idPayment, open } = updatedData;
   validateNumberID(id);
   const actualSale = await getSaleById(id);
 
@@ -85,24 +85,25 @@ export const updateSale = async (updatedData: {
     );
   }
 
-  const data: Partial<Sale> = {};
+  let total = Number(actualSale.total);
+  if (product) {
+    const { idProduct, op } = product;
 
-  if (productsSold) {
-    const { idProduct, op } = productsSold;
     validateNumberID(idProduct);
-    const product = await getProductById(idProduct);
-    const existingItem = actualSale.products.find(
+    const productData = await getProductById(idProduct);
+    const price = productData.price;
+    const existingItem = actualSale.products?.find(
       (p) => p.product.id === idProduct
     );
+    console.log("Productos de la venta actual");
+    console.log(actualSale);
     if (existingItem) {
       let newQuantity: number;
-      op === "adition"
+      op === "add"
         ? (newQuantity = existingItem.quantity + 1)
-        : op === "substract"
-        ? (newQuantity = existingItem.quantity - 1)
-        : (newQuantity = 0);
-      const newSubtotal = newQuantity * product.price;
+        : (newQuantity = existingItem.quantity - 1);
       if (newQuantity > 0) {
+        const newSubtotal = newQuantity * price;
         await productSoldRepo.update(
           { id: existingItem.id },
           { quantity: newQuantity, subtotal: newSubtotal }
@@ -110,20 +111,24 @@ export const updateSale = async (updatedData: {
       } else {
         await productSoldRepo.delete({ id: existingItem.id });
       }
+      newQuantity > existingItem.quantity ? (total += price) : (total -= price);
     } else {
-      await productSoldRepo.create({
-        product: product,
+      await productSoldRepo.insert({
+        product: productData,
         quantity: 1,
-        subtotal: product.price,
+        subtotal: price,
         sale: actualSale,
       });
+      total += price;
     }
   }
   if (idPayment) {
     validatePositiveInteger(idPayment);
     const payment = await getPaymentById(idPayment);
-    await saleRepo.update({ id }, { payment: payment });
+    await saleRepo.update({ id }, { payment, open });
   }
+
+  await saleRepo.update({ id }, { total, open });
   return await saleRepo.findOneBy({ id });
 };
 
@@ -142,7 +147,7 @@ export const getSaleById = async (id: number) => {
   validateNumberID(id);
   const existing = await saleRepo.findOne({
     where: { id, open: true },
-    relations: { bartable: true, employee: true },
+    relations: { products: { product: true }, bartable: true, employee: true },
   });
   if (!existing) throw new AppError("Venta no encontrada", 404);
   return existing;

@@ -9,7 +9,7 @@ import { fetchJson } from "~/utils/api/fetchJson";
 
 // CREAR MESA
 export async function createProductSold(data: CreateProductSoldFormData) {
-  const { idProduct, units, subtotal, idSale } = data;
+  const { idProduct, quantity, subtotal, idSale } = data;
   return await fetchJson<ProductSold>(
     `${VITE_API_URL}/api/${ENDPOINTS.productSold}`,
     {
@@ -19,7 +19,7 @@ export async function createProductSold(data: CreateProductSoldFormData) {
       },
       body: JSON.stringify({
         idProduct,
-        units,
+        quantity,
         subtotal,
         idSale,
       }),
@@ -29,7 +29,7 @@ export async function createProductSold(data: CreateProductSoldFormData) {
 
 // ACTUALIZAR MESA
 export async function updateProductSold(data: UpdateProductSoldFormData) {
-  const { id, units, subtotal } = data;
+  const { id, quantity, subtotal } = data;
   return await fetchJson<ProductSold>(
     `${VITE_API_URL}/api/${ENDPOINTS.productSold}/${id}`,
     {
@@ -38,7 +38,7 @@ export async function updateProductSold(data: UpdateProductSoldFormData) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        units,
+        quantity,
         subtotal,
       }),
     }

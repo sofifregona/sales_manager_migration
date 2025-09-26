@@ -22,15 +22,14 @@ export async function createSale(data: CreateSaleFormData) {
 
 // ACTUALIZAR MESA
 export async function updateSale(data: UpdateSaleFormData) {
-  const { id, idBartable, idEmployee, idPayment, open } = data;
+  const { id, product, idPayment, open } = data;
   return await fetchJson<Sale>(`${VITE_API_URL}/api/${ENDPOINTS.sale}/${id}`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      idBartable,
-      idEmployee,
+      product,
       idPayment,
       open,
     }),

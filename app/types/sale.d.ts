@@ -19,7 +19,6 @@ export interface Sale {
 export interface CreateSaleFormData {
   idBartable?: number | null;
   idEmployee?: number | null;
-  hasDiscount: boolean;
 }
 
 export interface UpdateSaleFormData extends Partial<CreateSaleFormData> {

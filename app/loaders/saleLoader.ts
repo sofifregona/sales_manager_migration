@@ -8,6 +8,7 @@ import {
 } from "~/utils/validations/validationHelpers";
 import { getAllPayments } from "~/api/payment";
 import { getListOfProducts } from "~/api/product";
+import { getAllCategories } from "~/api/category";
 
 export async function saleListLoader() {
   try {
@@ -56,9 +57,10 @@ export const saleLoader = async ({ params, request }: LoaderFunctionArgs) => {
   }
 
   try {
-    const [sale, products, payments] = await Promise.all([
+    const [sale, products, categories, payments] = await Promise.all([
       getSaleById(id),
       getListOfProducts(filters),
+      getAllCategories(),
       getAllPayments(),
     ]);
 
@@ -67,12 +69,26 @@ export const saleLoader = async ({ params, request }: LoaderFunctionArgs) => {
 
     if (idBartable !== null) {
       const prop = await getBartableById(idBartable);
-      return { sale, prop, propType: "bartable" as const };
+      return {
+        sale,
+        products,
+        categories,
+        payments,
+        prop,
+        propType: "bartable" as const,
+      };
     }
 
     if (idEmployee !== null) {
       const prop = await getEmployeeById(idEmployee);
-      return { sale, products, payments, prop, propType: "employee" as const };
+      return {
+        sale,
+        products,
+        categories,
+        payments,
+        prop,
+        propType: "employee" as const,
+      };
     }
   } catch (error) {
     let parsed = { message: "Error al obtener la venta", status: 500 };

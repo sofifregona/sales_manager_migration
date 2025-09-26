@@ -9,3 +9,14 @@ export interface ProductSold {
   subtotal: number;
   sale: Sale;
 }
+
+export interface CreateProductSoldFormData {
+  idProduct: number;
+  units: number;
+  subtotal: number;
+  idSale: number;
+}
+
+export interface UpdateProductSoldFormData extends CreateProductSoldFormData {
+  id: number;
+}

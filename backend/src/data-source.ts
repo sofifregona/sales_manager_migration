@@ -21,7 +21,7 @@ export const AppDataSource = new DataSource({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   synchronize: true, // Sacar en fase de producción
-  dropSchema: true, // Sacar en fase de producción
+  dropSchema: false, // Sacar en fase de producción
   logging: false,
   entities: [
     Bartable,

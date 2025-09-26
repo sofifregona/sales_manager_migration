@@ -36,7 +36,7 @@ export class Sale {
   @Column("int", { nullable: true })
   discount!: number | null;
 
-  @ManyToOne(() => Payment, { nullable: false })
+  @ManyToOne(() => Payment, { nullable: true })
   payment!: Payment;
 
   @OneToMany(() => ProductSold, (productSold) => productSold.sale, {

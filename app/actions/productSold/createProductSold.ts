@@ -1,17 +1,14 @@
-import { redirect, type ActionFunctionArgs } from "react-router-dom";
+import { type ActionFunctionArgs } from "react-router-dom";
 import { createProductSold } from "~/api/productSold";
 import type { CreateProductSoldFormData } from "~/types/productSold";
 import {
-  validateFilteredID,
   validateNumberID,
   validatePositiveInteger,
   validatePositiveNumber,
-  validateRangeLength,
   validateRequiredAndType,
-  validateType,
 } from "~/utils/validations/validationHelpers";
 
-export async function createProductAction({ request }: ActionFunctionArgs) {
+export async function createProductSoldAction({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
 
   // Validations for idProduct (input)

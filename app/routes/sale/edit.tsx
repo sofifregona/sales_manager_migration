@@ -1,18 +1,21 @@
+// **IMPORTS**
+// Libraries
 import { Form, useLoaderData, useActionData } from "react-router-dom";
-import type { Sale } from "~/types/sale";
-import { saleLoader } from "~/loaders/saleLoader";
-// import { updateSaleAction } from "~/actions/sale/updateSale";
 import { useEffect, useMemo, useState, useRef } from "react";
-import { FilterableSelect } from "../product/filter";
+// Types
 import type { Bartable } from "~/types/bartable";
-import type { Employee } from "~/types/employee";
-import type { Product } from "~/types/product";
-import type { Payment } from "~/types/payment";
 import type { Category } from "~/types/category";
+import type { Employee } from "~/types/employee";
+import type { Payment } from "~/types/payment";
+import type { Product } from "~/types/product";
+import type { Sale } from "~/types/sale";
+// loader & Action
+import { saleLoader } from "~/loaders/saleLoader";
+
+// Helpers
 import { normalizeText } from "~/utils/helpers/normalizeText";
 
 export { saleLoader as loader };
-// export { updateSaleAction as action };
 
 export default function SaleEditPage() {
   const actionData = useActionData() as {
@@ -150,6 +153,13 @@ export default function SaleEditPage() {
           <ul>
             {filteredProducts.map((p) => (
               <li key={p.id}>
+                <bartableFetcher.Form method="post" action=".">
+                  <input type="hidden" name="idBartable" value={bartable.id} />
+                  <input type="hidden" name="idProp" value="bartable" />
+                  <button type="submit" className="btn btn--gray">
+                    <div className="btn__inner">{bartable.number}</div>
+                  </button>
+                </bartableFetcher.Form>
                 <span
                   className="productName"
                   onClick={() => handleListProducts(p, "add")}

@@ -25,7 +25,7 @@ export async function createProductAction({ request }: ActionFunctionArgs) {
 
   // Validations for idProduct (number)
   const idProduct = Number(idProductStr);
-  const idProductError = validatePositiveInteger(idProduct, "Id producto");
+  const idProductError = validateNumberID(idProduct, "Id producto");
   if (idProductError) return idProductError;
 
   // Validations for units (input)
@@ -63,7 +63,7 @@ export async function createProductAction({ request }: ActionFunctionArgs) {
 
   // Validations for idProduct (number)
   const idSale = Number(idSaleStr);
-  const idSaleError = validatePositiveInteger(idSale, "Id producto");
+  const idSaleError = validateNumberID(idSale, "Id producto");
   if (idSaleError) return idSaleError;
 
   const data: CreateProductSoldFormData = {

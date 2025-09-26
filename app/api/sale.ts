@@ -10,6 +10,7 @@ import { fetchJson } from "~/utils/api/fetchJson";
 // CREAR MESA
 export async function createSale(data: CreateSaleFormData) {
   const { idBartable, idEmployee } = data;
+
   return await fetchJson<Sale>(`${VITE_API_URL}/api/${ENDPOINTS.sale}`, {
     method: "POST",
     headers: {

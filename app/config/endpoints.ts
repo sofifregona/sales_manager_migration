@@ -5,6 +5,7 @@ export const ENDPOINTS = {
   employee: "employees",
   payment: "payments",
   product: "products",
+  productSold: "productsSold",
   provider: "providers",
   sale: "sales",
 };

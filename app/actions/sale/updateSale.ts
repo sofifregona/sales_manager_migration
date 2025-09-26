@@ -4,114 +4,89 @@ import type { UpdateSaleFormData } from "~/types/sale";
 import {
   validateNumberID,
   validateType,
-  validateRequiredAndType,
   validateRequiredID,
-  validateNumber,
   validatePositiveInteger,
 } from "~/utils/validations/validationHelpers";
-
-import {
-  validateCUI,
-  validateTelephone,
-  validateEmailFormat,
-} from "~/utils/validations/validationPerson";
 
 export async function updateSaleAction({
   params,
   request,
 }: ActionFunctionArgs) {
   // Validations for ID (param)
-  const idRequiredError = validateRequiredID(params.id, "PROVEEDOR");
+  const idRequiredError = validateRequiredID(params.id, "VENTA");
   if (idRequiredError) return idRequiredError;
 
   // Validations for ID (parsed)
   const id = parseInt(params.id as string, 10);
-  const idNumberError = validateNumberID(id, "PROVEEDOR");
+  const idNumberError = validateNumberID(id, "VENTA");
   if (idNumberError) return idNumberError;
 
   const formData = await request.formData();
 
+  let idPayment: number | undefined = undefined;
+  let idProduct: number | undefined = undefined;
+  let op: string | undefined = undefined;
+  let open: boolean = true;
+
   const idPaymentStr = formData.get("idPayment");
-  if (idPaymentStr !== null) {
+  if (idPaymentStr) {
     const idPaymentStrError = validateType(
       idPaymentStr,
       "string",
       "Método de pago"
     );
     if (idPaymentStrError) return idPaymentStrError;
-    const idPaymentNum = Number(idPaymentStr);
-    const idPaymentNumError = validatePositiveInteger(
-      idPaymentNum,
-      "Método de pago"
+    idPayment = Number(idPaymentStr);
+    const idPaymentError = validatePositiveInteger(idPayment, "Método de pago");
+    if (idPaymentError) return idPaymentError;
+  }
+
+  const idProductStr = formData.get("idProduct");
+  if (idProductStr) {
+    // Validations for idProduct (inputs) if exists
+    const idProductStrError = validateType(
+      idProductStr,
+      "string",
+      "Id producto"
     );
-    if (idPaymentNumError) return idPaymentNumError;
+    if (idProductStrError) return idProductStrError;
+    // Validations for idProduct (number) if exists
+    idProduct = Number(idProductStr);
+    const idProductError = validatePositiveInteger(idProduct, "Id producto");
+    if (idProductError) return idProductError;
+    // Validations for operation (input)
+    const opStr = formData.get("op");
+    const opStrError = validateType(
+      opStr,
+      "string",
+      "Operación (adición/sustracción"
+    );
+    if (opStrError) return opStrError;
+    if (opStr !== "add" && opStr !== "substract")
+      return {
+        error:
+          "La operación debe ser de adición o sustracción de un producto de la venta",
+        source: "client",
+      };
+    op = opStr;
   }
 
-  const productsSold = formData.get("productsSold");
-  if (productsSold !== null) {
-    productsSold.map((productSold) => {
-      validateRequiredID(productSold.id, "Producto agregado a la venta");
-    });
+  const openStr = formData.get("open");
+  if (openStr) {
+    const openStrError = validateType(
+      openStr,
+      "boolean",
+      "Estado de la venta (abierta/cerrada)"
+    );
+    if (openStrError) return openStrError;
+    open = openStr === "true" ? true : false;
   }
-
-  // Validations for name (input)
-
-  const idBartable = formData.get("name");
-  const nameError = validateRequiredAndType(name, "Nombre", "string");
-  if (nameError) return nameError;
-
-  // Validations for cuit (input)
-  const cuitValue = formData.get("cuit");
-  const cuitTypeError = validateType(cuitValue, "string", "Cuit");
-  if (cuitTypeError) return cuitTypeError;
-  const cuitStr = cuitValue?.toString().replaceAll("-", "").trim() || "";
-  let cuit: number | null = null;
-  if (cuitStr !== "") {
-    // Validations for cuit (parsed)
-    const cuitNum = Number(cuitStr);
-    const cuitValidation = validateCUI(cuitNum, "Cuit", 11);
-    if (cuitValidation) return cuitValidation;
-    cuit = cuitNum;
-  }
-
-  // Validations for telephone (input)
-  const telValue = formData.get("telephone");
-  const telTypeError = validateType(telValue, "string", "Teléfono");
-  if (telTypeError) return telTypeError;
-  const telStr = telValue?.toString().trim() || "";
-  let tel: number | null = null;
-  if (telStr !== "") {
-    // Validation for telephone (parsed)
-    const telNum = Number(telStr);
-    const telValidation = validateTelephone(telNum, "Teléfono");
-    if (telValidation) return telValidation;
-    tel = telNum;
-  }
-
-  // Validations for email (input)
-  const emailValue = formData.get("email");
-  const emailTypeError = validateType(emailValue, "string", "E-mail");
-  if (emailTypeError) return emailTypeError;
-  const emailStr = emailValue?.toString().trim() || "";
-  let email: string | null = null;
-  if (emailStr !== "") {
-    const emailFormat = validateEmailFormat(emailStr);
-    if (emailFormat) return emailFormat;
-    email = emailStr;
-  }
-
-  const addressValue = formData.get("address");
-  const addressTypeError = validateType(addressValue, "string", "Dirección");
-  if (addressTypeError) return addressTypeError;
-  const address = addressValue?.toString().trim() || null;
 
   const data: UpdateSaleFormData = {
     id,
-    name: name as string,
-    cuit: cuit,
-    telephone: tel,
-    email: email,
-    address: address,
+    idPayment,
+    product: { idProduct, op },
+    open,
   };
 
   try {
@@ -127,5 +102,5 @@ export async function updateSaleAction({
     return { error: parsed.message, status: parsed.status, source: "server" };
   }
 
-  return redirect("/sale/edit-success");
+  return;
 }

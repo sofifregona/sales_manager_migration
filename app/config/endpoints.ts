@@ -1,4 +1,5 @@
 export const ENDPOINTS = {
+  account: "accounts",
   bartable: "bartables",
   brand: "brands",
   category: "categories",
@@ -8,4 +9,5 @@ export const ENDPOINTS = {
   productSold: "productsSold",
   provider: "providers",
   sale: "sales",
+  transaction: "transactions",
 };

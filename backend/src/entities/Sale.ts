@@ -25,8 +25,8 @@ export class Sale {
     precision: 10,
     scale: 2,
     transformer: {
-      to: (value?: number) => (value != null ? value.toFixed(2) : null), // JS -> DB (string)
-      from: (value: string | null) => (value != null ? Number(value) : null), // DB -> JS (number)
+      to: (value: number) => value.toFixed(2), // JS -> DB (string)
+      from: (value: string) => Number(value), // DB -> JS (number)
     },
   })
   total!: number;

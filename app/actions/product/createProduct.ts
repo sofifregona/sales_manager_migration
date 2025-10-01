@@ -16,12 +16,12 @@ export async function createProductAction({ request }: ActionFunctionArgs) {
 
   // Validations for name (input)
   const name = formData.get("name");
-  const nameError = validateRequiredAndType(name, "Nombre", "string");
+  const nameError = validateRequiredAndType(name, "string", "Nombre");
   if (nameError) return nameError;
 
   // Validations for code (input)
   let codeStr = formData.get("code");
-  const codeStrError = validateRequiredAndType(codeStr, "Código", "string");
+  const codeStrError = validateRequiredAndType(codeStr, "string", "Código");
   if (codeStrError) return codeStrError;
   codeStr = (codeStr as string).trim();
   const codeLengthError = validateRangeLength(codeStr, 1, 3, "Código");
@@ -34,7 +34,7 @@ export async function createProductAction({ request }: ActionFunctionArgs) {
 
   // Validations for price (input)
   const priceStr = formData.get("price");
-  const priceStrError = validateRequiredAndType(priceStr, "Precio", "string");
+  const priceStrError = validateRequiredAndType(priceStr, "string", "Precio");
   if (priceStrError) return priceStrError;
 
   // Validations for price (parsed)
@@ -95,7 +95,7 @@ export async function createProductAction({ request }: ActionFunctionArgs) {
     await createProduct(data);
     return redirect("/product/create-success");
   } catch (error) {
-    let parsed = { message: "Error al crear el producto", status: 500 };
+    let parsed = { message: "Error al crear el producto.", status: 500 };
     try {
       parsed = JSON.parse((error as Error).message);
     } catch {}

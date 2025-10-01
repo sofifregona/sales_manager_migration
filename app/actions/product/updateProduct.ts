@@ -17,24 +17,24 @@ export async function updateProductAction({
   request,
 }: ActionFunctionArgs) {
   // Validations for ID (param)
-  const idRequiredError = validateRequiredID(params.id, "PRODUCTO");
+  const idRequiredError = validateRequiredID(params.id, "Producto");
   if (idRequiredError) return idRequiredError;
 
   // Validations for ID (parsed)
   const id = parseInt(params.id as string, 10);
-  const idNumberError = validateNumberID(id, "PRODUCTO");
+  const idNumberError = validateNumberID(id, "Producto");
   if (idNumberError) return idNumberError;
 
   const formData = await request.formData();
 
   // Validations for name (input)
   const name = formData.get("name");
-  const nameError = validateRequiredAndType(name, "Nombre", "string");
+  const nameError = validateRequiredAndType(name, "string", "Nombre");
   if (nameError) return nameError;
 
   // Validations for code (input)
   let codeStr = formData.get("code");
-  const codeStrError = validateRequiredAndType(codeStr, "Código", "string");
+  const codeStrError = validateRequiredAndType(codeStr, "string", "Código");
   if (codeStrError) return codeStrError;
   codeStr = (codeStr as string).trim();
   const codeLengthError = validateRangeLength(codeStr, 1, 3, "Código");
@@ -47,7 +47,7 @@ export async function updateProductAction({
 
   // Validations for price (input)
   const priceStr = formData.get("price");
-  const priceStrError = validateRequiredAndType(priceStr, "Precio", "string");
+  const priceStrError = validateRequiredAndType(priceStr, "string", "Precio");
   if (priceStrError) return priceStrError;
 
   // Validations for price (parsed)
@@ -109,7 +109,7 @@ export async function updateProductAction({
     await updateProduct(data);
   } catch (error) {
     let parsed = {
-      message: "Error al actualizar el método de pago",
+      message: "Error al actualizar el producto.",
       status: 500,
     };
     try {

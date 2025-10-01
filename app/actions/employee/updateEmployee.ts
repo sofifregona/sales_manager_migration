@@ -19,31 +19,31 @@ export async function updateEmployeeAction({
   request,
 }: ActionFunctionArgs) {
   // Validations for ID (param)
-  const idRequiredError = validateRequiredID(params.id, "EMPLEADO");
+  const idRequiredError = validateRequiredID(params.id, "Empleado");
   if (idRequiredError) return idRequiredError;
 
   // Validations for ID (parsed)
   const id = parseInt(params.id as string, 10);
-  const idNumberError = validateNumberID(id, "EMPLEADO");
+  const idNumberError = validateNumberID(id, "Empleado");
   if (idNumberError) return idNumberError;
 
   const formData = await request.formData();
 
   // Validations for name (input)
   const name = formData.get("name");
-  const nameError = validateRequiredAndType(name, "Nombre", "string");
+  const nameError = validateRequiredAndType(name, "string", "Nombre");
   if (nameError) return nameError;
 
   // Validations for dni (input)
   const dniValue = formData.get("dni");
-  const dniTypeError = validateType(dniValue, "string", "Dni");
+  const dniTypeError = validateType(dniValue, "string", "DNI");
   if (dniTypeError) return dniTypeError;
   const dniStr = dniValue?.toString().replaceAll(".", "").trim() || "";
   let dni: number | null = null;
   if (dniStr !== "") {
     // Validations for dni (parsed)
     const dniNum = Number(dniStr);
-    const dniValidation = validateCUI(dniNum, "Dni", 8);
+    const dniValidation = validateCUI(dniNum, 8, "DNI");
     if (dniValidation) return dniValidation;
     dni = dniNum;
   }
@@ -92,7 +92,7 @@ export async function updateEmployeeAction({
     await updateEmployee(data);
   } catch (error) {
     let parsed = {
-      message: "Error al actualizar el empleado",
+      message: "Error al actualizar el empleado.",
       status: 500,
     };
     try {

@@ -15,8 +15,8 @@ export async function createSaleAction({ request }: ActionFunctionArgs) {
   const prop = formData.get("idProp");
   const propError = validateRequiredAndType(
     prop,
-    "Correspondencia de venta",
-    "string"
+    "string",
+    "Propietario de la venta"
   );
   if (propError) return propError;
 
@@ -28,14 +28,14 @@ export async function createSaleAction({ request }: ActionFunctionArgs) {
     // Validations for idBartable (input) if exists
     const idBartableStrError = validateRequiredAndType(
       idBartableStr,
-      "ID Mesa",
-      "string"
+      "string",
+      "ID Mesa"
     );
     if (idBartableStrError) return idBartableStrError;
 
     // Validations for idBartable (number) if exists
     idBartable = Number(idBartableStr);
-    const idBartableError = validateNumberID(idBartable, "ID Mesa");
+    const idBartableError = validateNumberID(idBartable, "Mesa");
     if (idBartableError) return idBartableError;
   } else if (prop === "employee") {
     const idEmployeeStr = formData.get("idEmployee");
@@ -43,19 +43,19 @@ export async function createSaleAction({ request }: ActionFunctionArgs) {
     // Validations for idEmployee (inputs) if exists
     const idEmployeeStrError = validateRequiredAndType(
       idEmployee,
-      "ID Empleado",
-      "string"
+      "string",
+      "ID Empleado"
     );
     if (idEmployeeStrError) return idEmployeeStrError;
 
     // Validations for idEmployee (number) if exists
     idEmployee = Number(idEmployeeStr);
-    const idEmployeeError = validateNumberID(idEmployee, "ID Empleado");
+    const idEmployeeError = validateNumberID(idEmployee, "Empleado");
     if (idEmployeeError) return idEmployeeError;
   } else {
     return {
       error:
-        "Correspondencia de venta: La venta debe estar asociada a una mesa o un empleado",
+        "(Error) Propietario de la venta: La venta debe estar asociada a una mesa o a un empleado.",
       source: "client",
     };
   }
@@ -70,7 +70,7 @@ export async function createSaleAction({ request }: ActionFunctionArgs) {
 
     return redirect(`/sale/${newSale.id}/edit`);
   } catch (error) {
-    let parsed = { message: "Error al crear la venta", status: 500 };
+    let parsed = { message: "Error al crear la venta.", status: 500 };
     try {
       parsed = JSON.parse((error as Error).message);
     } catch {}

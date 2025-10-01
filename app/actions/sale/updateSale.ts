@@ -13,12 +13,12 @@ export async function updateSaleAction({
   request,
 }: ActionFunctionArgs) {
   // Validations for ID (param)
-  const idRequiredError = validateRequiredID(params.id, "VENTA");
+  const idRequiredError = validateRequiredID(params.id, "Venta");
   if (idRequiredError) return idRequiredError;
 
   // Validations for ID (parsed)
   const id = parseInt(params.id as string, 10);
-  const idNumberError = validateNumberID(id, "VENTA");
+  const idNumberError = validateNumberID(id, "Venta");
   if (idNumberError) return idNumberError;
 
   const formData = await request.formData();
@@ -44,28 +44,20 @@ export async function updateSaleAction({
   const idProductStr = formData.get("idProduct");
   if (idProductStr) {
     // Validations for idProduct (inputs) if exists
-    const idProductStrError = validateType(
-      idProductStr,
-      "string",
-      "Id producto"
-    );
+    const idProductStrError = validateType(idProductStr, "string", "Producto");
     if (idProductStrError) return idProductStrError;
     // Validations for idProduct (number) if exists
     idProduct = Number(idProductStr);
-    const idProductError = validatePositiveInteger(idProduct, "Id producto");
+    const idProductError = validatePositiveInteger(idProduct, "Producto");
     if (idProductError) return idProductError;
     // Validations for operation (input)
     const opStr = formData.get("op");
-    const opStrError = validateType(
-      opStr,
-      "string",
-      "Operación (adición/sustracción"
-    );
+    const opStrError = validateType(opStr, "string", "Operación");
     if (opStrError) return opStrError;
     if (opStr !== "add" && opStr !== "substract")
       return {
         error:
-          "La operación debe ser de adición o sustracción de un producto de la venta",
+          "(Error) La operación debe ser de adición o sustracción de un producto de la venta",
         source: "client",
       };
     op = opStr;
@@ -93,7 +85,7 @@ export async function updateSaleAction({
     await updateSale(data);
   } catch (error) {
     let parsed = {
-      message: "Error al actualizar el método de pago",
+      message: "Error al actualizar la venta.",
       status: 500,
     };
     try {

@@ -7,12 +7,12 @@ import {
 
 export async function deactivateEmployeeAction({ params }: any) {
   // Validations for ID (param)
-  const idRequiredError = validateRequiredID(params.id, "EMPLEADO");
+  const idRequiredError = validateRequiredID(params.id, "Empleado");
   if (idRequiredError) return idRequiredError;
 
   // Validations for ID (parsed)
   const id = parseInt(params.id as string, 10);
-  const idNumberError = validateNumberID(id, "EMPLEADO");
+  const idNumberError = validateNumberID(id, "Empleado");
   if (idNumberError) return idNumberError;
 
   try {

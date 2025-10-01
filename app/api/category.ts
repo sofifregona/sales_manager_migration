@@ -1,16 +1,16 @@
 import type {
-  Category,
-  CreateCategoryFormData,
-  UpdateCategoryFormData,
+  CategoryDTO,
+  CreateCategoryPayload,
+  UpdateCategoryPayload,
 } from "~/types/category";
 import { VITE_API_URL } from "~/config/api";
 import { ENDPOINTS } from "~/config/endpoints";
 import { fetchJson } from "~/utils/api/fetchJson";
 
 // CREAR MESA
-export async function createCategory(data: CreateCategoryFormData) {
+export async function createCategory(data: CreateCategoryPayload) {
   const { name } = data;
-  return await fetchJson<Category>(
+  return await fetchJson<CategoryDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.category}`,
     {
       method: "POST",
@@ -23,9 +23,9 @@ export async function createCategory(data: CreateCategoryFormData) {
 }
 
 // ACTUALIZAR MESA
-export async function updateCategory(data: UpdateCategoryFormData) {
+export async function updateCategory(data: UpdateCategoryPayload) {
   const { id, name } = data;
-  return await fetchJson<Category>(
+  return await fetchJson<CategoryDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.category}/${id}`,
     {
       method: "PATCH",
@@ -39,7 +39,7 @@ export async function updateCategory(data: UpdateCategoryFormData) {
 
 // ELIMINAR MESA
 export async function deactivateCategory(id: number) {
-  return await fetchJson<Category>(
+  return await fetchJson<CategoryDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.category}/${id}/deactivate`,
     {
       method: "PATCH",
@@ -53,7 +53,7 @@ export async function deactivateCategory(id: number) {
 
 // TRAER TODAS LAS MESAS
 export async function getAllCategories() {
-  return await fetchJson<Category[]>(
+  return await fetchJson<CategoryDTO[]>(
     `${VITE_API_URL}/api/${ENDPOINTS.category}`,
     {
       method: "GET",
@@ -65,7 +65,7 @@ export async function getAllCategories() {
 }
 
 export async function getCategoryById(id: number) {
-  return await fetchJson<Category>(
+  return await fetchJson<CategoryDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.category}/${id}`,
     {
       method: "GET",

@@ -1,36 +1,39 @@
 import type {
-  Product,
-  CreateProductFormData,
-  UpdateProductFormData,
-  IncrementProductFormData,
+  ProductDTO,
+  CreateProductPayload,
+  UpdateProductPayload,
+  IncrementPricePayload,
 } from "~/types/product";
 import { VITE_API_URL } from "~/config/api";
 import { ENDPOINTS } from "~/config/endpoints";
 import { fetchJson } from "~/utils/api/fetchJson";
 
 // CREAR MESA
-export async function createProduct(data: CreateProductFormData) {
+export async function createProduct(data: CreateProductPayload) {
   const { name, code, price, idCategory, idBrand, idProvider } = data;
-  return await fetchJson<Product>(`${VITE_API_URL}/api/${ENDPOINTS.product}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      name,
-      code,
-      price,
-      idCategory,
-      idBrand,
-      idProvider,
-    }),
-  });
+  return await fetchJson<ProductDTO>(
+    `${VITE_API_URL}/api/${ENDPOINTS.product}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name,
+        code,
+        price,
+        idCategory,
+        idBrand,
+        idProvider,
+      }),
+    }
+  );
 }
 
 // ACTUALIZAR MESA
-export async function updateProduct(data: UpdateProductFormData) {
+export async function updateProduct(data: UpdateProductPayload) {
   const { id, name, code, price, idCategory, idBrand, idProvider } = data;
-  return await fetchJson<Product>(
+  return await fetchJson<ProductDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.product}/${id}`,
     {
       method: "PATCH",
@@ -49,9 +52,9 @@ export async function updateProduct(data: UpdateProductFormData) {
   );
 }
 
-export async function incrementProduct(data: IncrementProductFormData) {
+export async function incrementProduct(data: IncrementPricePayload) {
   const { ids, percent } = data;
-  return await fetchJson<Product[]>(
+  return await fetchJson<ProductDTO[]>(
     `${VITE_API_URL}/api/${ENDPOINTS.product}/increment`,
     {
       method: "PATCH",
@@ -68,7 +71,7 @@ export async function incrementProduct(data: IncrementProductFormData) {
 
 // ELIMINAR MESA
 export async function deactivateProduct(id: number) {
-  return await fetchJson<Product>(
+  return await fetchJson<ProductDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.product}/${id}/deactivate`,
     {
       method: "PATCH",
@@ -107,7 +110,7 @@ export async function getListOfProducts(filters: {
     qs.set("idCategory", String(filters.idCategory));
   qs.set("sortField", String(filters.sortField ?? "name"));
   qs.set("sortDirection", String(filters.sortDirection ?? "ASC"));
-  return await fetchJson<Product[]>(
+  return await fetchJson<ProductDTO[]>(
     `${VITE_API_URL}/api/${ENDPOINTS.product}${qs.toString() ? `?${qs}` : ""}`,
     {
       method: "GET",
@@ -119,7 +122,7 @@ export async function getListOfProducts(filters: {
 }
 
 export async function getProductById(id: number) {
-  return await fetchJson<Product>(
+  return await fetchJson<ProductDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.product}/${id}`,
     {
       method: "GET",

@@ -16,19 +16,19 @@ export async function createProviderAction({ request }: ActionFunctionArgs) {
 
   // Validations for name (input)
   const name = formData.get("name");
-  const nameError = validateRequiredAndType(name, "Nombre", "string");
+  const nameError = validateRequiredAndType(name, "string", "Nombre");
   if (nameError) return nameError;
 
   // Validations for cuit (input)
   const cuitValue = formData.get("cuit");
-  const cuitTypeError = validateType(cuitValue, "string", "Cuit");
+  const cuitTypeError = validateType(cuitValue, "string", "CUIT");
   if (cuitTypeError) return cuitTypeError;
   const cuitStr = cuitValue?.toString().replaceAll("-", "").trim() || "";
   let cuit: number | null = null;
   if (cuitStr !== "") {
     // Validations for cuit (parsed)
     const cuitNum = Number(cuitStr);
-    const cuitValidation = validateCUI(cuitNum, "Cuit", 11);
+    const cuitValidation = validateCUI(cuitNum, 11, "CUIT");
     if (cuitValidation) return cuitValidation;
     cuit = cuitNum;
   }
@@ -78,7 +78,7 @@ export async function createProviderAction({ request }: ActionFunctionArgs) {
     await createProvider(data);
     return redirect("/provider/create-success");
   } catch (error) {
-    let parsed = { message: "Error al crear la marca", status: 500 };
+    let parsed = { message: "Error al crear el proveedor.", status: 500 };
     try {
       parsed = JSON.parse((error as Error).message);
     } catch {}

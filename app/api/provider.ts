@@ -1,16 +1,16 @@
 import type {
-  Provider,
-  CreateProviderFormData,
-  UpdateProviderFormData,
+  ProviderDTO,
+  CreateProviderPayload,
+  UpdateProviderPayload,
 } from "~/types/provider";
 import { VITE_API_URL } from "~/config/api";
 import { ENDPOINTS } from "~/config/endpoints";
 import { fetchJson } from "~/utils/api/fetchJson";
 
 // CREAR MESA
-export async function createProvider(data: CreateProviderFormData) {
+export async function createProvider(data: CreateProviderPayload) {
   const { name, cuit, telephone, email, address } = data;
-  return await fetchJson<Provider>(
+  return await fetchJson<ProviderDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.provider}`,
     {
       method: "POST",
@@ -23,9 +23,9 @@ export async function createProvider(data: CreateProviderFormData) {
 }
 
 // ACTUALIZAR MESA
-export async function updateProvider(data: UpdateProviderFormData) {
+export async function updateProvider(data: UpdateProviderPayload) {
   const { id, name, cuit, telephone, email, address } = data;
-  return await fetchJson<Provider>(
+  return await fetchJson<ProviderDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.provider}/${id}`,
     {
       method: "PATCH",
@@ -39,7 +39,7 @@ export async function updateProvider(data: UpdateProviderFormData) {
 
 // ELIMINAR MESA
 export async function deactivateProvider(id: number) {
-  return await fetchJson<Provider>(
+  return await fetchJson<ProviderDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.provider}/${id}/deactivate`,
     {
       method: "PATCH",
@@ -53,7 +53,7 @@ export async function deactivateProvider(id: number) {
 
 // TRAER TODAS LAS MESAS
 export async function getAllProviders() {
-  return await fetchJson<Provider[]>(
+  return await fetchJson<ProviderDTO[]>(
     `${VITE_API_URL}/api/${ENDPOINTS.provider}`,
     {
       method: "GET",
@@ -65,7 +65,7 @@ export async function getAllProviders() {
 }
 
 export async function getProviderById(id: number) {
-  return await fetchJson<Provider>(
+  return await fetchJson<ProviderDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.provider}/${id}`,
     {
       method: "GET",

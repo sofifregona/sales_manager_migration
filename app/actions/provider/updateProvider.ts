@@ -19,31 +19,31 @@ export async function updateProviderAction({
   request,
 }: ActionFunctionArgs) {
   // Validations for ID (param)
-  const idRequiredError = validateRequiredID(params.id, "PROVEEDOR");
+  const idRequiredError = validateRequiredID(params.id, "Proveedor");
   if (idRequiredError) return idRequiredError;
 
   // Validations for ID (parsed)
   const id = parseInt(params.id as string, 10);
-  const idNumberError = validateNumberID(id, "PROVEEDOR");
+  const idNumberError = validateNumberID(id, "Proveedor");
   if (idNumberError) return idNumberError;
 
   const formData = await request.formData();
 
   // Validations for name (input)
   const name = formData.get("name");
-  const nameError = validateRequiredAndType(name, "Nombre", "string");
+  const nameError = validateRequiredAndType(name, "string", "Nombre");
   if (nameError) return nameError;
 
   // Validations for cuit (input)
   const cuitValue = formData.get("cuit");
-  const cuitTypeError = validateType(cuitValue, "string", "Cuit");
+  const cuitTypeError = validateType(cuitValue, "string", "CUIT");
   if (cuitTypeError) return cuitTypeError;
   const cuitStr = cuitValue?.toString().replaceAll("-", "").trim() || "";
   let cuit: number | null = null;
   if (cuitStr !== "") {
     // Validations for cuit (parsed)
     const cuitNum = Number(cuitStr);
-    const cuitValidation = validateCUI(cuitNum, "Cuit", 11);
+    const cuitValidation = validateCUI(cuitNum, 11, "CUIT");
     if (cuitValidation) return cuitValidation;
     cuit = cuitNum;
   }
@@ -92,7 +92,7 @@ export async function updateProviderAction({
     await updateProvider(data);
   } catch (error) {
     let parsed = {
-      message: "Error al actualizar el método de pago",
+      message: "Error al actualizar el proveedor.",
       status: 500,
     };
     try {

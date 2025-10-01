@@ -1,16 +1,16 @@
 import type {
-  ProductSold,
-  CreateProductSoldFormData,
-  UpdateProductSoldFormData,
+  ProductSoldDTO,
+  CreateProductSoldPayload,
+  UpdateProductSoldPayload,
 } from "~/types/productSold";
 import { VITE_API_URL } from "~/config/api";
 import { ENDPOINTS } from "~/config/endpoints";
 import { fetchJson } from "~/utils/api/fetchJson";
 
 // CREAR MESA
-export async function createProductSold(data: CreateProductSoldFormData) {
+export async function createProductSold(data: CreateProductSoldPayload) {
   const { idProduct, quantity, subtotal, idSale } = data;
-  return await fetchJson<ProductSold>(
+  return await fetchJson<ProductSoldDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.productSold}`,
     {
       method: "POST",
@@ -28,9 +28,9 @@ export async function createProductSold(data: CreateProductSoldFormData) {
 }
 
 // ACTUALIZAR MESA
-export async function updateProductSold(data: UpdateProductSoldFormData) {
+export async function updateProductSold(data: UpdateProductSoldPayload) {
   const { id, quantity, subtotal } = data;
-  return await fetchJson<ProductSold>(
+  return await fetchJson<ProductSoldDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.productSold}/${id}`,
     {
       method: "PATCH",
@@ -47,7 +47,7 @@ export async function updateProductSold(data: UpdateProductSoldFormData) {
 
 // ELIMINAR MESA
 export async function deleteProductSold(id: number) {
-  return await fetchJson<ProductSold>(
+  return await fetchJson<ProductSoldDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.productSold}/${id}`,
     {
       method: "DELETE",
@@ -56,7 +56,7 @@ export async function deleteProductSold(id: number) {
 }
 
 export async function getProductSoldById(id: number) {
-  return await fetchJson<ProductSold>(
+  return await fetchJson<ProductSoldDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.productSold}/${id}`,
     {
       method: "GET",

@@ -1,16 +1,16 @@
 import type {
-  Brand,
-  CreateBrandFormData,
-  UpdateBrandFormData,
+  BrandDTO,
+  CreateBrandPayload,
+  UpdateBrandPayload,
 } from "~/types/brand";
 import { VITE_API_URL } from "~/config/api";
 import { ENDPOINTS } from "~/config/endpoints";
 import { fetchJson } from "~/utils/api/fetchJson";
 
 // CREAR MESA
-export async function createBrand(data: CreateBrandFormData) {
+export async function createBrand(data: CreateBrandPayload) {
   const { name } = data;
-  return await fetchJson<Brand>(`${VITE_API_URL}/api/${ENDPOINTS.brand}`, {
+  return await fetchJson<BrandDTO>(`${VITE_API_URL}/api/${ENDPOINTS.brand}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -20,9 +20,9 @@ export async function createBrand(data: CreateBrandFormData) {
 }
 
 // ACTUALIZAR MESA
-export async function updateBrand(data: UpdateBrandFormData) {
+export async function updateBrand(data: UpdateBrandPayload) {
   const { id, name } = data;
-  return await fetchJson<Brand>(
+  return await fetchJson<BrandDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.brand}/${id}`,
     {
       method: "PATCH",
@@ -36,7 +36,7 @@ export async function updateBrand(data: UpdateBrandFormData) {
 
 // ELIMINAR MESA
 export async function deactivateBrand(id: number) {
-  return await fetchJson<Brand>(
+  return await fetchJson<BrandDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.brand}/${id}/deactivate`,
     {
       method: "PATCH",
@@ -50,7 +50,7 @@ export async function deactivateBrand(id: number) {
 
 // TRAER TODAS LAS MESAS
 export async function getAllBrands() {
-  return await fetchJson<Brand[]>(`${VITE_API_URL}/api/${ENDPOINTS.brand}`, {
+  return await fetchJson<BrandDTO[]>(`${VITE_API_URL}/api/${ENDPOINTS.brand}`, {
     method: "GET",
     headers: {
       "Content-Type": "application/json",
@@ -59,7 +59,7 @@ export async function getAllBrands() {
 }
 
 export async function getBrandById(id: number) {
-  return await fetchJson<Brand>(
+  return await fetchJson<BrandDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.brand}/${id}`,
     {
       method: "GET",

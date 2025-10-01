@@ -1,28 +1,31 @@
 import type {
-  Account,
-  CreateAccountFormData,
-  UpdateAccountFormData,
+  AccountDTO,
+  CreateAccountPayload,
+  UpdateAccountPayload,
 } from "~/types/account";
 import { VITE_API_URL } from "~/config/api";
 import { ENDPOINTS } from "~/config/endpoints";
 import { fetchJson } from "~/utils/api/fetchJson";
 
 // CREAR MESA
-export async function createAccount(data: CreateAccountFormData) {
+export async function createAccount(data: CreateAccountPayload) {
   const { name, description } = data;
-  return await fetchJson<Account>(`${VITE_API_URL}/api/${ENDPOINTS.account}`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ name, description }),
-  });
+  return await fetchJson<AccountDTO>(
+    `${VITE_API_URL}/api/${ENDPOINTS.account}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ name, description }),
+    }
+  );
 }
 
 // ACTUALIZAR MESA
-export async function updateAccount(data: UpdateAccountFormData) {
+export async function updateAccount(data: UpdateAccountPayload) {
   const { id, name, description } = data;
-  return await fetchJson<Account>(
+  return await fetchJson<AccountDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.account}/${id}`,
     {
       method: "PATCH",
@@ -36,7 +39,7 @@ export async function updateAccount(data: UpdateAccountFormData) {
 
 // ELIMINAR MESA
 export async function deactivateAccount(id: number) {
-  return await fetchJson<Account>(
+  return await fetchJson<AccountDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.account}/${id}/deactivate`,
     {
       method: "PATCH",
@@ -50,7 +53,7 @@ export async function deactivateAccount(id: number) {
 
 // TRAER TODAS LAS MESAS
 export async function getAllAccounts() {
-  return await fetchJson<Account[]>(
+  return await fetchJson<AccountDTO[]>(
     `${VITE_API_URL}/api/${ENDPOINTS.account}`,
     {
       method: "GET",
@@ -62,7 +65,7 @@ export async function getAllAccounts() {
 }
 
 export async function getAccountById(id: number) {
-  return await fetchJson<Account>(
+  return await fetchJson<AccountDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.account}/${id}`,
     {
       method: "GET",

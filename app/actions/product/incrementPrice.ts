@@ -3,7 +3,6 @@ import { incrementProduct } from "~/api/product";
 import type { IncrementProductFormData } from "~/types/product";
 import {
   validateNumberID,
-  validateType,
   validateRequiredAndType,
   validateRequiredID,
   validatePositiveInteger,
@@ -17,23 +16,23 @@ export async function incrementPriceAction({ request }: ActionFunctionArgs) {
   const list: number[] = [];
 
   for (const idStrForm of idsForm) {
-    const idStrError = validateRequiredAndType(idStrForm, "ID", "string");
+    const idStrError = validateRequiredAndType(idStrForm, "string", "Producto");
     if (idStrError) return idStrError;
     const idStr = (idStrForm as string).trim();
     // Validations for ID
-    const idRequiredError = validateRequiredID(idStr, "PRODUCTO");
+    const idRequiredError = validateRequiredID(idStr, "Producto");
     if (idRequiredError) return idRequiredError;
 
     // Validations for ID (parsed)
     const id = parseInt(idStr as string, 10);
-    const idNumberError = validateNumberID(id, "PRODUCTO");
+    const idNumberError = validateNumberID(id, "Producto");
     if (idNumberError) return idNumberError;
 
     list.push(id);
   }
 
   const ids = [...new Set(list)];
-  const emptyListError = validateNoEmptyList(ids, "productos");
+  const emptyListError = validateNoEmptyList(ids, "Productos");
   if (emptyListError) return emptyListError;
 
   // Validations for price (input)
@@ -47,7 +46,7 @@ export async function incrementPriceAction({ request }: ActionFunctionArgs) {
 
   // Validations for price (parsed)
   const percent = Number(percentStr);
-  const ErrorPercent = validatePositiveInteger(percent, "Precio");
+  const ErrorPercent = validatePositiveInteger(percent, "Porcentaje");
   if (ErrorPercent) return ErrorPercent;
 
   const data: IncrementProductFormData = {
@@ -59,7 +58,7 @@ export async function incrementPriceAction({ request }: ActionFunctionArgs) {
     await incrementProduct(data);
   } catch (error) {
     let parsed = {
-      message: "Error al actualizar el producto",
+      message: "Error al actualizar el producto.",
       status: 500,
     };
     try {

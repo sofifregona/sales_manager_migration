@@ -1,16 +1,16 @@
 import type {
-  Bartable,
-  CreateBartableFormData,
-  UpdateBartableFormData,
+  BartableDTO,
+  CreateBartablePayload,
+  UpdateBartablePayload,
 } from "~/types/bartable";
 import { VITE_API_URL } from "~/config/api";
 import { ENDPOINTS } from "~/config/endpoints";
 import { fetchJson } from "~/utils/api/fetchJson";
 
 // CREAR MESA
-export async function createBartable(data: CreateBartableFormData) {
+export async function createBartable(data: CreateBartablePayload) {
   const { number } = data;
-  return await fetchJson<Bartable>(
+  return await fetchJson<BartableDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.bartable}`,
     {
       method: "POST",
@@ -23,9 +23,9 @@ export async function createBartable(data: CreateBartableFormData) {
 }
 
 // ACTUALIZAR MESA
-export async function updateBartable(data: UpdateBartableFormData) {
+export async function updateBartable(data: UpdateBartablePayload) {
   const { id, number } = data;
-  return await fetchJson<Bartable>(
+  return await fetchJson<BartableDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.bartable}/${id}`,
     {
       method: "PATCH",
@@ -39,7 +39,7 @@ export async function updateBartable(data: UpdateBartableFormData) {
 
 // ELIMINAR MESA
 export async function deactivateBartable(id: number) {
-  return await fetchJson<Bartable>(
+  return await fetchJson<BartableDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.bartable}/${id}/deactivate`,
     {
       method: "PATCH",
@@ -53,7 +53,7 @@ export async function deactivateBartable(id: number) {
 
 // TRAER TODAS LAS MESAS
 export async function getAllBartables() {
-  return await fetchJson<Bartable[]>(
+  return await fetchJson<BartableDTO[]>(
     `${VITE_API_URL}/api/${ENDPOINTS.bartable}`,
     {
       method: "GET",
@@ -65,7 +65,7 @@ export async function getAllBartables() {
 }
 
 export async function getBartableById(id: number) {
-  return await fetchJson<Bartable>(
+  return await fetchJson<BartableDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.bartable}/${id}`,
     {
       method: "GET",

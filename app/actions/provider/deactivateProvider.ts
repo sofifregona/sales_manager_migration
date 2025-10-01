@@ -7,19 +7,19 @@ import {
 
 export async function deactivateProviderAction({ params }: any) {
   // Validations for ID (param)
-  const idRequiredError = validateRequiredID(params.id, "PROVEEDOR");
+  const idRequiredError = validateRequiredID(params.id, "Proveedor");
   if (idRequiredError) return idRequiredError;
 
   // Validations for ID (parsed)
   const id = parseInt(params.id as string, 10);
-  const idNumberError = validateNumberID(id, "PROVEEDOR");
+  const idNumberError = validateNumberID(id, "Proveedor");
   if (idNumberError) return idNumberError;
 
   try {
     await deactivateProvider(id);
   } catch (error) {
     let parsed = {
-      message: "Error al dar de baja el proveedor",
+      message: "Error al dar de baja el proveedor.",
       status: 500,
     };
     try {

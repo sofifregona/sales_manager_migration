@@ -1,16 +1,16 @@
 import type {
-  Employee,
-  CreateEmployeeFormData,
-  UpdateEmployeeFormData,
+  EmployeeDTO,
+  CreateEmployeePayload,
+  UpdateEmployeePayload,
 } from "~/types/employee";
 import { VITE_API_URL } from "~/config/api";
 import { ENDPOINTS } from "~/config/endpoints";
 import { fetchJson } from "~/utils/api/fetchJson";
 
 // CREAR MESA
-export async function createEmployee(data: CreateEmployeeFormData) {
+export async function createEmployee(data: CreateEmployeePayload) {
   const { name, dni, telephone, email, address } = data;
-  return await fetchJson<Employee>(
+  return await fetchJson<EmployeeDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.employee}`,
     {
       method: "POST",
@@ -23,9 +23,9 @@ export async function createEmployee(data: CreateEmployeeFormData) {
 }
 
 // ACTUALIZAR MESA
-export async function updateEmployee(data: UpdateEmployeeFormData) {
+export async function updateEmployee(data: UpdateEmployeePayload) {
   const { id, name, dni, telephone, email, address } = data;
-  return await fetchJson<Employee>(
+  return await fetchJson<EmployeeDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.employee}/${id}`,
     {
       method: "PATCH",
@@ -39,7 +39,7 @@ export async function updateEmployee(data: UpdateEmployeeFormData) {
 
 // ELIMINAR MESA
 export async function deactivateEmployee(id: number) {
-  return await fetchJson<Employee>(
+  return await fetchJson<EmployeeDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.employee}/${id}/deactivate`,
     {
       method: "PATCH",
@@ -53,7 +53,7 @@ export async function deactivateEmployee(id: number) {
 
 // TRAER TODAS LAS MESAS
 export async function getAllEmployees() {
-  return await fetchJson<Employee[]>(
+  return await fetchJson<EmployeeDTO[]>(
     `${VITE_API_URL}/api/${ENDPOINTS.employee}`,
     {
       method: "GET",
@@ -65,7 +65,7 @@ export async function getAllEmployees() {
 }
 
 export async function getEmployeeById(id: number) {
-  return await fetchJson<Employee>(
+  return await fetchJson<EmployeeDTO>(
     `${VITE_API_URL}/api/${ENDPOINTS.employee}/${id}`,
     {
       method: "GET",

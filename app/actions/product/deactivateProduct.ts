@@ -7,19 +7,19 @@ import {
 
 export async function deactivateProductAction({ params }: any) {
   // Validations for ID (param)
-  const idRequiredError = validateRequiredID(params.id, "PRODUCTO");
+  const idRequiredError = validateRequiredID(params.id, "Producto");
   if (idRequiredError) return idRequiredError;
 
   // Validations for ID (parsed)
   const id = parseInt(params.id as string, 10);
-  const idNumberError = validateNumberID(id, "PRODUCTO");
+  const idNumberError = validateNumberID(id, "Producto");
   if (idNumberError) return idNumberError;
 
   try {
     await deactivateProduct(id);
   } catch (error) {
     let parsed = {
-      message: "Error al dar de baja el método de pago",
+      message: "Error al eliminar el producto.",
       status: 500,
     };
     try {

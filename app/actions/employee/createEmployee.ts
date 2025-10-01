@@ -16,7 +16,7 @@ export async function createEmployeeAction({ request }: ActionFunctionArgs) {
 
   // Validations for name (input)
   const name = formData.get("name");
-  const nameError = validateRequiredAndType(name, "Nombre", "string");
+  const nameError = validateRequiredAndType(name, "string", "Nombre");
   if (nameError) return nameError;
 
   // Validations for dni (input)
@@ -28,7 +28,7 @@ export async function createEmployeeAction({ request }: ActionFunctionArgs) {
   if (dniStr !== "") {
     // Validations for dni (parsed)
     const dniNum = Number(dniStr);
-    const dniValidation = validateCUI(dniNum, "Dni", 8);
+    const dniValidation = validateCUI(dniNum, 8, "DNI");
     if (dniValidation) return dniValidation;
     dni = dniNum;
   }
@@ -78,7 +78,7 @@ export async function createEmployeeAction({ request }: ActionFunctionArgs) {
     await createEmployee(data);
     return redirect("/employee/create-success");
   } catch (error) {
-    let parsed = { message: "Error al crear el empleado", status: 500 };
+    let parsed = { message: "Error al crear el empleado.", status: 500 };
     try {
       parsed = JSON.parse((error as Error).message);
     } catch {}

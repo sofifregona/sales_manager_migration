@@ -7,6 +7,7 @@
       "~/*": ["./app/*"],
       "@back/*": ["backend/*"]
     },
+
     "esModuleInterop": true,
     "verbatimModuleSyntax": true,
     "resolveJsonModule": true,

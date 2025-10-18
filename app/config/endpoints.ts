@@ -10,4 +10,5 @@ export const ENDPOINTS = {
   provider: "providers",
   sale: "sales",
   transaction: "transactions",
+  user: "users",
 };

@@ -24,10 +24,7 @@ export async function updateSaleAction({
     const id = parseInt(params.id as string, 10);
     const idNumberError = validateNumberId(id, "Venta");
     if (idNumberError) {
-      return jsonResponse(422, {
-        error: idNumberError.error,
-        source: idNumberError.source,
-      });
+      return jsonResponse(422, idNumberError);
     }
 
     const formData = await request.formData();
@@ -45,10 +42,7 @@ export async function updateSaleAction({
         "M�todo de pago"
       );
       if (idPaymentStrError) {
-        return jsonResponse(422, {
-          error: idPaymentStrError.error,
-          source: idPaymentStrError.source,
-        });
+        return jsonResponse(422, idPaymentStrError);
       }
       idPayment = Number(idPaymentStr);
       const idPaymentError = validatePositiveInteger(
@@ -56,10 +50,7 @@ export async function updateSaleAction({
         "M�todo de pago"
       );
       if (idPaymentError) {
-        return jsonResponse(422, {
-          error: idPaymentError.error,
-          source: idPaymentError.source,
-        });
+        return jsonResponse(422, idPaymentError);
       }
     }
 
@@ -72,28 +63,19 @@ export async function updateSaleAction({
         "Producto"
       );
       if (idProductStrError) {
-        return jsonResponse(422, {
-          error: idProductStrError.error,
-          source: idProductStrError.source,
-        });
+        return jsonResponse(422, idProductStrError);
       }
       // Validations for idProduct (number) if exists
       idProduct = Number(idProductStr);
       const idProductError = validatePositiveInteger(idProduct, "Producto");
       if (idProductError) {
-        return jsonResponse(422, {
-          error: idProductError.error,
-          source: idProductError.source,
-        });
+        return jsonResponse(422, idProductError);
       }
       // Validations for operation (input)
       const opStr = formData.get("op");
       const opStrError = validateType(opStr, "string", "Operaci�n");
       if (opStrError) {
-        return jsonResponse(422, {
-          error: opStrError.error,
-          source: opStrError.source,
-        });
+        return jsonResponse(422, opStrError);
       }
       if (opStr !== "add" && opStr !== "substract")
         return jsonResponse(422, {
@@ -112,10 +94,7 @@ export async function updateSaleAction({
         "Estado de la venta (abierta/cerrada)"
       );
       if (openStrError) {
-        return jsonResponse(422, {
-          error: openStrError.error,
-          source: openStrError.source,
-        });
+        return jsonResponse(422, openStrError);
       }
       open = openStr === "true" ? true : false;
     }

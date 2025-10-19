@@ -1,6 +1,6 @@
 import type { LoaderFunctionArgs } from "react-router";
 import { runWithRequest } from "~/lib/http/requestContext.server";
-import { getAllUsers, getUserById } from "./userApi.server";
+import { getAllUsers, getUserById } from "./user-api.server";
 // Types
 import type { UserDTO, UserLoaderData } from "./user";
 import type { Flash } from "~/types/flash";

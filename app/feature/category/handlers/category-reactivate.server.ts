@@ -1,4 +1,4 @@
-import { redirect } from "react-router-dom";
+﻿import { redirect } from "react-router-dom";
 import { reactivateCategory } from "~/feature/category/category-api.server";
 import { jsonResponse } from "~/lib/http/jsonResponse";
 import { setFlash } from "~/services/flashSession";
@@ -9,12 +9,9 @@ type Ctx = { formData: FormData };
 
 export async function handleCategoryReactivate({ formData }: Ctx) {
   const idParam = formData.get("id");
-  const idReqError = validateRequiredId(idParam, "Categoría");
+  const idReqError = validateRequiredId(idParam, "CategorÃ­a");
   if (idReqError)
-    return jsonResponse(422, {
-      error: idReqError.error,
-      source: idReqError.source,
-    });
+    return jsonResponse(422, idReqError);
   const idNum = Number(idParam);
   try {
     await reactivateCategory(idNum);
@@ -23,7 +20,7 @@ export async function handleCategoryReactivate({ formData }: Ctx) {
   } catch (error) {
     const parsed = parseAppError(
       error,
-      "(Error) No se pudo reactivar la categoría seleccionada."
+      "(Error) No se pudo reactivar la categorÃ­a seleccionada."
     );
     return jsonResponse(parsed.status ?? 500, {
       error: parsed.message,

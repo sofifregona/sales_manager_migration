@@ -10,10 +10,7 @@ export async function handleProviderDeactivate({ formData }: Ctx) {
   const idParam = formData.get("id");
   const idReqError = validateRequiredId(idParam, "Proveedor");
   if (idReqError)
-    return jsonResponse(422, {
-      error: idReqError.error,
-      source: idReqError.source,
-    });
+    return jsonResponse(422, idReqError);
   const idNum = Number(idParam);
   try {
     await deactivateProvider(idNum);

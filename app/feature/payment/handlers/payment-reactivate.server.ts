@@ -10,10 +10,7 @@ export async function handlePaymentReactivate({ formData }: Ctx) {
   const idParam = formData.get("id");
   const idReqError = validateRequiredId(idParam, "Método de pago");
   if (idReqError)
-    return jsonResponse(422, {
-      error: idReqError.error,
-      source: idReqError.source,
-    });
+    return jsonResponse(422, idReqError);
   const id = Number(idParam);
   try {
     await reactivatePayment(id);

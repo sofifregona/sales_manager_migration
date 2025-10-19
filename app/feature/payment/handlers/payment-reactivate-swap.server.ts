@@ -15,10 +15,7 @@ export async function handlePaymentReactivateSwap({ formData }: Ctx) {
     "Método de pago actual"
   );
   if (currentIdReqError)
-    return jsonResponse(422, {
-      error: currentIdReqError.error,
-      source: currentIdReqError.source,
-    });
+    return jsonResponse(422, currentIdReqError);
   const currentId = Number(currentIdParam);
 
   const inactiveIdReqError = validateRequiredId(
@@ -26,10 +23,7 @@ export async function handlePaymentReactivateSwap({ formData }: Ctx) {
     "Método de pago inactivo"
   );
   if (inactiveIdReqError)
-    return jsonResponse(422, {
-      error: inactiveIdReqError.error,
-      source: inactiveIdReqError.source,
-    });
+    return jsonResponse(422, inactiveIdReqError);
   const inactiveId = Number(inactiveIdParam);
 
   try {

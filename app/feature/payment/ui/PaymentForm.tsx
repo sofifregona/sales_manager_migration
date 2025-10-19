@@ -40,8 +40,10 @@ export function PaymentForm({
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
+        onBlur={(e) => setName(e.target.value.replace(/\s+/g, " ").trim())}
+        maxLength={80}
+        minLength={8}
         required
-        aria-required
       />
 
       <select

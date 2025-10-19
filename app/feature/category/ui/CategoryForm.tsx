@@ -34,8 +34,10 @@ export function CategoryForm({
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
+        onBlur={(e) => setName(e.target.value.replace(/\s+/g, " ").trim())}
+        maxLength={80}
+        minLength={5}
         required
-        aria-required
       />
 
       <input

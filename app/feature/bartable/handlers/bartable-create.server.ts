@@ -1,4 +1,4 @@
-import { redirect } from "react-router-dom";
+﻿import { redirect } from "react-router-dom";
 import { createBartable } from "~/feature/bartable/bartable-api.server";
 import type { CreateBartablePayload } from "~/feature/bartable/bartable";
 import { jsonResponse } from "~/lib/http/jsonResponse";
@@ -13,19 +13,13 @@ type Ctx = { formData: FormData };
 
 export async function handleBartableCreate({ formData }: Ctx) {
   const numParam = formData.get("number");
-  const numParamError = validateRequired(numParam, "number", "Número");
+  const numParamError = validateRequired(numParam, "number", "NÃºmero");
   if (numParamError)
-    return jsonResponse(422, {
-      error: numParamError.error,
-      source: numParamError.source,
-    });
+    return jsonResponse(422, numParamError);
   const num = Number(numParam);
-  const numError = validatePositiveInteger(num, "Número");
+  const numError = validatePositiveInteger(num, "NÃºmero");
   if (numError)
-    return jsonResponse(422, {
-      error: numError.error,
-      source: numError.source,
-    });
+    return jsonResponse(422, numError);
 
   const newData: CreateBartablePayload = { number: num };
   try {

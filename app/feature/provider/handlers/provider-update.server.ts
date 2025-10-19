@@ -21,10 +21,7 @@ export async function handleProviderUpdate({ url, formData }: Ctx) {
   const nameParam = formData.get("name");
   const nameParamError = validateRequired(nameParam, "string", "Nombre");
   if (nameParamError)
-    return jsonResponse(422, {
-      error: nameParamError.error,
-      source: nameParamError.source,
-    });
+    return jsonResponse(422, nameParamError);
   const name = (nameParam as string).trim();
 
   let cuit: number | null = null;
@@ -32,19 +29,13 @@ export async function handleProviderUpdate({ url, formData }: Ctx) {
   if (cuitStr) {
     const cuitStrError = validateType(cuitStr, "string", "CUIT");
     if (cuitStrError)
-      return jsonResponse(422, {
-        error: cuitStrError.error,
-        source: cuitStrError.source,
-      });
+      return jsonResponse(422, cuitStrError);
     const digits = cuitStr.toString().replace(/\D/g, "");
     if (digits !== "") {
       const cuitNum = Number(digits);
       const cuitErr = validateCUI(cuitNum, 11, "CUIT");
       if (cuitErr)
-        return jsonResponse(422, {
-          error: cuitErr.error,
-          source: cuitErr.source,
-        });
+        return jsonResponse(422, cuitErr);
       cuit = cuitNum;
     } else {
       cuit = null;
@@ -56,19 +47,13 @@ export async function handleProviderUpdate({ url, formData }: Ctx) {
   if (telStr) {
     const telStrError = validateType(telStr, "string", "Teléfono");
     if (telStrError)
-      return jsonResponse(422, {
-        error: telStrError.error,
-        source: telStrError.source,
-      });
+      return jsonResponse(422, telStrError);
     const telParsed = telStr.toString().trim();
     if (telParsed !== "") {
       const telNum = Number(telParsed);
       const telErr = validateTelephone(telNum, "Teléfono");
       if (telErr)
-        return jsonResponse(422, {
-          error: telErr.error,
-          source: telErr.source,
-        });
+        return jsonResponse(422, telErr);
       telephone = telNum;
     } else {
       telephone = null;
@@ -80,18 +65,12 @@ export async function handleProviderUpdate({ url, formData }: Ctx) {
   if (emailParam) {
     const emailParamErr = validateType(emailParam, "string", "E-mail");
     if (emailParamErr)
-      return jsonResponse(422, {
-        error: emailParamErr.error,
-        source: emailParamErr.source,
-      });
+      return jsonResponse(422, emailParamErr);
     const emailParsed = emailParam.toString().trim();
     if (emailParsed !== "") {
       const emailErr = validateEmailFormat(emailParsed);
       if (emailErr)
-        return jsonResponse(422, {
-          error: emailErr.error,
-          source: emailErr.source,
-        });
+        return jsonResponse(422, emailErr);
       email = emailParsed;
     } else {
       email = null;
@@ -103,10 +82,7 @@ export async function handleProviderUpdate({ url, formData }: Ctx) {
   if (addressParam) {
     const addressParamErr = validateType(addressParam, "string", "Domicilio");
     if (addressParamErr)
-      return jsonResponse(422, {
-        error: addressParamErr.error,
-        source: addressParamErr.source,
-      });
+      return jsonResponse(422, addressParamErr);
     const addressParsed = addressParam.toString().trim();
     address = addressParsed !== "" ? addressParsed : null;
   }
@@ -114,10 +90,7 @@ export async function handleProviderUpdate({ url, formData }: Ctx) {
   const idParam = url.searchParams.get("id");
   const idReqError = validateRequiredId(idParam, "Proveedor");
   if (idReqError)
-    return jsonResponse(422, {
-      error: idReqError.error,
-      source: idReqError.source,
-    });
+    return jsonResponse(422, idReqError);
   const id = Number(idParam);
 
   const payload: UpdateProviderPayload = {

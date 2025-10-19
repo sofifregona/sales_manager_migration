@@ -46,8 +46,10 @@ export function EmployeeForm({
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
+        onBlur={(e) => setName(e.target.value.replace(/\s+/g, " ").trim())}
+        maxLength={80}
+        minLength={8}
         required
-        aria-required
       />
 
       <label htmlFor="dni">DNI</label>
@@ -77,7 +79,7 @@ export function EmployeeForm({
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        pattern="^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+        // pattern="^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
       />
 
       <label htmlFor="address">Domicilio</label>

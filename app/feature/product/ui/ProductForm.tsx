@@ -40,6 +40,10 @@ export function ProductForm({
   const [idProvider, setIdProvider] = useState(
     editing?.provider?.id ?? undefined
   );
+  const [stockEnabled, setStockEnabled] = useState(false);
+  const [negativeQtyWarning, setNegativeQtyWarning] = useState(true);
+  const [minQtyWarning, setMinQtyWarning] = useState(false);
+  const [minQty, setMinQty] = useState();
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const digits = e.target.value.replace(/\D/g, "");
@@ -78,8 +82,12 @@ export function ProductForm({
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
+        onBlur={(e) =>
+          setName((e.target.value ?? "").replace(/\s+/g, " ").trim())
+        }
+        maxLength={80}
+        minLength={3}
         required
-        aria-required
       />
       <label htmlFor="code">Código *</label>
       <input
@@ -124,6 +132,23 @@ export function ProductForm({
         options={sortAlphabetically(providers)}
         initialId={idProvider}
         editing={editing?.id}
+      />
+
+      <label htmlFor="stockEnabled">Habilitar stock</label>
+      <input
+        type="checkbox"
+        name="stockEnabled"
+        checked={stockEnabled}
+        onChange={(e) => setStockEnabled(e.currentTarget.checked)}
+      />
+
+      <label htmlFor="negativeQtyWarning"></label>
+      <input
+        type="checkbox"
+        name="negativeQtyWarning"
+        checked={stockEnabled ? negativeQtyWarning : true}
+        disabled={!stockEnabled}
+        onChange={(e) => setNegativeQtyWarning(e.currentTarget.checked)}
       />
 
       <input

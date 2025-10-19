@@ -1,7 +1,7 @@
 ﻿import { paymentRepo } from "./payment.repo.js";
 import { Payment } from "./payment.entity.js";
 import { AppError } from "@back/src/shared/errors/AppError.js";
-import { validateNumberID } from "@back/src/shared/utils/validations/validationHelpers.js";
+import { validateNumberID, validateRangeLength } from "@back/src/shared/utils/validations/validationHelpers.js";
 import { normalizeText } from "@back/src/shared/utils/helpers/normalizeText.js";
 import { getAccountById } from "../account/account.service.js";
 
@@ -11,8 +11,9 @@ export const createPayment = async (data: {
   idAccount: number;
 }) => {
   const { name, idAccount } = data;
-
-  const normalizedName = normalizeText(name);
+  const cleanedName = name.replace(/\s+/g, " ").trim();
+  validateRangeLength(cleanedName, 8, 80, "Nombre");
+  const normalizedName = normalizeText(cleanedName);
   // Validations for repeting brands
   const duplicate = await paymentRepo.findOneBy({ normalizedName });
   // If it exists and is active, then throw an error
@@ -39,12 +40,12 @@ export const createPayment = async (data: {
   const account = await getAccountById(idAccount);
 
   // If it doesn't exist, create a new one
-  const newPayment = new Payment();
-  newPayment.name = name;
-  newPayment.normalizedName = normalizedName;
-  newPayment.account = account;
-  newPayment.active = true;
-
+  const newPayment = paymentRepo.create({
+    name: cleanedName,
+    normalizedName,
+    account,
+    active: true,
+  });
   return await paymentRepo.save(newPayment);
 };
 
@@ -53,9 +54,8 @@ export const updatePayment = async (updatedData: {
   id: number;
   name?: string;
   idAccount?: number;
-  active?: boolean;
 }) => {
-  const { id, name, idAccount, active } = updatedData;
+  const { id, name, idAccount } = updatedData;
   validateNumberID(id, "Método de pago");
   const existing = await paymentRepo.findOneBy({ id, active: true });
   if (!existing)
@@ -64,7 +64,9 @@ export const updatePayment = async (updatedData: {
   const data: Partial<Payment> = {};
 
   if (name !== undefined) {
-    const normalizedName = normalizeText(name);
+    const cleanedName = name.replace(/\s+/g, " ").trim();
+    validateRangeLength(cleanedName, 8, 80, "Nombre");
+    const normalizedName = normalizeText(cleanedName);
     // Validations for repeting brands
     const duplicate = await paymentRepo.findOneBy({ normalizedName });
 
@@ -84,7 +86,7 @@ export const updatePayment = async (updatedData: {
         { existingId: duplicate.id }
       );
     } else {
-      data.name = name;
+      data.name = cleanedName;
       data.normalizedName = normalizedName;
     }
   }

@@ -1,4 +1,4 @@
-import { redirect, type ActionFunctionArgs } from "react-router-dom";
+﻿import { redirect, type ActionFunctionArgs } from "react-router-dom";
 import { deactivateTransaction } from "~/feature/transaction/transactionApi.server";
 import { jsonResponse } from "~/lib/http/jsonResponse";
 import { parseAppError } from "~/utils/errors/parseAppError";
@@ -24,33 +24,27 @@ export async function deleteSaleAction({ request }: ActionFunctionArgs) {
 
     const idParam = formData.get("id");
     // Required + string check (rejects null/File/"")
-    const idReqError = validateRequiredId(idParam, "Transacci�n");
+    const idReqError = validateRequiredId(idParam, "Transacciï¿½n");
     if (idReqError) {
-      return jsonResponse(422, {
-        error: idReqError.error,
-        source: idReqError.source,
-      });
+      return jsonResponse(422, idReqError);
     }
     // Numeric (positive integer) check
     const idNum = Number(idParam);
-    const idNumError = validateNumberId(idNum, "Transacci�n");
+    const idNumError = validateNumberId(idNum, "Transacciï¿½n");
     if (idNumError) {
-      return jsonResponse(422, {
-        error: idNumError.error,
-        source: idNumError.source,
-      });
+      return jsonResponse(422, idNumError);
     }
 
     try {
       await deactivateTransaction(idNum);
 
-      // Success → PRG + flash in loader
+      // Success â†’ PRG + flash in loader
       return redirect("/transaction?deleted=1");
     } catch (error) {
-      // Server error → return 5xx JSON for inline display
+      // Server error â†’ return 5xx JSON for inline display
       const parsed = parseAppError(
         error,
-        "(Error) No se pudo eliminar la transacci�n seleccionada."
+        "(Error) No se pudo eliminar la transacciï¿½n seleccionada."
       );
       return jsonResponse(parsed.status ?? 500, {
         error: parsed.message,

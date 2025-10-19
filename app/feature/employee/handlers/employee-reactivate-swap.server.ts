@@ -11,11 +11,11 @@ export async function handleEmployeeReactivateSwap({ formData }: Ctx) {
   const currentIdParam = formData.get("currentId");
 
   const currentIdReqError = validateRequiredId(currentIdParam, "Empleado actual");
-  if (currentIdReqError) return jsonResponse(422, { error: currentIdReqError.error, source: currentIdReqError.source });
+  if (currentIdReqError) return jsonResponse(422, currentIdReqError);
   const currentIdNum = Number(currentIdParam);
 
   const inactiveIdReqError = validateRequiredId(inactiveIdParam, "Empleado inactivo");
-  if (inactiveIdReqError) return jsonResponse(422, { error: inactiveIdReqError.error, source: inactiveIdReqError.source });
+  if (inactiveIdReqError) return jsonResponse(422, inactiveIdReqError);
   const inactiveIdNum = Number(inactiveIdParam);
 
   try {

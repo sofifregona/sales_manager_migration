@@ -1,4 +1,4 @@
-import { redirect, type ActionFunctionArgs } from "react-router-dom";
+﻿import { redirect, type ActionFunctionArgs } from "react-router-dom";
 import {
   createProduct,
   updateProduct,
@@ -43,12 +43,9 @@ export async function productAction({ request }: ActionFunctionArgs) {
     const formData = await request.formData();
     const intent = formData.get("_action");
 
-    const intentError = validateRequiredAndType(intent, "string", "Acci�n");
+    const intentError = validateRequiredAndType(intent, "string", "Acciï¿½n");
     if (intentError) {
-      return jsonResponse(422, {
-        error: intentError.error,
-        source: intentError.source,
-      });
+      return jsonResponse(422, intentError);
     }
 
     // Only allow explicit intents; treat anything else as a bad request
@@ -56,7 +53,7 @@ export async function productAction({ request }: ActionFunctionArgs) {
       !["create", "update", "delete", "increment"].includes(intent!.toString())
     ) {
       return jsonResponse(400, {
-        error: "(Error) Acci�n no soportada.",
+        error: "(Error) Acciï¿½n no soportada.",
         source: "client",
       });
     }
@@ -67,28 +64,22 @@ export async function productAction({ request }: ActionFunctionArgs) {
       // Required + string check (rejects null/File/"")
       const idReqError = validateRequiredId(idParam, "Producto");
       if (idReqError) {
-        return jsonResponse(422, {
-          error: idReqError.error,
-          source: idReqError.source,
-        });
+        return jsonResponse(422, idReqError);
       }
       // Numeric (positive integer) check
       const idNum = Number(idParam);
       const idNumError = validateNumberId(idNum, "Producto");
       if (idNumError) {
-        return jsonResponse(422, {
-          error: idNumError.error,
-          source: idNumError.source,
-        });
+        return jsonResponse(422, idNumError);
       }
 
       try {
         await deactivateProduct(idNum);
 
-        // Success → PRG + flash in loader
+        // Success â†’ PRG + flash in loader
         return redirect("/product?deleted=1");
       } catch (error) {
-        // Server error → return 5xx JSON for inline display
+        // Server error â†’ return 5xx JSON for inline display
         const parsed = parseAppError(
           error,
           "(Error) No se pudo eliminar el producto seleccionado."
@@ -107,19 +98,13 @@ export async function productAction({ request }: ActionFunctionArgs) {
       for (const idParam of idsParams) {
         const idReqError = validateRequiredId(idParam, "Producto");
         if (idReqError) {
-          return jsonResponse(422, {
-            error: idReqError.error,
-            source: idReqError.source,
-          });
+          return jsonResponse(422, idReqError);
         }
         // Numeric (positive integer) check
         const idNum = Number(idParam);
         const idNumError = validateNumberId(idNum, "Producto");
         if (idNumError) {
-          return jsonResponse(422, {
-            error: idNumError.error,
-            source: idNumError.source,
-          });
+          return jsonResponse(422, idNumError);
         }
         list.push(idNum);
       }
@@ -127,10 +112,7 @@ export async function productAction({ request }: ActionFunctionArgs) {
       const ids = [...new Set(list)];
       const emptyListError = validateNoEmptyList(ids, "Productos");
       if (emptyListError) {
-        return jsonResponse(422, {
-          error: emptyListError.error,
-          source: emptyListError.source,
-        });
+        return jsonResponse(422, emptyListError);
       }
 
       // Validations for price (input)
@@ -141,19 +123,13 @@ export async function productAction({ request }: ActionFunctionArgs) {
         "Porcentaje"
       );
       if (percentStrError) {
-        return jsonResponse(422, {
-          error: percentStrError.error,
-          source: percentStrError.source,
-        });
+        return jsonResponse(422, percentStrError);
       }
       // Validations for price (parsed)
       const percent = Number(percentStr);
       const percentError = validatePositiveInteger(percent, "Porcentaje");
       if (percentError) {
-        return jsonResponse(422, {
-          error: percentError.error,
-          source: percentError.source,
-        });
+        return jsonResponse(422, percentError);
       }
 
       const data: IncrementPricePayload = {
@@ -185,10 +161,7 @@ export async function productAction({ request }: ActionFunctionArgs) {
       "Nombre"
     );
     if (nameParamError) {
-      return jsonResponse(422, {
-        error: nameParamError.error,
-        source: nameParamError.source,
-      });
+      return jsonResponse(422, nameParamError);
     }
     const name = nameParam!.toString().trim();
 
@@ -196,29 +169,20 @@ export async function productAction({ request }: ActionFunctionArgs) {
     const codeParamError = validateRequiredAndType(
       codeParam,
       "string",
-      "C�digo"
+      "Cï¿½digo"
     );
     if (codeParamError) {
-      return jsonResponse(422, {
-        error: codeParamError.error,
-        source: codeParamError.source,
-      });
+      return jsonResponse(422, codeParamError);
     }
     const codeStr = codeParam!.toString().trim();
-    const codeStrLengthError = validateRangeLength(codeStr, 1, 3, "C�digo");
+    const codeStrLengthError = validateRangeLength(codeStr, 1, 3, "Cï¿½digo");
     if (codeStrLengthError) {
-      return jsonResponse(422, {
-        error: codeStrLengthError.error,
-        source: codeStrLengthError.source,
-      });
+      return jsonResponse(422, codeStrLengthError);
     }
     const code = Number(codeStr);
-    const codeError = validatePositiveInteger(code, "C�digo");
+    const codeError = validatePositiveInteger(code, "Cï¿½digo");
     if (codeError) {
-      return jsonResponse(422, {
-        error: codeError.error,
-        source: codeError.source,
-      });
+      return jsonResponse(422, codeError);
     }
 
     const priceParam = formData.get("price");
@@ -228,19 +192,13 @@ export async function productAction({ request }: ActionFunctionArgs) {
       "Precio"
     );
     if (priceParamError) {
-      return jsonResponse(422, {
-        error: priceParamError.error,
-        source: priceParamError.source,
-      });
+      return jsonResponse(422, priceParamError);
     }
     const priceStr = priceParam!.toString().trim();
     const price = Number(priceStr);
     const errorPrice = validatePositiveNumber(price, "Precio");
     if (errorPrice) {
-      return jsonResponse(422, {
-        error: errorPrice.error,
-        source: errorPrice.source,
-      });
+      return jsonResponse(422, errorPrice);
     }
 
     let idBrand: number | null = null;
@@ -248,27 +206,18 @@ export async function productAction({ request }: ActionFunctionArgs) {
     if (brandParam) {
       const brandParamError = validateType(brandParam, "string", "Marca");
       if (brandParamError) {
-        return jsonResponse(422, {
-          error: brandParamError.error,
-          source: brandParamError.source,
-        });
+        return jsonResponse(422, brandParamError);
       }
       const brandStr = brandParam.toString().trim();
       if (brandStr !== "") {
         const brandNum = Number(brandStr);
         const brandNumError = validateNumberId(brandNum, "Marca");
         if (brandNumError) {
-          return jsonResponse(422, {
-            error: brandNumError.error,
-            source: brandNumError.source,
-          });
+          return jsonResponse(422, brandNumError);
         }
         const brandFilteredError = validateFilteredId(brandNum, "Marca");
         if (brandFilteredError) {
-          return jsonResponse(422, {
-            error: brandFilteredError.error,
-            source: brandFilteredError.source,
-          });
+          return jsonResponse(422, brandFilteredError);
         }
         idBrand = brandNum;
       }
@@ -280,33 +229,24 @@ export async function productAction({ request }: ActionFunctionArgs) {
       const categoryParamError = validateType(
         categoryParam,
         "string",
-        "Categor��a"
+        "Categorï¿½ï¿½a"
       );
       if (categoryParamError) {
-        return jsonResponse(422, {
-          error: categoryParamError.error,
-          source: categoryParamError.source,
-        });
+        return jsonResponse(422, categoryParamError);
       }
       const categoryStr = categoryParam.toString().trim();
       if (categoryStr !== "") {
         const categoryNum = Number(categoryStr);
-        const categoryNumError = validateNumberId(categoryNum, "Categor��a");
+        const categoryNumError = validateNumberId(categoryNum, "Categorï¿½ï¿½a");
         if (categoryNumError) {
-          return jsonResponse(422, {
-            error: categoryNumError.error,
-            source: categoryNumError.source,
-          });
+          return jsonResponse(422, categoryNumError);
         }
         const categoryFilteredError = validateFilteredId(
           categoryNum,
-          "Categor�a"
+          "Categorï¿½a"
         );
         if (categoryFilteredError) {
-          return jsonResponse(422, {
-            error: categoryFilteredError.error,
-            source: categoryFilteredError.source,
-          });
+          return jsonResponse(422, categoryFilteredError);
         }
         idCategory = categoryNum;
       }
@@ -321,30 +261,21 @@ export async function productAction({ request }: ActionFunctionArgs) {
         "Proveedor"
       );
       if (providerParamError) {
-        return jsonResponse(422, {
-          error: providerParamError.error,
-          source: providerParamError.source,
-        });
+        return jsonResponse(422, providerParamError);
       }
       const providerStr = providerParam.toString().trim();
       if (providerStr !== "") {
         const providerNum = Number(providerStr);
         const providerNumError = validateNumberId(providerNum, "Proveedor");
         if (providerNumError) {
-          return jsonResponse(422, {
-            error: providerNumError.error,
-            source: providerNumError.source,
-          });
+          return jsonResponse(422, providerNumError);
         }
         const providerFilteredError = validateFilteredId(
           providerNum,
           "Proveedor"
         );
         if (providerFilteredError) {
-          return jsonResponse(422, {
-            error: providerFilteredError.error,
-            source: providerFilteredError.source,
-          });
+          return jsonResponse(422, providerFilteredError);
         }
         idProvider = providerNum;
       }
@@ -363,7 +294,7 @@ export async function productAction({ request }: ActionFunctionArgs) {
 
       try {
         await createProduct(newData);
-        // Success → PRG + flash in loader
+        // Success â†’ PRG + flash in loader
         return redirect("/product?created=1");
       } catch (error) {
         const parsed = parseAppError(
@@ -384,19 +315,13 @@ export async function productAction({ request }: ActionFunctionArgs) {
       // Required + string check for URL param
       const idReqError = validateRequiredId(idParam, "Producto");
       if (idReqError) {
-        return jsonResponse(422, {
-          error: idReqError.error,
-          source: idReqError.source,
-        });
+        return jsonResponse(422, idReqError);
       }
       // Numeric (positive integer) check
       const id = Number(idParam);
       const idNumError = validateNumberId(id, "Producto");
       if (idNumError) {
-        return jsonResponse(422, {
-          error: idNumError.error,
-          source: idNumError.source,
-        });
+        return jsonResponse(422, idNumError);
       }
 
       const updatedData: UpdateProductPayload = {
@@ -411,7 +336,7 @@ export async function productAction({ request }: ActionFunctionArgs) {
 
       try {
         await updateProduct(updatedData);
-        // Success → PRG + flash in loader (also clears ?id)
+        // Success â†’ PRG + flash in loader (also clears ?id)
         return redirect("/product?updated=1");
       } catch (error) {
         const parsed = parseAppError(

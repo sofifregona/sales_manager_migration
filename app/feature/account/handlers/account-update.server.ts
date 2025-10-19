@@ -9,6 +9,7 @@ import {
   validateNumberId,
   validateRequired,
   validateType,
+  validateRangeLength,
 } from "~/utils/validation/validationHelpers";
 
 type Ctx = { url: URL; formData: FormData };
@@ -17,31 +18,25 @@ export async function handleUpdateAccount({ url, formData }: Ctx) {
   const nameParam = formData.get("name");
   const nameParamError = validateRequired(nameParam, "string", "Nombre");
   if (nameParamError)
-    return jsonResponse(422, {
-      error: nameParamError.error,
-      source: nameParamError.source,
-    });
-  const name = (nameParam as string).trim();
+    return jsonResponse(422, nameParamError);
+  const name = (nameParam as string).replace(/\s+/g, " ").trim();
+  const nameLengthError = validateRangeLength(name, 8, 80, "Nombre");
+  if (nameLengthError)
+    return jsonResponse(422, nameLengthError);
 
   let desc: string | null = null;
   const descParam = formData.get("description");
   if (descParam) {
     const descError = validateType(descParam, "string", "Descripcion");
     if (descError)
-      return jsonResponse(422, {
-        error: descError.error,
-        source: descError.source,
-      });
-    desc = (descParam as string).trim();
+      return jsonResponse(422, descError);
+    desc = (descParam as string).replace(/\s+/g, " ").trim();
   }
 
   const idParam = url.searchParams.get("id");
   const idReqError = validateRequiredId(idParam, "Cuenta");
   if (idReqError)
-    return jsonResponse(422, {
-      error: idReqError.error,
-      source: idReqError.source,
-    });
+    return jsonResponse(422, idReqError);
   const id = Number(idParam);
 
   const updatedData: UpdateAccountPayload = { id, name, description: desc };

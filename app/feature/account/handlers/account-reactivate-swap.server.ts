@@ -1,4 +1,4 @@
-import { redirect } from "react-router-dom";
+﻿import { redirect } from "react-router-dom";
 import { reactivateAccountSwap } from "~/feature/account/account-api.server";
 import { jsonResponse } from "~/lib/http/jsonResponse";
 import { setFlash } from "~/services/flashSession";
@@ -14,10 +14,7 @@ export async function handleReactivateSwapAccount({ formData }: Ctx) {
   const currentIdParam = formData.get("currentId");
   const currentIdReqError = validateRequiredId(currentIdParam, "Cuenta actual");
   if (currentIdReqError)
-    return jsonResponse(422, {
-      error: currentIdReqError.error,
-      source: currentIdReqError.source,
-    });
+    return jsonResponse(422, currentIdReqError);
   const currentIdNum = Number(currentIdParam);
 
   const inactiveIdParam = formData.get("inactiveId");
@@ -26,10 +23,7 @@ export async function handleReactivateSwapAccount({ formData }: Ctx) {
     "Cuenta inactiva"
   );
   if (inactiveIdReqError)
-    return jsonResponse(422, {
-      error: inactiveIdReqError.error,
-      source: inactiveIdReqError.source,
-    });
+    return jsonResponse(422, inactiveIdReqError);
   const inactiveIdNum = Number(inactiveIdParam);
 
   try {

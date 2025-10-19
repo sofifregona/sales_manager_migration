@@ -54,7 +54,9 @@ export const createProduct = async (data: {
     minQuantity,
   } = data;
 
-  const normalizedName = normalizeText(name);
+  const cleanedName = name.replace(/\s+/g, " ").trim();
+  validateRangeLength(cleanedName, 3, 80, "Nombre");
+  const normalizedName = normalizeText(cleanedName);
   const duplicateName = await productRepo.findOneBy({ normalizedName });
   if (duplicateName?.active) {
     throw new AppError(
@@ -98,7 +100,7 @@ export const createProduct = async (data: {
   }
 
   const newProduct = Object.assign(new Product(), {
-    name,
+    name: cleanedName,
     normalizedName,
     code,
     price,
@@ -125,9 +127,8 @@ export const updateProduct = async (updatedData: {
   idProvider?: number | null;
   idBrand?: number | null;
   idCategory?: number | null;
-  active?: boolean;
 }) => {
-  const { id, name, code, price, idProvider, idCategory, idBrand, active } =
+  const { id, name, code, price, idProvider, idCategory, idBrand } =
     updatedData;
   validateNumberID(id, "Producto");
   const existing = await productRepo.findOneBy({ id, active: true });
@@ -136,7 +137,9 @@ export const updateProduct = async (updatedData: {
   const data: Partial<Product> = {};
 
   if (name !== undefined) {
-    const normalizedName = normalizeText(name);
+    const cleanedName = name.replace(/\s+/g, " ").trim();
+    validateRangeLength(cleanedName, 3, 80, "Nombre");
+    const normalizedName = normalizeText(cleanedName);
     const duplicateName = await productRepo.findOneBy({ normalizedName });
     if (duplicateName && duplicateName.id !== id && duplicateName.active) {
       throw new AppError(
@@ -146,7 +149,7 @@ export const updateProduct = async (updatedData: {
         { existingId: duplicateName.id }
       );
     }
-    data.name = name;
+    data.name = cleanedName;
     data.normalizedName = normalizedName;
   }
 
@@ -197,9 +200,6 @@ export const updateProduct = async (updatedData: {
     data.brand = brand;
   }
 
-  if (active !== undefined) {
-    data.active = active;
-  }
   await productRepo.update(id, data);
   return await productRepo.findOneBy({ id });
 };

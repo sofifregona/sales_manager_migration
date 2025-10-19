@@ -2,7 +2,10 @@
 import { Account } from "./account.entity.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { normalizeText } from "../../shared/utils/helpers/normalizeText.js";
-import { validateNumberID } from "../../shared/utils/validations/validationHelpers.js";
+import {
+  validateNumberID,
+  validateRangeLength,
+} from "../../shared/utils/validations/validationHelpers.js";
 import { paymentRepo } from "../payment/payment.repo.js";
 import { AppDataSource } from "@back/src/shared/database/data-source.js";
 
@@ -13,7 +16,12 @@ export const createAccount = async (data: {
 }) => {
   const { name, description } = data;
 
-  const normalizedName = normalizeText(name);
+  const cleanedName = name.replace(/\s+/g, " ").trim();
+  const cleanedDescription = description?.replace(/\s+/g, " ").trim() ?? null;
+
+  validateRangeLength(cleanedName, 8, 80, "Nombre");
+
+  const normalizedName = normalizeText(cleanedName);
   // Validations for repeting brands
   const duplicate = await accountRepo.findOneBy({ normalizedName });
 
@@ -38,11 +46,12 @@ export const createAccount = async (data: {
   }
 
   // If it doesn't exist, create a new one
-  const newAccount = new Account();
-  newAccount.name = name;
-  newAccount.normalizedName = normalizedName;
-  newAccount.description = description;
-  newAccount.active = true;
+  const newAccount = accountRepo.create({
+    name: cleanedName,
+    normalizedName,
+    description: cleanedDescription ?? null,
+  });
+
   return await accountRepo.save(newAccount);
 };
 
@@ -61,7 +70,12 @@ export const updateAccount = async (updatedData: {
   const data: Partial<Account> = {};
 
   if (name !== undefined) {
-    const duplicate = await accountRepo.findOneBy({ name });
+    const cleanedName = name.replace(/\s+/g, " ").trim();
+    validateRangeLength(cleanedName, 8, 80, "Nombre");
+
+    const normalizedName = normalizeText(cleanedName);
+    const duplicate = await accountRepo.findOneBy({ normalizedName });
+
     if (duplicate && duplicate.id !== id && duplicate.active) {
       throw new AppError(
         "(Error) Ya existe una cuenta activa con este nombre.",
@@ -80,13 +94,14 @@ export const updateAccount = async (updatedData: {
         { existingId: duplicate.id }
       );
     } else {
-      data.name = name;
-      data.normalizedName = normalizeText(name);
+      data.name = cleanedName;
+      data.normalizedName = normalizedName;
     }
   }
 
   if (description !== undefined) {
-    data.description = description;
+    const cleanedDescription = description?.replace(/\s+/g, " ").trim() ?? null;
+    data.description = cleanedDescription;
   }
 
   await accountRepo.update(id, data);
@@ -165,25 +180,6 @@ export const softDeleteAccount = async (
 
   return await accountRepo.findOneBy({ id });
 };
-
-// SERVICE FOR GETTING ALL ACCOUNTS
-// export const getAllAccounts = async (
-//   includeInactive: boolean,
-//   sort?: { field?: "name" | "active"; direction?: "ASC" | "DESC" }
-// ) => {
-//   const where = includeInactive ? {} : { active: true };
-//   const order: Record<string, "ASC" | "DESC"> = {};
-//   const field = sort?.field ?? "name";
-//   const direction = sort?.direction ?? "ASC";
-//   if (field === "active") {
-//     // Ordenar primero por estado (activo/inactivo) y luego por nombre (orden por defecto)
-//     order.active = direction;
-//     order.name = "ASC"; // orden secundario por defecto
-//   } else {
-//     order[field] = direction;
-//   }
-//   return await accountRepo.find({ where, order });
-// };
 
 export const getAllAccounts = async (
   includeInactive: boolean,

@@ -1,4 +1,4 @@
-import { redirect } from "react-router-dom";
+﻿import { redirect } from "react-router-dom";
 import { deactivateBrand } from "~/feature/brand/brand-api.server";
 import { jsonResponse } from "~/lib/http/jsonResponse";
 import { setFlash } from "~/services/flashSession";
@@ -11,10 +11,7 @@ export async function handleBrandDeactivate({ formData }: Ctx) {
   const idParam = formData.get("id");
   const idReqError = validateRequiredId(idParam, "Marca");
   if (idReqError)
-    return jsonResponse(422, {
-      error: idReqError.error,
-      source: idReqError.source,
-    });
+    return jsonResponse(422, idReqError);
   const idNum = Number(idParam);
 
   try {

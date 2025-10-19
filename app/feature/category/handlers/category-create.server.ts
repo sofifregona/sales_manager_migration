@@ -1,4 +1,4 @@
-import { redirect } from "react-router-dom";
+﻿import { redirect } from "react-router-dom";
 import { createCategory } from "~/feature/category/category-api.server";
 import type { CreateCategoryPayload } from "~/feature/category/category";
 import { jsonResponse } from "~/lib/http/jsonResponse";
@@ -12,10 +12,7 @@ export async function handleCategoryCreate({ formData }: Ctx) {
   const nameParam = formData.get("name");
   const nameParamError = validateRequired(nameParam, "string", "Nombre");
   if (nameParamError)
-    return jsonResponse(422, {
-      error: nameParamError.error,
-      source: nameParamError.source,
-    });
+    return jsonResponse(422, nameParamError);
   const name = (nameParam as string).trim();
 
   const newData: CreateCategoryPayload = { name };
@@ -25,7 +22,7 @@ export async function handleCategoryCreate({ formData }: Ctx) {
   } catch (error) {
     const parsed = parseAppError(
       error,
-      "(Error) No se pudo crear la categoría."
+      "(Error) No se pudo crear la categorÃ­a."
     );
     if (parsed.status === 409) {
       const anyParsed: any = parsed as any;

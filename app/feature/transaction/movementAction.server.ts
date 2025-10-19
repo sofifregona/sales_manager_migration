@@ -43,10 +43,7 @@ export async function movementAction({ request }: ActionFunctionArgs) {
 
     const intentError = validateRequiredAndType(intent, "string", "Acci�n");
     if (intentError) {
-      return jsonResponse(422, {
-        error: intentError.error,
-        source: intentError.source,
-      });
+      return jsonResponse(422, intentError);
     }
 
     // Only allow explicit intents; treat anything else as a bad request
@@ -63,19 +60,13 @@ export async function movementAction({ request }: ActionFunctionArgs) {
       // Required + string check (rejects null/File/"")
       const idReqError = validateRequiredId(idParam, "Transacci�n");
       if (idReqError) {
-        return jsonResponse(422, {
-          error: idReqError.error,
-          source: idReqError.source,
-        });
+        return jsonResponse(422, idReqError);
       }
       // Numeric (positive integer) check
       const idNum = Number(idParam);
       const idNumError = validateNumberId(idNum, "Transacci�n");
       if (idNumError) {
-        return jsonResponse(422, {
-          error: idNumError.error,
-          source: idNumError.source,
-        });
+        return jsonResponse(422, idNumError);
       }
 
       try {
@@ -105,19 +96,13 @@ export async function movementAction({ request }: ActionFunctionArgs) {
       "Nombre"
     );
     if (accountParamError) {
-      return jsonResponse(422, {
-        error: accountParamError.error,
-        source: accountParamError.source,
-      });
+      return jsonResponse(422, accountParamError);
     }
     const accountStr = accountParam!.toString().trim();
     const idAccount = Number(accountStr);
     const idAccountError = validateNumberId(idAccount, "Cuenta");
     if (idAccountError) {
-      return jsonResponse(422, {
-        error: idAccountError.error,
-        source: idAccountError.source,
-      });
+      return jsonResponse(422, idAccountError);
     }
 
     const typeParam = formData.get("type");
@@ -127,10 +112,7 @@ export async function movementAction({ request }: ActionFunctionArgs) {
       "Tipo de Operaci�n"
     );
     if (typeParamError) {
-      return jsonResponse(422, {
-        error: typeParamError.error,
-        source: typeParamError.source,
-      });
+      return jsonResponse(422, typeParamError);
     }
     const typeStr = typeParam!.toString().trim();
     if (!["income", "expense"].includes(typeStr)) {
@@ -148,19 +130,13 @@ export async function movementAction({ request }: ActionFunctionArgs) {
       "Monto"
     );
     if (amountParamError) {
-      return jsonResponse(422, {
-        error: amountParamError.error,
-        source: amountParamError.source,
-      });
+      return jsonResponse(422, amountParamError);
     }
     const amountStr = amountParam?.toString().trim();
     const amount = Number(amountStr);
     const amountError = validatePositiveNumber(amount, "Monto");
     if (amountError) {
-      return jsonResponse(422, {
-        error: amountError.error,
-        source: amountError.source,
-      });
+      return jsonResponse(422, amountError);
     }
 
     let description: string | null = null;
@@ -168,10 +144,7 @@ export async function movementAction({ request }: ActionFunctionArgs) {
     if (descParam) {
       const descParamError = validateType(descParam, "string", "Descripci�n");
       if (descParamError) {
-        return jsonResponse(422, {
-          error: descParamError.error,
-          source: descParamError.source,
-        });
+        return jsonResponse(422, descParamError);
       }
       description = descParam.toString().trim();
     }
@@ -209,19 +182,13 @@ export async function movementAction({ request }: ActionFunctionArgs) {
       // Required + string check for URL param
       const idReqError = validateRequiredId(idParam, "Transacci�n");
       if (idReqError) {
-        return jsonResponse(422, {
-          error: idReqError.error,
-          source: idReqError.source,
-        });
+        return jsonResponse(422, idReqError);
       }
       // Numeric (positive integer) check
       const id = Number(idParam);
       const idNumError = validateNumberId(id, "Transacci�n");
       if (idNumError) {
-        return jsonResponse(422, {
-          error: idNumError.error,
-          source: idNumError.source,
-        });
+        return jsonResponse(422, idNumError);
       }
 
       const updatedData: UpdateMovementPayload = {

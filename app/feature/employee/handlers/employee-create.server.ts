@@ -1,4 +1,4 @@
-import { redirect } from "react-router-dom";
+﻿import { redirect } from "react-router-dom";
 import { createEmployee } from "~/feature/employee/employeeApi.server";
 import type { CreateEmployeePayload } from "~/feature/employee/employee";
 import { jsonResponse } from "~/lib/http/jsonResponse";
@@ -12,7 +12,7 @@ type Ctx = { formData: FormData };
 export async function handleEmployeeCreate({ formData }: Ctx) {
   const nameParam = formData.get("name");
   const nameParamError = validateRequired(nameParam, "string", "Nombre");
-  if (nameParamError) return jsonResponse(422, { error: nameParamError.error, source: nameParamError.source });
+  if (nameParamError) return jsonResponse(422, nameParamError);
   const name = (nameParam as string).trim();
 
   // Optional fields with type/format validations
@@ -20,12 +20,12 @@ export async function handleEmployeeCreate({ formData }: Ctx) {
   const dniStr = formData.get("dni");
   if (dniStr) {
     const dniStrError = validateType(dniStr, "string", "DNI");
-    if (dniStrError) return jsonResponse(422, { error: dniStrError.error, source: dniStrError.source });
+    if (dniStrError) return jsonResponse(422, dniStrError);
     const dniParsed = dniStr.toString().trim();
     if (dniParsed !== "") {
       const dniNum = Number(dniParsed);
       const dniNumError = validateCUI(dniNum, 8, "DNI");
-      if (dniNumError) return jsonResponse(422, { error: dniNumError.error, source: dniNumError.source });
+      if (dniNumError) return jsonResponse(422, dniNumError);
       dni = dniNum;
     }
   }
@@ -33,13 +33,13 @@ export async function handleEmployeeCreate({ formData }: Ctx) {
   let telephone: number | null = null;
   const telStr = formData.get("telephone");
   if (telStr) {
-    const telStrError = validateType(telStr, "string", "Teléfono");
-    if (telStrError) return jsonResponse(422, { error: telStrError.error, source: telStrError.source });
+    const telStrError = validateType(telStr, "string", "TelÃ©fono");
+    if (telStrError) return jsonResponse(422, telStrError);
     const telParsed = telStr.toString().trim();
     if (telParsed !== "") {
       const telNum = Number(telParsed);
-      const telError = validateTelephone(telNum, "Teléfono");
-      if (telError) return jsonResponse(422, { error: telError.error, source: telError.source });
+      const telError = validateTelephone(telNum, "TelÃ©fono");
+      if (telError) return jsonResponse(422, telError);
       telephone = telNum;
     }
   }
@@ -48,11 +48,11 @@ export async function handleEmployeeCreate({ formData }: Ctx) {
   const emailParam = formData.get("email");
   if (emailParam) {
     const emailParamError = validateType(emailParam, "string", "E-mail");
-    if (emailParamError) return jsonResponse(422, { error: emailParamError.error, source: emailParamError.source });
+    if (emailParamError) return jsonResponse(422, emailParamError);
     const emailParsed = emailParam.toString().trim();
     if (emailParsed !== "") {
       const emailFormatError = validateEmailFormat(emailParsed);
-      if (emailFormatError) return jsonResponse(422, { error: emailFormatError.error, source: emailFormatError.source });
+      if (emailFormatError) return jsonResponse(422, emailFormatError);
       email = emailParsed;
     }
   }
@@ -61,7 +61,7 @@ export async function handleEmployeeCreate({ formData }: Ctx) {
   const addressParam = formData.get("address");
   if (addressParam) {
     const addressParamError = validateType(addressParam, "string", "Domicilio");
-    if (addressParamError) return jsonResponse(422, { error: addressParamError.error, source: addressParamError.source });
+    if (addressParamError) return jsonResponse(422, addressParamError);
     const addressParsed = addressParam.toString().trim();
     if (addressParsed !== "") address = addressParsed;
   }
@@ -74,7 +74,7 @@ export async function handleEmployeeCreate({ formData }: Ctx) {
   } catch (error) {
     const parsed = parseAppError(error, "(Error) No se pudo crear el empleado.");
     if (parsed.status === 409) {
-      // Heurística para distinguir conflicto por DNI o por nombre
+      // HeurÃ­stica para distinguir conflicto por DNI o por nombre
       const conflictField = /DNI/i.test(parsed.message) ? "dni" : "name";
       setFlash({
         scope: "employee",

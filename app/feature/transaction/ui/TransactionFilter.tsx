@@ -1,7 +1,7 @@
 import { Form, useSubmit, useSearchParams } from "react-router";
 import { formatDateTime } from "~/utils/formatters/formatDateTime";
 
-export default function MovementFilter() {
+export default function TransactionFilter() {
   const submit = useSubmit();
   const [sp] = useSearchParams();
 

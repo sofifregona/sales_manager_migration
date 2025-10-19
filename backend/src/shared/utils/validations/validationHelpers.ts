@@ -47,7 +47,7 @@ export function validateExactLength(
   title: string
 ) {
   const stringValue = value.toString();
-  if (stringValue.length !== length) {
+  if (stringValue.normalize("NFC").length !== length) {
     throw new AppError(
       `(Error) La longitud de ${title} debe ser de exactamente ${length} caracteres.`,
       400
@@ -62,7 +62,10 @@ export function validateRangeLength(
   title: string
 ) {
   const stringValue = value.toString();
-  if (stringValue.length < min || stringValue.length > max) {
+  if (
+    stringValue.normalize("NFC").length < min ||
+    stringValue.normalize("NFC").length > max
+  ) {
     throw new AppError(
       `(Error) La longitud de ${title} debe ser de entre ${min} y ${max} caracteres.`,
       400

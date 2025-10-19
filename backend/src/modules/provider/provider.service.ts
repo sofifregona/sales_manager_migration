@@ -9,7 +9,7 @@ import {
   validateTelephone,
 } from "@back/src/shared/utils/validations/validationPerson.js";
 
-import { validateNumberID } from "@back/src/shared/utils/validations/validationHelpers.js";
+import { validateNumberID, validateRangeLength } from "@back/src/shared/utils/validations/validationHelpers.js";
 
 // SERVICE FOR CREATE A BARTABLE
 export const createProvider = async (data: {
@@ -20,8 +20,9 @@ export const createProvider = async (data: {
   address: string | null;
 }) => {
   const { name, cuit, telephone, email, address } = data;
-
-  const normalizedName = normalizeText(name);
+  const cleanedName = name.replace(/\s+/g, " ").trim();
+  validateRangeLength(cleanedName, 8, 80, "Nombre");
+  const normalizedName = normalizeText(cleanedName);
   const duplicate = await providerRepo.findOneBy({ normalizedName });
 
   if (duplicate?.active) {
@@ -64,12 +65,12 @@ export const createProvider = async (data: {
   }
 
   const newProvider = Object.assign(new Provider(), {
-    name,
+    name: cleanedName,
     normalizedName,
     cuit: cuit ?? null,
     telephone: telephone ?? null,
-    email: email ?? null, // ya validado y trimmeado antes
-    address: address ?? null, // también procesado antes
+    email: email != null ? email.replace(/\s+/g, " ").trim() : null,
+    address: address != null ? address.replace(/\s+/g, " ").trim() : null,
     active: true,
   });
 
@@ -84,9 +85,8 @@ export const updateProvider = async (updatedData: {
   telephone?: number | null;
   email?: string | null;
   address?: string | null;
-  active?: boolean;
 }) => {
-  const { id, name, cuit, telephone, email, address, active } = updatedData;
+  const { id, name, cuit, telephone, email, address } = updatedData;
   validateNumberID(id, "Proveedor");
   const existing = await providerRepo.findOneBy({ id, active: true });
   if (!existing) throw new AppError("(Error) Proveedor no encontrado", 404);
@@ -94,7 +94,9 @@ export const updateProvider = async (updatedData: {
   const data: Partial<Provider> = {};
 
   if (name !== undefined) {
-    const normalizedName = normalizeText(name);
+    const cleanedName = name.replace(/\s+/g, " ").trim();
+    validateRangeLength(cleanedName, 8, 80, "Nombre");
+    const normalizedName = normalizeText(cleanedName);
     const duplicate = await providerRepo.findOneBy({ normalizedName });
     if (duplicate && duplicate.id !== id && duplicate.active) {
       throw new AppError(
@@ -113,7 +115,7 @@ export const updateProvider = async (updatedData: {
         { existingId: duplicate.id }
       );
     } else {
-      data.name = name;
+      data.name = cleanedName;
       data.normalizedName = normalizedName;
     }
   }
@@ -145,11 +147,11 @@ export const updateProvider = async (updatedData: {
     if (email !== null) {
       validateEmailFormat(email);
     }
-    data.email = email;
+    data.email = email != null ? email.replace(/\s+/g, " ").trim() : null;
   }
 
   if (address !== undefined) {
-    data.address = address;
+    data.address = address != null ? address.replace(/\s+/g, " ").trim() : null;
   }
 
   await providerRepo.update(id, data);

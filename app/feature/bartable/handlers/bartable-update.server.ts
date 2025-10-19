@@ -1,4 +1,4 @@
-import { redirect } from "react-router-dom";
+﻿import { redirect } from "react-router-dom";
 import { updateBartable } from "~/feature/bartable/bartable-api.server";
 import type { UpdateBartablePayload } from "~/feature/bartable/bartable";
 import { jsonResponse } from "~/lib/http/jsonResponse";
@@ -14,27 +14,18 @@ type Ctx = { url: URL; formData: FormData };
 
 export async function handleBartableUpdate({ url, formData }: Ctx) {
   const numParam = formData.get("number");
-  const numParamError = validateRequired(numParam, "string", "Número");
+  const numParamError = validateRequired(numParam, "string", "NÃºmero");
   if (numParamError)
-    return jsonResponse(422, {
-      error: numParamError.error,
-      source: numParamError.source,
-    });
+    return jsonResponse(422, numParamError);
   const num = Number(numParam);
-  const numError = validatePositiveInteger(num, "Número");
+  const numError = validatePositiveInteger(num, "NÃºmero");
   if (numError)
-    return jsonResponse(422, {
-      error: numError.error,
-      source: numError.source,
-    });
+    return jsonResponse(422, numError);
 
   const idParam = url.searchParams.get("id");
   const idReqError = validateRequiredId(idParam, "Mesa");
   if (idReqError)
-    return jsonResponse(422, {
-      error: idReqError.error,
-      source: idReqError.source,
-    });
+    return jsonResponse(422, idReqError);
   const id = Number(idParam);
 
   const updatedData: UpdateBartablePayload = { id, number: num };

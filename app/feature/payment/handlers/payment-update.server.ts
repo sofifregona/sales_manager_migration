@@ -15,31 +15,22 @@ export async function handlePaymentUpdate({ url, formData }: Ctx) {
   const nameParam = formData.get("name");
   const nameErr = validateRequired(nameParam, "string", "Nombre");
   if (nameErr)
-    return jsonResponse(422, { error: nameErr.error, source: nameErr.source });
+    return jsonResponse(422, nameErr);
   const name = (nameParam as string).trim();
 
   const idAccountParam = formData.get("idAccount");
   const idAccountReq = validateRequired(idAccountParam, "string", "Cuenta");
   if (idAccountReq)
-    return jsonResponse(422, {
-      error: idAccountReq.error,
-      source: idAccountReq.source,
-    });
+    return jsonResponse(422, idAccountReq);
   const idAccount = Number((idAccountParam as string).trim());
   const idAccErr = validateRequiredId(String(idAccount), "Cuenta");
   if (idAccErr)
-    return jsonResponse(422, {
-      error: idAccErr.error,
-      source: idAccErr.source,
-    });
+    return jsonResponse(422, idAccErr);
 
   const idParam = url.searchParams.get("id");
   const idReqErr = validateRequiredId(idParam, "Método de pago");
   if (idReqErr)
-    return jsonResponse(422, {
-      error: idReqErr.error,
-      source: idReqErr.source,
-    });
+    return jsonResponse(422, idReqErr);
   const id = Number(idParam);
 
   const payload: UpdatePaymentPayload = { id, idAccount, name };

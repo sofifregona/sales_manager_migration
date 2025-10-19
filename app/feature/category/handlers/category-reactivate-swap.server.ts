@@ -11,11 +11,11 @@ export async function handleCategoryReactivateSwap({ formData }: Ctx) {
   const currentIdParam = formData.get("currentId");
 
   const currentIdReqError = validateRequiredId(currentIdParam, "Categoría actual");
-  if (currentIdReqError) return jsonResponse(422, { error: currentIdReqError.error, source: currentIdReqError.source });
+  if (currentIdReqError) return jsonResponse(422, currentIdReqError);
   const currentIdNum = Number(currentIdParam);
 
   const inactiveIdReqError = validateRequiredId(inactiveIdParam, "Categoría inactiva");
-  if (inactiveIdReqError) return jsonResponse(422, { error: inactiveIdReqError.error, source: inactiveIdReqError.source });
+  if (inactiveIdReqError) return jsonResponse(422, inactiveIdReqError);
   const inactiveIdNum = Number(inactiveIdParam);
 
   try {

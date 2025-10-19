@@ -1,4 +1,4 @@
-import { redirect } from "react-router-dom";
+﻿import { redirect } from "react-router-dom";
 import { reactivateBrandSwap } from "~/feature/brand/brand-api.server";
 import { jsonResponse } from "~/lib/http/jsonResponse";
 import { setFlash } from "~/services/flashSession";
@@ -13,10 +13,7 @@ export async function handleBrandReactivateSwap({ formData }: Ctx) {
 
   const currentIdReqError = validateRequiredId(currentIdParam, "Marca actual");
   if (currentIdReqError)
-    return jsonResponse(422, {
-      error: currentIdReqError.error,
-      source: currentIdReqError.source,
-    });
+    return jsonResponse(422, currentIdReqError);
   const currentIdNum = Number(currentIdParam);
 
   const inactiveIdReqError = validateRequiredId(
@@ -24,10 +21,7 @@ export async function handleBrandReactivateSwap({ formData }: Ctx) {
     "Marca inactiva"
   );
   if (inactiveIdReqError)
-    return jsonResponse(422, {
-      error: inactiveIdReqError.error,
-      source: inactiveIdReqError.source,
-    });
+    return jsonResponse(422, inactiveIdReqError);
   const inactiveIdNum = Number(inactiveIdParam);
 
   try {

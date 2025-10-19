@@ -1,7 +1,10 @@
 ﻿import { categoryRepo } from "./category.repo.js";
 import { Category } from "./category.entity.js";
 import { AppError } from "@back/src/shared/errors/AppError.js";
-import { validateNumberID } from "@back/src/shared/utils/validations/validationHelpers.js";
+import {
+  validateNumberID,
+  validateRangeLength,
+} from "@back/src/shared/utils/validations/validationHelpers.js";
 import { normalizeText } from "@back/src/shared/utils/helpers/normalizeText.js";
 import { productRepo } from "../product/product.repo.js";
 import { AppDataSource } from "@back/src/shared/database/data-source.js";
@@ -9,8 +12,10 @@ import { AppDataSource } from "@back/src/shared/database/data-source.js";
 // SERVICE FOR CREATE A BARTABLE
 export const createCategory = async (data: { name: string }) => {
   const { name } = data;
+  const cleanedName = name.replace(/\s+/g, " ").trim();
+  validateRangeLength(cleanedName, 5, 80, "Nombre");
 
-  const normalizedName = normalizeText(name);
+  const normalizedName = normalizeText(cleanedName);
   // Validations for repeting brands
   const duplicate = await categoryRepo.findOneBy({ normalizedName });
   // If it exists and is active, then throw an error
@@ -34,11 +39,10 @@ export const createCategory = async (data: { name: string }) => {
   }
 
   // If it doesn't exist, create a new one
-  const newCategory = new Category();
-  newCategory.name = name;
-  newCategory.normalizedName = normalizedName;
-  newCategory.active = true;
-
+  const newCategory = categoryRepo.create({
+    name: cleanedName,
+    normalizedName,
+  });
   return await categoryRepo.save(newCategory);
 };
 
@@ -46,9 +50,8 @@ export const createCategory = async (data: { name: string }) => {
 export const updateCategory = async (updatedData: {
   id: number;
   name?: string;
-  active?: boolean;
 }) => {
-  const { id, name, active } = updatedData;
+  const { id, name } = updatedData;
   validateNumberID(id, "Categoría");
   const existing = await categoryRepo.findOneBy({ id, active: true });
   if (!existing) throw new AppError("(Error) Categoría no encontrada", 404);
@@ -56,7 +59,9 @@ export const updateCategory = async (updatedData: {
   const data: Partial<Category> = {};
 
   if (name !== undefined) {
-    const normalizedName = normalizeText(name);
+    const cleanedName = name.replace(/\s+/g, " ").trim();
+    validateRangeLength(cleanedName, 5, 80, "Nombre");
+    const normalizedName = normalizeText(cleanedName);
     // Validations for repeting brands
     const duplicate = await categoryRepo.findOneBy({ normalizedName });
 
@@ -77,7 +82,7 @@ export const updateCategory = async (updatedData: {
         { existingId: duplicate.id }
       );
     } else {
-      data.name = name;
+      data.name = cleanedName;
       data.normalizedName = normalizedName;
     }
   }

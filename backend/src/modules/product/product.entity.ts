@@ -8,13 +8,19 @@ export class Product {
   @PrimaryGeneratedColumn()
   id!: number;
 
-  @Column({ type: "int" })
+  @Column({ type: "int", unique: true })
   code!: number;
 
-  @Column({ type: "varchar" })
+  @Column({ type: "varchar", length: 80, nullable: false })
   name!: string;
 
-  @Column({ name: "normalized_name", type: "varchar" })
+  @Column({
+    name: "normalized_name",
+    type: "varchar",
+    length: 80,
+    unique: true,
+    nullable: false,
+  })
   normalizedName!: string;
 
   @Column("decimal", {
@@ -60,6 +66,6 @@ export class Product {
   @ManyToOne(() => Brand, { nullable: true })
   brand!: Brand | null;
 
-  @Column({ type: "boolean", default: true })
+  @Column({ type: "boolean", default: true, nullable: false })
   active!: boolean;
 }

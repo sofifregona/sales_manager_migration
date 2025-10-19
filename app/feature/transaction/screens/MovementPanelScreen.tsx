@@ -344,7 +344,7 @@ import { CrudHeader } from "~/shared/ui/CrudHeader";
 import { MovementForm } from "../ui/MovementForm";
 import { MovementTable } from "../ui/MovementTable";
 import { formatDateTime } from "~/utils/formatters/formatDateTime";
-import MovementFilter from "../ui/MovementFilter";
+import TransactionFilter from "../ui/TransactionFilter";
 
 export function MovementPanelScreen() {
   const { transactions, accounts, editingTransaction, flash } =
@@ -399,7 +399,7 @@ export function MovementPanelScreen() {
         formAction={isEditing ? `.${location.search}` : "."}
       />
 
-      <MovementFilter />
+      <TransactionFilter />
 
       <MovementTable
         transactions={transactions}

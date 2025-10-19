@@ -12,19 +12,19 @@ type Ctx = { url: URL; formData: FormData };
 export async function handleEmployeeUpdate({ url, formData }: Ctx) {
   const nameParam = formData.get("name");
   const nameParamError = validateRequired(nameParam, "string", "Nombre");
-  if (nameParamError) return jsonResponse(422, { error: nameParamError.error, source: nameParamError.source });
+  if (nameParamError) return jsonResponse(422, nameParamError);
   const name = (nameParam as string).trim();
 
   let dni: number | null = null;
   const dniStr = formData.get("dni");
   if (dniStr) {
     const dniStrError = validateType(dniStr, "string", "DNI");
-    if (dniStrError) return jsonResponse(422, { error: dniStrError.error, source: dniStrError.source });
+    if (dniStrError) return jsonResponse(422, dniStrError);
     const dniParsed = dniStr.toString().trim();
     if (dniParsed !== "") {
       const dniNum = Number(dniParsed);
       const dniNumError = validateCUI(dniNum, 8, "DNI");
-      if (dniNumError) return jsonResponse(422, { error: dniNumError.error, source: dniNumError.source });
+      if (dniNumError) return jsonResponse(422, dniNumError);
       dni = dniNum;
     } else {
       dni = null;
@@ -35,12 +35,12 @@ export async function handleEmployeeUpdate({ url, formData }: Ctx) {
   const telStr = formData.get("telephone");
   if (telStr) {
     const telStrError = validateType(telStr, "string", "Teléfono");
-    if (telStrError) return jsonResponse(422, { error: telStrError.error, source: telStrError.source });
+    if (telStrError) return jsonResponse(422, telStrError);
     const telParsed = telStr.toString().trim();
     if (telParsed !== "") {
       const telNum = Number(telParsed);
       const telError = validateTelephone(telNum, "Teléfono");
-      if (telError) return jsonResponse(422, { error: telError.error, source: telError.source });
+      if (telError) return jsonResponse(422, telError);
       telephone = telNum;
     } else {
       telephone = null;
@@ -51,11 +51,11 @@ export async function handleEmployeeUpdate({ url, formData }: Ctx) {
   const emailParam = formData.get("email");
   if (emailParam) {
     const emailParamError = validateType(emailParam, "string", "E-mail");
-    if (emailParamError) return jsonResponse(422, { error: emailParamError.error, source: emailParamError.source });
+    if (emailParamError) return jsonResponse(422, emailParamError);
     const emailParsed = emailParam.toString().trim();
     if (emailParsed !== "") {
       const emailFormatError = validateEmailFormat(emailParsed);
-      if (emailFormatError) return jsonResponse(422, { error: emailFormatError.error, source: emailFormatError.source });
+      if (emailFormatError) return jsonResponse(422, emailFormatError);
       email = emailParsed;
     } else {
       email = null;
@@ -66,14 +66,14 @@ export async function handleEmployeeUpdate({ url, formData }: Ctx) {
   const addressParam = formData.get("address");
   if (addressParam) {
     const addressParamError = validateType(addressParam, "string", "Domicilio");
-    if (addressParamError) return jsonResponse(422, { error: addressParamError.error, source: addressParamError.source });
+    if (addressParamError) return jsonResponse(422, addressParamError);
     const addressParsed = addressParam.toString().trim();
     address = addressParsed !== "" ? addressParsed : null;
   }
 
   const idParam = url.searchParams.get("id");
   const idReqError = validateRequiredId(idParam, "Empleado");
-  if (idReqError) return jsonResponse(422, { error: idReqError.error, source: idReqError.source });
+  if (idReqError) return jsonResponse(422, idReqError);
   const id = Number(idParam);
 
   const payload: UpdateEmployeePayload = { id, name, dni, telephone, email, address };

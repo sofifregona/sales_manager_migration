@@ -1,4 +1,4 @@
-import { redirect } from "react-router-dom";
+﻿import { redirect } from "react-router-dom";
 import { createBrand } from "~/feature/brand/brand-api.server";
 import type { CreateBrandPayload } from "~/feature/brand/brand";
 import { jsonResponse } from "~/lib/http/jsonResponse";
@@ -12,10 +12,7 @@ export async function handleBrandCreate({ formData }: Ctx) {
   const nameParam = formData.get("name");
   const nameParamError = validateRequired(nameParam, "string", "Nombre");
   if (nameParamError)
-    return jsonResponse(422, {
-      error: nameParamError.error,
-      source: nameParamError.source,
-    });
+    return jsonResponse(422, nameParamError);
   const name = (nameParam as string).trim();
 
   const newData: CreateBrandPayload = { name };

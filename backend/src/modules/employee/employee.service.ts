@@ -9,7 +9,7 @@ import {
   validateTelephone,
 } from "@back/src/shared/utils/validations/validationPerson.js";
 
-import { validateNumberID } from "@back/src/shared/utils/validations/validationHelpers.js";
+import { validateNumberID, validateRangeLength } from "@back/src/shared/utils/validations/validationHelpers.js";
 
 // SERVICE FOR CREATE A BARTABLE
 export const createEmployee = async (data: {
@@ -20,8 +20,9 @@ export const createEmployee = async (data: {
   address: string | null;
 }) => {
   const { name, dni, telephone, email, address } = data;
-
-  const normalizedName = normalizeText(name);
+  const cleanedName = name.replace(/\s+/g, " ").trim();
+  validateRangeLength(cleanedName, 8, 80, "Nombre");
+  const normalizedName = normalizeText(cleanedName);
   const duplicate = await employeeRepo.findOneBy({ normalizedName });
 
   if (duplicate?.active) {
@@ -60,12 +61,12 @@ export const createEmployee = async (data: {
   }
 
   const newEmployee = Object.assign(new Employee(), {
-    name,
+    name: cleanedName,
     normalizedName,
     dni: dni ?? null,
     telephone: telephone ?? null,
-    email: email ?? null, // ya validado y trimmeado antes
-    address: address ?? null, // también procesado antes
+    email: email != null ? email.replace(/\s+/g, " ").trim() : null,
+    address: address != null ? address.replace(/\s+/g, " ").trim() : null,
     active: true,
   });
 
@@ -80,9 +81,8 @@ export const updateEmployee = async (updatedData: {
   telephone?: number | null;
   email?: string | null;
   address?: string | null;
-  active?: boolean;
 }) => {
-  const { id, name, dni, telephone, email, address, active } = updatedData;
+  const { id, name, dni, telephone, email, address } = updatedData;
   validateNumberID(id, "Empleado");
   const existing = await employeeRepo.findOneBy({ id, active: true });
   if (!existing) throw new AppError("(Error) Empleado no encontrado", 404);
@@ -90,7 +90,9 @@ export const updateEmployee = async (updatedData: {
   const data: Partial<Employee> = {};
 
   if (name !== undefined) {
-    const normalizedName = normalizeText(name);
+    const cleanedName = name.replace(/\s+/g, " ").trim();
+    validateRangeLength(cleanedName, 8, 80, "Nombre");
+    const normalizedName = normalizeText(cleanedName);
     const duplicate = await employeeRepo.findOneBy({ normalizedName });
     if (duplicate && duplicate.id !== id && duplicate.active) {
       throw new AppError(
@@ -109,7 +111,7 @@ export const updateEmployee = async (updatedData: {
         { existingId: duplicate.id }
       );
     } else {
-      data.name = name;
+      data.name = cleanedName;
       data.normalizedName = normalizedName;
     }
   }
@@ -141,11 +143,11 @@ export const updateEmployee = async (updatedData: {
     if (email !== null) {
       validateEmailFormat(email);
     }
-    data.email = email;
+    data.email = email != null ? email.replace(/\s+/g, " ").trim() : null;
   }
 
   if (address !== undefined) {
-    data.address = address;
+    data.address = address != null ? address.replace(/\s+/g, " ").trim() : null;
   }
 
   await employeeRepo.update(id, data);

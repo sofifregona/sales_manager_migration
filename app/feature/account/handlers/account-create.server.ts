@@ -1,10 +1,11 @@
-import { redirect } from "react-router-dom";
+﻿import { redirect } from "react-router-dom";
 import { createAccount } from "~/feature/account/account-api.server";
 import type { CreateAccountPayload } from "~/feature/account/account";
 import { jsonResponse } from "~/lib/http/jsonResponse";
 import { setFlash } from "~/services/flashSession";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import {
+  validateRangeLength,
   validateRequired,
   validateType,
 } from "~/utils/validation/validationHelpers";
@@ -15,22 +16,19 @@ export async function handleCreateAccount({ formData }: Ctx) {
   const nameParam = formData.get("name");
   const nameParamError = validateRequired(nameParam, "string", "Nombre");
   if (nameParamError)
-    return jsonResponse(422, {
-      error: nameParamError.error,
-      source: nameParamError.source,
-    });
-  const name = (nameParam as string).trim();
+    return jsonResponse(422, nameParamError);
+  const name = (nameParam as string).replace(/\s+/g, " ").trim();
+  const nameLengthError = validateRangeLength(name, 8, 80, "Nombre");
+  if (nameLengthError)
+    return jsonResponse(422, nameLengthError);
 
   let desc: string | null = null;
   const descParam = formData.get("description");
   if (descParam) {
     const descError = validateType(descParam, "string", "Descripcion");
     if (descError)
-      return jsonResponse(422, {
-        error: descError.error,
-        source: descError.source,
-      });
-    desc = (descParam as string).trim();
+      return jsonResponse(422, descError);
+    desc = (descParam as string).replace(/\s+/g, " ").trim();
   }
 
   const newData: CreateAccountPayload = { name, description: desc };

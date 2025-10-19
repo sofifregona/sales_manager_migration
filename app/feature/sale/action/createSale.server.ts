@@ -6,8 +6,6 @@ import { parseAppError } from "~/utils/errors/parseAppError";
 import {
   validateNumberId,
   validateRequired,
-  validateRequiredAndType,
-  validateType,
 } from "~/utils/validation/validationHelpers";
 import { runWithRequest } from "~/lib/http/requestContext.server";
 
@@ -17,16 +15,13 @@ export async function createSaleAction({ request }: ActionFunctionArgs) {
 
     // Validations for idProp (input)
     const propParam = formData.get("prop");
-    const propParamError = validateRequiredAndType(
+    const propParamError = validateRequired(
       propParam,
       "string",
       "Propietario de la venta"
     );
     if (propParamError) {
-      return jsonResponse(422, {
-        error: propParamError.error,
-        source: propParamError.source,
-      });
+      return jsonResponse(422, propParamError);
     }
     const prop = propParam?.toString().trim();
     if (!["bartable", "employee"].includes(prop!)) {
@@ -42,41 +37,32 @@ export async function createSaleAction({ request }: ActionFunctionArgs) {
     if (propParam === "bartable") {
       const idBartableStr = formData.get("idBartable");
       // Validations for idBartable (input) if exists
-      const idBartableStrError = validateRequiredAndType(
+      const idBartableStrError = validateRequired(
         idBartableStr,
         "string",
         "ID Mesa"
       );
       if (idBartableStrError) {
-        return jsonResponse(422, {
-          error: idBartableStrError.error,
-          source: idBartableStrError.source,
-        });
+        return jsonResponse(422, idBartableStrError);
       }
 
       // Validations for idBartable (number) if exists
       idBartable = Number(idBartableStr?.toString().trim());
       const idBartableError = validateNumberId(idBartable, "Mesa");
       if (idBartableError) {
-        return jsonResponse(422, {
-          error: idBartableError.error,
-          source: idBartableError.source,
-        });
+        return jsonResponse(422, idBartableError);
       }
     } else if (propParam === "employee") {
       const idEmployeeStr = formData.get("idEmployee");
 
       // Validations for idEmployee (inputs) if exists
-      const idEmployeeStrError = validateRequiredAndType(
+      const idEmployeeStrError = validateRequired(
         idEmployee,
         "string",
         "ID Empleado"
       );
       if (idEmployeeStrError) {
-        return jsonResponse(422, {
-          error: idEmployeeStrError.error,
-          source: idEmployeeStrError.source,
-        });
+        return jsonResponse(422, idEmployeeStrError);
       }
 
       // Validations for idEmployee (number) if exists

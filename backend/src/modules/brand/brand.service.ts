@@ -1,7 +1,10 @@
 ﻿import { brandRepo } from "./brand.repo.js";
 import { Brand } from "./brand.entity.js";
 import { AppError } from "@back/src/shared/errors/AppError.js";
-import { validateNumberID } from "@back/src/shared/utils/validations/validationHelpers.js";
+import {
+  validateNumberID,
+  validateRangeLength,
+} from "@back/src/shared/utils/validations/validationHelpers.js";
 import { normalizeText } from "@back/src/shared/utils/helpers/normalizeText.js";
 import { productRepo } from "../product/product.repo.js";
 import { AppDataSource } from "@back/src/shared/database/data-source.js";
@@ -10,7 +13,10 @@ import { AppDataSource } from "@back/src/shared/database/data-source.js";
 export const createBrand = async (data: { name: string }) => {
   const { name } = data;
 
-  const normalizedName = normalizeText(name);
+  const cleanedName = name.replace(/\s+/g, " ").trim();
+  validateRangeLength(cleanedName, 3, 80, "Nombre");
+
+  const normalizedName = normalizeText(cleanedName);
   // Validations for repeting brands
   const duplicate = await brandRepo.findOneBy({ normalizedName });
 
@@ -35,11 +41,10 @@ export const createBrand = async (data: { name: string }) => {
   }
 
   // If it doesn't exist, create a new one
-  const newBrand = new Brand();
-  newBrand.name = name;
-  newBrand.normalizedName = normalizedName;
-  newBrand.active = true;
-
+  const newBrand = brandRepo.create({
+    name: cleanedName,
+    normalizedName,
+  });
   return await brandRepo.save(newBrand);
 };
 
@@ -47,9 +52,8 @@ export const createBrand = async (data: { name: string }) => {
 export const updateBrand = async (updatedData: {
   id: number;
   name?: string;
-  active?: boolean;
 }) => {
-  const { id, name, active } = updatedData;
+  const { id, name } = updatedData;
   validateNumberID(id, "Marca");
   const existing = await brandRepo.findOneBy({ id, active: true });
   if (!existing) throw new AppError("(Error) Marca no encontrada", 404);
@@ -57,7 +61,10 @@ export const updateBrand = async (updatedData: {
   const data: Partial<Brand> = {};
 
   if (name !== undefined) {
-    const normalizedName = normalizeText(name);
+    const cleanedName = name.replace(/\s+/g, " ").trim();
+    validateRangeLength(cleanedName, 3, 80, "Nombre");
+
+    const normalizedName = normalizeText(cleanedName);
     // Validations for repeting brands
     const duplicate = await brandRepo.findOneBy({ normalizedName });
 
@@ -78,7 +85,7 @@ export const updateBrand = async (updatedData: {
         { existingId: duplicate.id }
       );
     } else {
-      data.name = name;
+      data.name = cleanedName;
       data.normalizedName = normalizedName;
     }
   }

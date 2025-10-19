@@ -1,4 +1,4 @@
-import { redirect } from "react-router-dom";
+﻿import { redirect } from "react-router-dom";
 import { updateCategory } from "~/feature/category/category-api.server";
 import type { UpdateCategoryPayload } from "~/feature/category/category";
 import { jsonResponse } from "~/lib/http/jsonResponse";
@@ -15,19 +15,13 @@ export async function handleCategoryUpdate({ url, formData }: Ctx) {
   const nameParam = formData.get("name");
   const nameParamError = validateRequired(nameParam, "string", "Nombre");
   if (nameParamError)
-    return jsonResponse(422, {
-      error: nameParamError.error,
-      source: nameParamError.source,
-    });
+    return jsonResponse(422, nameParamError);
   const name = (nameParam as string).trim();
 
   const idParam = url.searchParams.get("id");
-  const idReqError = validateRequiredId(idParam, "Categoría");
+  const idReqError = validateRequiredId(idParam, "CategorÃ­a");
   if (idReqError)
-    return jsonResponse(422, {
-      error: idReqError.error,
-      source: idReqError.source,
-    });
+    return jsonResponse(422, idReqError);
   const id = Number(idParam);
 
   const updatedData: UpdateCategoryPayload = { id, name };
@@ -37,7 +31,7 @@ export async function handleCategoryUpdate({ url, formData }: Ctx) {
   } catch (error) {
     const parsed = parseAppError(
       error,
-      "(Error) No se pudo modificar la categoría seleccionada."
+      "(Error) No se pudo modificar la categorÃ­a seleccionada."
     );
     if (parsed.status === 409) {
       const anyParsed: any = parsed as any;

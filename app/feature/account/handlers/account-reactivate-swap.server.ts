@@ -8,13 +8,12 @@ import {
   validateRequiredId,
 } from "~/utils/validation/validationHelpers";
 
-type Ctx = { formData: FormData };
+type Ctx = { url: URL; formData: FormData };
 
-export async function handleReactivateSwapAccount({ formData }: Ctx) {
+export async function handleReactivateSwapAccount({ url, formData }: Ctx) {
   const currentIdParam = formData.get("currentId");
   const currentIdReqError = validateRequiredId(currentIdParam, "Cuenta actual");
-  if (currentIdReqError)
-    return jsonResponse(422, currentIdReqError);
+  if (currentIdReqError) return jsonResponse(422, currentIdReqError);
   const currentIdNum = Number(currentIdParam);
 
   const inactiveIdParam = formData.get("inactiveId");
@@ -22,14 +21,24 @@ export async function handleReactivateSwapAccount({ formData }: Ctx) {
     inactiveIdParam,
     "Cuenta inactiva"
   );
-  if (inactiveIdReqError)
-    return jsonResponse(422, inactiveIdReqError);
+  if (inactiveIdReqError) return jsonResponse(422, inactiveIdReqError);
   const inactiveIdNum = Number(inactiveIdParam);
 
   try {
     await reactivateAccountSwap(inactiveIdNum, currentIdNum);
-    setFlash({ scope: "account", kind: "reactivated-success" });
-    return redirect("/account?reactivated=1");
+    // setFlash({ scope: "account", kind: "reactivated-success" });
+    // const params = new URLSearchParams(url.search);
+    // params.set("reactivated", "1");
+    // ["conflict", "code", "message", "name", "description", "elementId"].forEach(
+    //   (k) => params.delete(k)
+    // );
+    // params.delete("id");
+    // return redirect(`/account?${params.toString()}`);
+    const out = new URLSearchParams();
+    out.set("reactivated", "1");
+    if (url.searchParams.get("includeInactive") === "1")
+      out.set("includeInactive", "1");
+    return redirect(`/account?${out.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

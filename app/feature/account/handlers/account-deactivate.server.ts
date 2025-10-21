@@ -5,13 +5,12 @@ import { setFlash } from "~/services/flashSession";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import { validateRequiredId } from "~/utils/validation/validationHelpers";
 
-type Ctx = { formData: FormData };
+type Ctx = { url: URL; formData: FormData };
 
-export async function handleDeactivateAccount({ formData }: Ctx) {
+export async function handleDeactivateAccount({ url, formData }: Ctx) {
   const idParam = formData.get("id");
   const idReqError = validateRequiredId(idParam, "Cuenta");
-  if (idReqError)
-    return jsonResponse(422, idReqError);
+  if (idReqError) return jsonResponse(422, idReqError);
   const idNum = Number(idParam);
 
   try {
@@ -21,8 +20,15 @@ export async function handleDeactivateAccount({ formData }: Ctx) {
           | "cancel")
       : undefined;
     await deactivateAccount(idNum, strategy);
-    setFlash({ scope: "account", kind: "deleted-success" });
-    return redirect("/account?deleted=1");
+    // setFlash({ scope: "account", kind: "deleted-success" });
+    // const params = new URLSearchParams(url.search);
+    // params.set("deactivated", "1");
+    // return redirect(`/account?${params.toString()}`);
+    const out = new URLSearchParams();
+    out.set("deactivated", "1");
+    if (url.searchParams.get("includeInactive") === "1")
+      out.set("includeInactive", "1");
+    return redirect(`/account?${out.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

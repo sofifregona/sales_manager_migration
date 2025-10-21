@@ -8,19 +8,29 @@ import {
   validateRequiredId,
 } from "~/utils/validation/validationHelpers";
 
-type Ctx = { formData: FormData };
+type Ctx = { url: URL; formData: FormData };
 
-export async function handleReactivateAccount({ formData }: Ctx) {
+export async function handleReactivateAccount({ url, formData }: Ctx) {
   const idParam = formData.get("id");
   const idReqError = validateRequiredId(idParam, "Cuenta");
-  if (idReqError)
-    return jsonResponse(422, idReqError);
+  if (idReqError) return jsonResponse(422, idReqError);
   const idNum = Number(idParam);
-
   try {
     await reactivateAccount(idNum);
-    setFlash({ scope: "account", kind: "reactivated-success" });
-    return redirect("/account?reactivated=1");
+    // setFlash({ scope: "account", kind: "reactivated-success" });
+    // const params = new URLSearchParams(url.search);
+    // console.log("DENTRO DEL REACTIVATE");
+    // params.set("reactivated", "1");
+    // ["conflict", "code", "message", "name", "description", "elementId"].forEach(
+    //   (k) => params.delete(k)
+    // );
+    // params.delete("id");
+    // return redirect(`/account?${params.toString()}`);
+    const out = new URLSearchParams();
+    out.set("reactivated", "1");
+    if (url.searchParams.get("includeInactive") === "1")
+      out.set("includeInactive", "1");
+    return redirect(`/account?${out.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

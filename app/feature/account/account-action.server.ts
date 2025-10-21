@@ -18,13 +18,13 @@ export async function accountAction({ request }: ActionFunctionArgs) {
 
     switch (parsed.intent) {
       case "deactivate":
-        return await handleDeactivateAccount({ formData });
+        return await handleDeactivateAccount({ url, formData });
       case "reactivate":
-        return await handleReactivateAccount({ formData });
+        return await handleReactivateAccount({ url, formData });
       case "reactivate-swap":
-        return await handleReactivateSwapAccount({ formData });
+        return await handleReactivateSwapAccount({ url, formData });
       case "create":
-        return await handleCreateAccount({ formData });
+        return await handleCreateAccount({ url, formData });
       case "update":
         return await handleUpdateAccount({ url, formData });
       default:

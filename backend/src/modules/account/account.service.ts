@@ -1,4 +1,3 @@
-﻿import { accountRepo } from "./account.repo.js";
 import { Account } from "./account.entity.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { normalizeText } from "../../shared/utils/helpers/normalizeText.js";
@@ -6,24 +5,25 @@ import {
   validateNumberID,
   validateRangeLength,
 } from "../../shared/utils/validations/validationHelpers.js";
-import { paymentRepo } from "../payment/payment.repo.js";
-import { AppDataSource } from "@back/src/shared/database/data-source.js";
+import type { AccountRepository } from "./account.repo.js";
 
 // SERVICE FOR CREATE A BARTABLE
-export const createAccount = async (data: {
-  name: string;
-  description: string | null;
-}) => {
+export const createAccount = async (
+  repo: AccountRepository,
+  data: {
+    name: string;
+    description: string | null;
+  }
+) => {
   const { name, description } = data;
 
   const cleanedName = name.replace(/\s+/g, " ").trim();
   const cleanedDescription = description?.replace(/\s+/g, " ").trim() ?? null;
 
   validateRangeLength(cleanedName, 8, 80, "Nombre");
-
   const normalizedName = normalizeText(cleanedName);
-  // Validations for repeting brands
-  const duplicate = await accountRepo.findOneBy({ normalizedName });
+
+  const duplicate = await repo.findByNormalizedName(normalizedName);
 
   // If it exists and is active, then throw an error
   if (duplicate?.active) {
@@ -46,35 +46,38 @@ export const createAccount = async (data: {
   }
 
   // If it doesn't exist, create a new one
-  const newAccount = accountRepo.create({
+  const newAccount = repo.create({
     name: cleanedName,
     normalizedName,
     description: cleanedDescription ?? null,
   });
 
-  return await accountRepo.save(newAccount);
+  return await repo.save(newAccount);
 };
 
 // SERVICE FOR UPDATE OR DEACTIVATE A BARTABLE
-export const updateAccount = async (updatedData: {
-  id: number;
-  name?: string;
-  description?: string;
-}) => {
-  const { id, name, description } = updatedData;
+export const updateAccount = async (
+  repo: AccountRepository,
+  data: {
+    id: number;
+    name?: string;
+    description?: string;
+  }
+) => {
+  const { id, name, description } = data;
   validateNumberID(id, "Cuenta");
 
-  const existing = await accountRepo.findOneBy({ id, active: true });
+  const existing = await repo.findActiveById(id);
   if (!existing) throw new AppError("(Error) Cuenta no encontrada.", 404);
 
-  const data: Partial<Account> = {};
+  const patch: Partial<Account> = {};
 
   if (name !== undefined) {
     const cleanedName = name.replace(/\s+/g, " ").trim();
     validateRangeLength(cleanedName, 8, 80, "Nombre");
 
     const normalizedName = normalizeText(cleanedName);
-    const duplicate = await accountRepo.findOneBy({ normalizedName });
+    const duplicate = await repo.findByNormalizedName(normalizedName);
 
     if (duplicate && duplicate.id !== id && duplicate.active) {
       throw new AppError(
@@ -86,7 +89,7 @@ export const updateAccount = async (updatedData: {
     }
 
     if (duplicate && duplicate.id !== id && !duplicate.active) {
-      // No swap automático: informamos conflicto reactivable
+      // No swap autom�tico: informamos conflicto reactivable
       throw new AppError(
         "(Error) Ya existe una cuenta inactiva con este nombre.",
         409,
@@ -94,8 +97,8 @@ export const updateAccount = async (updatedData: {
         { existingId: duplicate.id }
       );
     } else {
-      data.name = cleanedName;
-      data.normalizedName = normalizedName;
+      patch.name = cleanedName;
+      patch.normalizedName = normalizedName;
     }
   }
 
@@ -104,14 +107,22 @@ export const updateAccount = async (updatedData: {
     data.description = cleanedDescription;
   }
 
-  await accountRepo.update(id, data);
-  return await accountRepo.findOneBy({ id });
+  if (Object.keys(patch).length > 0) {
+    await repo.updateFields(id, patch);
+  }
+  return await repo.findActiveById(id);
 };
 
-export const reactivateAccount = async (id: number) => {
+export const reactivateAccount = async (
+  repo: AccountRepository,
+  id: number
+) => {
+  console.log("DENTRO DEL SERVICE DE REACTIVATE");
   validateNumberID(id, "Cuenta");
-  const existing = await accountRepo.findOneBy({ id });
+  const existing = await repo.findById(id);
+  console.log(existing);
   if (!existing) throw new AppError("(Error) Cuenta no encontrada.", 404);
+
   if (existing.active) {
     throw new AppError(
       "(Error) La cuenta ya está activa.",
@@ -120,31 +131,67 @@ export const reactivateAccount = async (id: number) => {
       { existingId: existing.id }
     );
   }
-  await accountRepo.update(id, { active: true });
-  return await accountRepo.findOneBy({ id });
+  await repo.reactivate(id);
+  return await repo.findActiveById(id);
+};
+
+export const reactivateSwapAccount = async (
+  repo: AccountRepository,
+  data: { currentId: number; inactiveId: number }
+) => {
+  console.log("DENTRO DEL SERVICE DE REACTIVATE");
+  const { currentId, inactiveId } = data;
+  validateNumberID(currentId, "Cuenta actual");
+  const currentExisting = await repo.findActiveById(currentId);
+  if (!currentExisting)
+    throw new AppError("(Error) Cuenta no encontrada.", 404);
+
+  validateNumberID(inactiveId, "Cuenta inactiva");
+  const inactiveExisting = await repo.findById(inactiveId);
+  if (!inactiveExisting)
+    throw new AppError("(Error) Cuenta no encontrada.", 404);
+
+  if (inactiveExisting.active) {
+    throw new AppError(
+      "(Error) La cuenta ya está activa.",
+      409,
+      "ACCOUNT_ALREADY_ACTIVE",
+      { inactiveExistingId: inactiveExisting.id }
+    );
+  }
+
+  const patch: Partial<Account> = {};
+  patch.active = false;
+
+  await repo.reactivate(inactiveId);
+  const reactivate = repo.findActiveById(inactiveId);
+  await repo.updateFields(currentId, patch);
+  const deactivate = repo.findActiveById(currentId);
+  console.log(reactivate);
+  console.log(deactivate);
+  return await repo.findActiveById(inactiveId);
 };
 
 type DeactivateStrategy = "cascade-delete-payments" | "cancel";
 
 export const softDeleteAccount = async (
+  repo: AccountRepository,
   id: number,
   strategy?: DeactivateStrategy
 ) => {
   validateNumberID(id, "Cuenta");
 
-  const existing = await accountRepo.findOneBy({ id, active: true });
+  const existing = await repo.findActiveById(id);
   if (!existing) throw new AppError("(Error) Cuenta no encontrada.", 404);
 
-  const count = await paymentRepo.count({
-    where: { account: { id }, active: true },
-  });
+  const count = await repo.countActivePaymentsByAccount(id);
 
   if (count > 0 && !strategy) {
     throw new AppError(
-      `(Advertencia) La cuenta que desea eliminar está asociada a ${
+      `(Advertencia) La cuenta que desea eliminar est� asociada a ${
         count === 1
-          ? `un método de pago.\nSi continúa, también se eliminará el método de pago asociado.`
-          : `${count} métodos de pago.\nSi continúa, también se eliminarán los métodos de pago asociados.`
+          ? `un m�todo de pago.\nSi contin�a, tambi�n se eliminar� el m�todo de pago asociado.`
+          : `${count} m�todos de pago.\nSi contin�a, tambi�n se eliminar�n los m�todos de pago asociados.`
       }`,
       409,
       "ACCOUNT_IN_USE",
@@ -157,47 +204,34 @@ export const softDeleteAccount = async (
 
   if (count === 0 || strategy === "cancel") {
     if (strategy === "cancel") return existing;
-    await accountRepo.update(id, { active: false });
-    return await accountRepo.findOneBy({ id });
+    await repo.softDeactivate(id);
+    return await repo.findActiveById(id);
   }
 
-  await AppDataSource.transaction(async (tx) => {
-    const txPaymentRepo = tx.getRepository(paymentRepo.target);
-    const txAccountRepo = tx.getRepository(accountRepo.target);
-
-    if (strategy === "cascade-delete-payments") {
-      await txPaymentRepo
-        .createQueryBuilder()
-        .update()
-        .set({ active: false })
-        .where("accountId = :id", { id })
-        .andWhere("active = :active", { active: true })
-        .execute();
-    }
-
-    await txAccountRepo.update({ id }, { active: false });
-  });
-
-  return await accountRepo.findOneBy({ id });
+  await repo.deactivateActivePaymentsByAccount(id);
+  await repo.softDeactivate(id);
+  return;
 };
 
 export const getAllAccounts = async (
-  includeInactive: boolean,
-  sort?: { field?: "name" | "active"; direction?: "ASC" | "DESC" }
+  repo: AccountRepository,
+  params: {
+    includeInactive: boolean;
+    sortField?: "normalizedName" | "active";
+    sotDirection: "ASC" | "DESC";
+  }
 ) => {
-  const where = includeInactive ? {} : { active: true };
-  const order: Record<string, "ASC" | "DESC"> = {};
-  const field =
-    sort?.field === "name" ? "normalizedName" : sort?.field ?? "normalizedName";
-  const direction = sort?.direction ?? "ASC";
-  order[field] = direction;
-  return await accountRepo.find({ where, order });
+  return repo.getAll(params);
 };
 
 // SERVICE FOR GETTING A BARTABLE BY ID
-export const getAccountById = async (id: number): Promise<Account> => {
+export const getAccountById = async (
+  repo: AccountRepository,
+  id: number
+): Promise<Account> => {
   validateNumberID(id, "Cuenta");
-  const existing = await accountRepo.findOneBy({ id, active: true });
-  if (!existing) throw new AppError("(Error) Cuenta no encontrada.", 404);
-  return existing;
+  const account = await repo.findById(id);
+  if (!account || !account.active)
+    throw new AppError("(Error) Cuenta no encontrada.", 404);
+  return account;
 };

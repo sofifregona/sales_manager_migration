@@ -6,6 +6,7 @@ import {
   deactivateAccountHandler,
   updateAccountHandler,
   reactivateAccountHandler,
+  reactivateSwapAccountHandler,
 } from "./account.controller.js";
 import { requireRole } from "../../shared/guards/auth.guard.js";
 
@@ -32,6 +33,11 @@ router.patch(
   "/accounts/:id/reactivate",
   requireRole(["ADMIN", "MANAGER"]),
   reactivateAccountHandler
+);
+router.patch(
+  "/accounts/:inactiveId/reactivate-swap",
+  requireRole(["ADMIN", "MANAGER"]),
+  reactivateSwapAccountHandler
 );
 
 export default router;

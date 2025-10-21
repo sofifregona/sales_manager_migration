@@ -9,16 +9,13 @@ import { fetchJson } from "~/lib/http/fetchJson.server";
 
 export async function createAccount(data: CreateAccountPayload) {
   const { name, description } = data;
-  return await fetchJson<AccountDTO>(
-    `${API_BASE_URL}/${ENDPOINTS.account}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name, description }),
-    }
-  );
+  return await fetchJson<AccountDTO>(`${API_BASE_URL}/${ENDPOINTS.account}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ name, description }),
+  });
 }
 
 export async function updateAccount(data: UpdateAccountPayload) {
@@ -68,13 +65,13 @@ export async function reactivateAccountSwap(
   currentId: number
 ) {
   return await fetchJson<AccountDTO>(
-    `${API_BASE_URL}/${ENDPOINTS.account}/reactivate-swap`,
+    `${API_BASE_URL}/${ENDPOINTS.account}/${inactiveId}/reactivate-swap`,
     {
-      method: "POST",
+      method: "PATCH",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ inactiveId, currentId }),
+      body: JSON.stringify({ currentId }),
     }
   );
 }
@@ -113,4 +110,3 @@ export async function getAccountById(id: number) {
     }
   );
 }
-

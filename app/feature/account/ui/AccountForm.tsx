@@ -1,32 +1,46 @@
 import React, { useEffect, useState } from "react";
-import { Form } from "react-router-dom";
+import { Form, useLocation, useNavigation } from "react-router-dom";
 import type { AccountDTO } from "~/feature/account/account";
 
 type Props = {
   isEditing: boolean;
   editing?: AccountDTO | null;
-  isSubmitting: boolean;
   formAction: string; // "." o `.${search}`
+  overrideName: string | undefined;
 };
 
 export function AccountForm({
   isEditing,
   editing,
-  isSubmitting,
   formAction,
+  overrideName,
 }: Props) {
   const [name, setName] = useState(editing?.name ?? "");
   const [description, setDescription] = useState(editing?.description ?? "");
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+  const location = useLocation();
+  console.log("DENTRO DEL ACCOUNT FORM");
+  console.log(overrideName);
 
   useEffect(() => {
     if (isEditing) {
-      setName(editing?.name ?? "");
+      setName(overrideName ?? editing?.name ?? "");
       setDescription(editing?.description ?? "");
-    } else {
-      setName("");
-      setDescription("");
     }
+    // En modo creación, no limpiamos los campos para no perder lo tipeado
   }, [isEditing, editing]);
+
+  // Luego de crear con éxito (?created=1 en la URL), limpiar el formulario de creación
+  useEffect(() => {
+    if (!isEditing) {
+      const p = new URLSearchParams(location.search);
+      if (p.get("created") === "1") {
+        setName("");
+        setDescription("");
+      }
+    }
+  }, [location.search, isEditing]);
 
   return (
     <Form method="post" action={formAction} className="account-form">
@@ -43,7 +57,7 @@ export function AccountForm({
         required
       />
 
-      <label htmlFor="description">Descripcion</label>
+      <label htmlFor="description">Descripción</label>
       <input
         id="description"
         name="description"

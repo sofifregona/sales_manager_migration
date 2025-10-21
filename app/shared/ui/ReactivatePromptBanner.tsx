@@ -1,5 +1,5 @@
 import React from "react";
-import { useFetcher } from "react-router-dom";
+import { useFetcher, useLocation } from "react-router-dom";
 import { ActionPrompt } from "./ActionPrompt";
 
 type Props = {
@@ -24,11 +24,17 @@ export function ReactivatePromptBanner({
   onDismiss,
   overlay = false,
 }: Props) {
+  console.log("DENTRO DEL PROMPT");
+  console.log(inactiveId);
+  console.log(currentId);
+  console.log(overlay);
   const fetcher = useFetcher();
   const canReactivate = typeof inactiveId === "number";
   const isUpdate = kind === "update-conflict" && typeof currentId === "number";
+  console.log(isUpdate);
   const msg = isUpdate ? messageForUpdate : messageForCreate;
   const busy = fetcher.state !== "idle";
+  const location = useLocation();
 
   if (overlay) {
     const actions = [
@@ -41,11 +47,11 @@ export function ReactivatePromptBanner({
                 onClick: () =>
                   fetcher.submit(
                     {
-                      _action: "reactivateSwap",
+                      _action: "reactivate-swap",
                       inactiveId: String(inactiveId),
                       currentId: String(currentId ?? ""),
                     },
-                    { method: "post", action: "." }
+                    { method: "post", action: `.${location.search}` }
                   ),
                 variant: "secondary" as const,
               },
@@ -56,15 +62,23 @@ export function ReactivatePromptBanner({
                 onClick: () =>
                   fetcher.submit(
                     { _action: "reactivate", id: String(inactiveId) },
-                    { method: "post", action: "." }
+                    { method: "post", action: `.${location.search}` }
                   ),
                 variant: "secondary" as const,
               },
             ]
         : [
-            { label: "Reactivar", onClick: () => {}, variant: "secondary" as const, disabled: true },
+            {
+              label: "Reactivar",
+              onClick: () => {},
+              variant: "secondary" as const,
+              disabled: true,
+            },
           ]),
     ];
+
+    console.log("ACCIONES");
+    console.log(actions);
 
     return (
       <ActionPrompt
@@ -90,19 +104,27 @@ export function ReactivatePromptBanner({
         </button>
         {canReactivate ? (
           isUpdate ? (
-            <fetcher.Form method="post" action=".">
-              <input type="hidden" name="_action" value="reactivateSwap" />
+            <fetcher.Form method="post" action={`.${location.search}`}>
+              <input type="hidden" name="_action" value="reactivate-swap" />
               <input type="hidden" name="inactiveId" value={inactiveId} />
               <input type="hidden" name="currentId" value={currentId ?? ""} />
-              <button type="submit" className="btn btn--secondary" disabled={busy}>
+              <button
+                type="submit"
+                className="btn btn--secondary"
+                disabled={busy}
+              >
                 Reactivar y desactivar actual
               </button>
             </fetcher.Form>
           ) : (
-            <fetcher.Form method="post" action=".">
+            <fetcher.Form method="post" action={`.${location.search}`}>
               <input type="hidden" name="_action" value="reactivate" />
               <input type="hidden" name="id" value={inactiveId} />
-              <button type="submit" className="btn btn--secondary" disabled={busy}>
+              <button
+                type="submit"
+                className="btn btn--secondary"
+                disabled={busy}
+              >
                 Reactivar
               </button>
             </fetcher.Form>

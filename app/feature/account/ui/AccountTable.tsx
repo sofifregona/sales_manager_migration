@@ -1,5 +1,10 @@
-import React from "react";
-import { Link, useFetcher, useSearchParams } from "react-router-dom";
+import React, { useState } from "react";
+import {
+  Link,
+  useFetcher,
+  useLocation,
+  useSearchParams,
+} from "react-router-dom";
 import type { AccountDTO } from "~/feature/account/account";
 import {
   type UseQuerySortingConfig,
@@ -27,12 +32,16 @@ export function AccountTable({ accounts, editingId }: Props) {
   const deactivating = deactivateFetcher.state !== "idle";
   const reactivateFetcher = useFetcher();
   const reactivating = reactivateFetcher.state !== "idle";
-  const [pendingDeactivateId, setPendingDeactivateId] = React.useState<
-    number | null
-  >(null);
+  const [pendingDeactivateId, setPendingDeactivateId] = useState<number | null>(
+    null
+  );
+  const [pendingReactivateId, setPendingReactivateId] = useState<number | null>(
+    null
+  );
 
   const [params] = useSearchParams();
   const includeInactive = params.get("includeInactive") === "1";
+  const location = useLocation();
 
   const {
     sortedItems: sortedAccounts,
@@ -74,7 +83,7 @@ export function AccountTable({ accounts, editingId }: Props) {
                   label="Estado"
                 />
               )}
-              <th>DescripciÃ³n</th>
+              <th>Descripción</th>
               <th style={{ width: 220 }}>Acciones</th>
             </tr>
           </thead>
@@ -94,32 +103,22 @@ export function AccountTable({ accounts, editingId }: Props) {
                 <td className="actions">
                   {account.active ? (
                     <>
-                      <Link to={`?id=${account.id}`}>
+                      <Link
+                        to={`?id=${account.id}&includeInactive=${
+                          includeInactive ? "1" : "0"
+                        }`}
+                      >
                         <button type="button">Modificar</button>
                       </Link>
-                      <deactivateFetcher.Form
-                        method="post"
-                        action="."
-                        onSubmit={(e) => {
-                          e.preventDefault();
-                          setPendingDeactivateId(account.id);
-                        }}
+
+                      <button
+                        type="button"
                         style={{ display: "inline-block", marginLeft: 8 }}
+                        disabled={deactivating}
+                        onClick={() => setPendingDeactivateId(account.id)}
                       >
-                        <input type="hidden" name="id" value={account.id} />
-                        <input
-                          type="hidden"
-                          name="_action"
-                          value="deactivate"
-                        />
-                        <button
-                          type="button"
-                          disabled={deactivating}
-                          onClick={() => setPendingDeactivateId(account.id)}
-                        >
-                          {deactivating ? "Desactivando..." : "Desactivar"}
-                        </button>
-                      </deactivateFetcher.Form>
+                        {deactivating ? "Desactivando..." : "Desactivar"}
+                      </button>
 
                       {(() => {
                         const data = deactivateFetcher.data as any;
@@ -154,7 +153,10 @@ export function AccountTable({ accounts, editingId }: Props) {
                     </>
                   ) : (
                     <>
-                      <reactivateFetcher.Form method="post" action=".">
+                      {/* <reactivateFetcher.Form
+                        method="post"
+                        action={`.${location.search}`}
+                      >
                         <input type="hidden" name="id" value={account.id} />
                         <input
                           type="hidden"
@@ -170,7 +172,15 @@ export function AccountTable({ accounts, editingId }: Props) {
                         <div className="inline-error" role="alert">
                           {String((reactivateFetcher.data as any).error)}
                         </div>
-                      )}
+                      )} */}
+                      <button
+                        type="button"
+                        style={{ display: "inline-block", marginLeft: 8 }}
+                        disabled={reactivating}
+                        onClick={() => setPendingReactivateId(account.id)}
+                      >
+                        {reactivating ? "Reactivando..." : "Reactivar"}
+                      </button>
                     </>
                   )}
                 </td>
@@ -190,7 +200,23 @@ export function AccountTable({ accounts, editingId }: Props) {
             setPendingDeactivateId(null);
             deactivateFetcher.submit(
               { id: String(id), _action: "deactivate" },
-              { method: "post", action: "." }
+              { method: "post", action: `.${location.search}` }
+            );
+          }}
+        />
+      )}
+
+      {pendingReactivateId != null && (
+        <ConfirmPrompt
+          message="¿Seguro que desea reactivar esta cuenta?"
+          busy={reactivating}
+          onCancel={() => setPendingReactivateId(null)}
+          onConfirm={() => {
+            const id = pendingReactivateId;
+            setPendingReactivateId(null);
+            reactivateFetcher.submit(
+              { id: String(id), _action: "reactivate" },
+              { method: "post", action: `.${location.search}` }
             );
           }}
         />

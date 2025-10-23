@@ -18,13 +18,13 @@ export async function paymentAction({ request }: ActionFunctionArgs) {
 
     switch (parsed.intent) {
       case "reactivate":
-        return await handlePaymentReactivate({ formData });
+        return await handlePaymentReactivate({ url, formData });
       case "reactivate-swap":
-        return await handlePaymentReactivateSwap({ formData });
+        return await handlePaymentReactivateSwap({ url, formData });
       case "deactivate":
-        return await handlePaymentDeactivate({ formData });
+        return await handlePaymentDeactivate({ url, formData });
       case "create":
-        return await handlePaymentCreate({ formData });
+        return await handlePaymentCreate({ url, formData });
       case "update":
         return await handlePaymentUpdate({ url, formData });
       default:

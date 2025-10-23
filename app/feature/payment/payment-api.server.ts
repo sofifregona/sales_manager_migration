@@ -1,4 +1,4 @@
-import type {
+﻿import type {
   PaymentDTO,
   CreatePaymentPayload,
   UpdatePaymentPayload,
@@ -10,16 +10,13 @@ import { fetchJson } from "~/lib/http/fetchJson.server";
 // CREAR MESA
 export async function createPayment(data: CreatePaymentPayload) {
   const { name, idAccount } = data;
-  return await fetchJson<PaymentDTO>(
-    `${API_BASE_URL}/${ENDPOINTS.payment}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({ name, idAccount }),
-    }
-  );
+  return await fetchJson<PaymentDTO>(`${API_BASE_URL}/${ENDPOINTS.payment}`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ name, idAccount }),
+  });
 }
 
 // ACTUALIZAR MESA
@@ -51,7 +48,10 @@ export async function deactivatePayment(id: number) {
   );
 }
 
-export async function reactivatePayment(id: number) {
+export async function reactivatePayment(
+  id: number,
+  strategy?: "reactivate-account" | "cancel"
+) {
   return await fetchJson<PaymentDTO>(
     `${API_BASE_URL}/${ENDPOINTS.payment}/${id}/reactivate`,
     {
@@ -59,22 +59,24 @@ export async function reactivatePayment(id: number) {
       headers: {
         "Content-Type": "application/json",
       },
+      body: strategy ? JSON.stringify({ strategy }) : undefined,
     }
   );
 }
 
 export async function reactivatePaymentSwap(
   inactiveId: number,
-  currentId: number
+  currentId: number,
+  strategy?: "reactivate-account" | "cancel"
 ) {
   return await fetchJson<PaymentDTO>(
-    `${API_BASE_URL}/${ENDPOINTS.payment}/reactivate-swap`,
+    `${API_BASE_URL}/${ENDPOINTS.payment}/${inactiveId}/reactivate-swap`,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ inactiveId, currentId }),
+      body: JSON.stringify(strategy ? { currentId, strategy } : { currentId }),
     }
   );
 }
@@ -113,4 +115,3 @@ export async function getPaymentById(id: number) {
     }
   );
 }
-

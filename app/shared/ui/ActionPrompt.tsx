@@ -16,7 +16,14 @@ type Props = {
   busy?: boolean;
 };
 
-export function ActionPrompt({ open, title, message, onClose, actions, busy = false }: Props) {
+export function ActionPrompt({
+  open,
+  title,
+  message,
+  onClose,
+  actions,
+  busy = false,
+}: Props) {
   if (!open) return null;
   return (
     <div
@@ -36,7 +43,6 @@ export function ActionPrompt({ open, title, message, onClose, actions, busy = fa
       <div
         className="action-prompt"
         style={{
-          background: "white",
           padding: 16,
           borderRadius: 6,
           boxShadow: "0 2px 14px rgba(0,0,0,0.2)",
@@ -45,13 +51,24 @@ export function ActionPrompt({ open, title, message, onClose, actions, busy = fa
         }}
       >
         {title && <h3 style={{ marginTop: 0 }}>{title}</h3>}
-        <div style={{ marginBottom: 12, whiteSpace: "pre-line" }}>{message}</div>
-        <div style={{ display: "flex", gap: 8, justifyContent: "flex-end", flexWrap: "wrap" }}>
+        <div style={{ marginBottom: 12, whiteSpace: "pre-line" }}>
+          {message}
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 8,
+            justifyContent: "flex-end",
+            flexWrap: "wrap",
+          }}
+        >
           {actions.map((a, i) => (
             <button
               key={i}
               type="button"
-              className={a.variant === "secondary" ? "btn btn--secondary" : "btn"}
+              className={
+                a.variant === "secondary" ? "btn btn--secondary" : "btn"
+              }
               onClick={a.onClick}
               disabled={busy || a.disabled}
             >
@@ -63,4 +80,3 @@ export function ActionPrompt({ open, title, message, onClose, actions, busy = fa
     </div>
   );
 }
-

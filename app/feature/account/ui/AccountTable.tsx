@@ -13,6 +13,7 @@ import {
 import { SortToggle } from "~/shared/ui/SortToggle";
 import { ConfirmCascadeDeactivateBanner } from "~/shared/ui/ConfirmCascadeDeactivateBanner";
 import { ConfirmPrompt } from "~/shared/ui/ConfirmPrompt";
+import { ConfirmCascadeDeactivatePrompt } from "~/shared/ui/ConfirmCascadeDeactivatePrompt";
 
 type Props = {
   accounts: AccountDTO[];
@@ -35,9 +36,9 @@ export function AccountTable({ accounts, editingId }: Props) {
   const [pendingDeactivateId, setPendingDeactivateId] = useState<number | null>(
     null
   );
-  const [pendingReactivateId, setPendingReactivateId] = useState<number | null>(
-    null
-  );
+  const [pendingReactivateId, setPendingReactivateId] = useState<number | null>(null);
+
+  const [lastDeactivateId, setLastDeactivateId] = useState<number | null>(null);
 
   const [params] = useSearchParams();
   const includeInactive = params.get("includeInactive") === "1";
@@ -83,7 +84,7 @@ export function AccountTable({ accounts, editingId }: Props) {
                   label="Estado"
                 />
               )}
-              <th>DescripciÃ³n</th>
+              <th>Descripción</th>
               <th style={{ width: 220 }}>Acciones</th>
             </tr>
           </thead>
@@ -125,23 +126,22 @@ export function AccountTable({ accounts, editingId }: Props) {
                         if (
                           data &&
                           data.code === "ACCOUNT_IN_USE" &&
-                          data.details?.count != null
-                        ) {
+                          data.details?.count != null && lastDeactivateId === account.id) {
                           return (
-                            <ConfirmCascadeDeactivateBanner
+                            <ConfirmCascadeDeactivatePrompt
                               entityId={account.id}
                               entityLabel="cuenta"
-                              dependentLabel="MÃ©todo de pago"
+                              dependentLabel="Método de pago"
                               count={Number(data.details.count) || 0}
                               strategyProceed="cascade-delete-payments"
                               onCancel={() => {
-                                /* no-op */
+                                setLastDeactivateId(null)
                               }}
                               proceedLabel="Aceptar"
                             />
                           );
                         }
-                        if (data && data.error && !data.code) {
+                        if (data && data.error && !data.code && lastDeactivateId === account.id) {
                           return (
                             <div className="inline-error" role="alert">
                               {String(data.error)}
@@ -192,12 +192,13 @@ export function AccountTable({ accounts, editingId }: Props) {
 
       {pendingDeactivateId != null && (
         <ConfirmPrompt
-          message="Â¿Seguro que desea desactivar esta cuenta?"
+          message="¿Seguro que desea desactivar esta cuenta?"
           busy={deactivating}
           onCancel={() => setPendingDeactivateId(null)}
           onConfirm={() => {
             const id = pendingDeactivateId;
             setPendingDeactivateId(null);
+            setLastDeactivateId(id);
             deactivateFetcher.submit(
               { id: String(id), _action: "deactivate" },
               { method: "post", action: `.${location.search}` }
@@ -208,7 +209,7 @@ export function AccountTable({ accounts, editingId }: Props) {
 
       {pendingReactivateId != null && (
         <ConfirmPrompt
-          message="Â¿Seguro que desea reactivar esta cuenta?"
+          message="¿Seguro que desea reactivar esta cuenta?"
           busy={reactivating}
           onCancel={() => setPendingReactivateId(null)}
           onConfirm={() => {
@@ -224,3 +225,7 @@ export function AccountTable({ accounts, editingId }: Props) {
     </>
   );
 }
+
+
+
+

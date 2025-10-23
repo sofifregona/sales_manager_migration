@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { Form } from "react-router-dom";
+import { Form, useLocation, useNavigation } from "react-router-dom";
 import type { AccountDTO } from "~/feature/account/account";
 import type { PaymentDTO } from "~/feature/payment/payment";
 
@@ -7,29 +7,42 @@ type Props = {
   isEditing: boolean;
   editing?: PaymentDTO | null;
   accounts: AccountDTO[];
-  isSubmitting: boolean;
   formAction: string; // "." o `.${search}`
+  overrideName: string | undefined;
 };
 
 export function PaymentForm({
   isEditing,
   editing,
   accounts,
-  isSubmitting,
   formAction,
+  overrideName,
 }: Props) {
   const [name, setName] = useState(editing?.name ?? "");
   const [idAccount, setIdAccount] = useState(editing?.account.id ?? "");
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+  const location = useLocation();
 
   useEffect(() => {
     if (isEditing) {
-      setName(editing?.name ?? "");
+      setName(overrideName ?? editing?.name ?? "");
       setIdAccount(editing?.account.id ?? "");
-    } else {
+    }
+    // En modo creación, no limpiamos los campos para no perder lo tipeado
+  }, [isEditing, editing, overrideName]);
+
+  // Luego de crear con éxito (?created=1 en la URL), limpiar el formulario de creación
+  const p = new URLSearchParams(location.search);
+  const successFlags = ["created", "updated", "deactivated", "reactivated"];
+  const hasSuccess = successFlags.some((k) => p.get(k) === "1");
+
+  useEffect(() => {
+    if (hasSuccess) {
       setName("");
       setIdAccount("");
     }
-  }, [isEditing, editing]);
+  }, [location.search, isEditing]);
 
   return (
     <Form method="post" action={formAction} className="payment-form">

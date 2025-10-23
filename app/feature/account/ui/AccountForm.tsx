@@ -32,13 +32,14 @@ export function AccountForm({
   }, [isEditing, editing]);
 
   // Luego de crear con éxito (?created=1 en la URL), limpiar el formulario de creación
+  const p = new URLSearchParams(location.search);
+  const successFlags = ["created", "updated", "deactivated", "reactivated"];
+  const hasSuccess = successFlags.some((k) => p.get(k) === "1");
+
   useEffect(() => {
-    if (!isEditing) {
-      const p = new URLSearchParams(location.search);
-      if (p.get("created") === "1") {
-        setName("");
-        setDescription("");
-      }
+    if (hasSuccess) {
+      setName("");
+      setDescription("");
     }
   }, [location.search, isEditing]);
 

@@ -21,7 +21,7 @@ export const createAccount = async (
   const cleanedName = name.replace(/\s+/g, " ").trim();
   const cleanedDescription = description?.replace(/\s+/g, " ").trim() ?? null;
 
-  validateRangeLength(cleanedName, 8, 80, "Nombre");
+  validateRangeLength(cleanedName, 5, 80, "Nombre");
   const normalizedName = normalizeText(cleanedName);
 
   const duplicate = await repo.findByNormalizedName(normalizedName);
@@ -30,9 +30,7 @@ export const createAccount = async (
   if (duplicate?.active) {
     throw new AppError(
       "(Error) Ya existe una cuenta activa con este nombre.",
-      409,
-      "ACCOUNT_EXISTS_ACTIVE",
-      { existingId: duplicate.id }
+      409
     );
   }
 
@@ -83,9 +81,7 @@ export const updateAccount = async (
     if (duplicate && duplicate.id !== id && duplicate.active) {
       throw new AppError(
         "(Error) Ya existe una cuenta activa con este nombre.",
-        409,
-        "ACCOUNT_EXISTS_ACTIVE",
-        { existingId: duplicate.id }
+        409
       );
     }
 
@@ -125,12 +121,7 @@ export const reactivateAccount = async (
   if (!existing) throw new AppError("(Error) Cuenta no encontrada.", 404);
 
   if (existing.active) {
-    throw new AppError(
-      "(Error) La cuenta ya está activa.",
-      409,
-      "ACCOUNT_ALREADY_ACTIVE",
-      { existingId: existing.id }
-    );
+    throw new AppError("(Error) La cuenta ya está activa.", 409);
   }
   await repo.reactivate(id);
   return await repo.findActiveById(id);
@@ -165,12 +156,7 @@ export const reactivateSwapAccount = async (
     throw new AppError("(Error) Cuenta no encontrada.", 404);
 
   if (inactiveExisting.active) {
-    throw new AppError(
-      "(Error) La cuenta ya está activa.",
-      409,
-      "ACCOUNT_ALREADY_ACTIVE",
-      { inactiveExistingId: inactiveExisting.id }
-    );
+    throw new AppError("(Error) La cuenta ya está activa.", 409);
   }
 
   // Si la cuenta actual tiene métodos de pago activos, exigir estrategia
@@ -215,10 +201,10 @@ export const softDeleteAccount = async (
 
   if (count > 0 && !strategy) {
     throw new AppError(
-      `(Advertencia) La cuenta que desea eliminar est� asociada a ${
+      `(Advertencia) La cuenta que desea eliminar está asociada a ${
         count === 1
-          ? `un m�todo de pago.\nSi contin�a, tambi�n se eliminar� el m�todo de pago asociado.`
-          : `${count} m�todos de pago.\nSi contin�a, tambi�n se eliminar�n los m�todos de pago asociados.`
+          ? `un método de pago.\nSi continúa, también se eliminará el método de pago asociado.`
+          : `${count} métodos de pago.\nSi continúa, también se eliminarán los métodos de pago asociados.`
       }`,
       409,
       "ACCOUNT_IN_USE",

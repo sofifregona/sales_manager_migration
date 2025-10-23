@@ -2,7 +2,6 @@
 import { updateAccount } from "~/feature/account/account-api.server";
 import type { UpdateAccountPayload } from "~/feature/account/account";
 import { jsonResponse } from "~/lib/http/jsonResponse";
-import { setFlash } from "~/services/flashSession";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import {
   validateRequiredId,
@@ -19,7 +18,7 @@ export async function handleUpdateAccount({ url, formData }: Ctx) {
   const nameParamError = validateRequired(nameParam, "string", "Nombre");
   if (nameParamError) return jsonResponse(422, nameParamError);
   const name = (nameParam as string).replace(/\s+/g, " ").trim();
-  const nameLengthError = validateRangeLength(name, 8, 80, "Nombre");
+  const nameLengthError = validateRangeLength(name, 5, 80, "Nombre");
   if (nameLengthError) return jsonResponse(422, nameLengthError);
 
   let desc: string | null = null;
@@ -54,20 +53,27 @@ export async function handleUpdateAccount({ url, formData }: Ctx) {
     );
 
     if (parsed.status === 409) {
-      console.log("DENTRO DEL 409");
-      const anyParsed: any = parsed as any;
-      const p = new URLSearchParams(url.search);
+      const code = String(parsed.code || "").toUpperCase();
+      if (code === "ACCOUNT_EXISTS_INACTIVE") {
+        const anyParsed: any = parsed as any;
+        const p = new URLSearchParams(url.search);
 
-      if (parsed.code) p.set("code", String(parsed.code));
-      p.set("conflict", "update");
-      p.set("message", parsed.message);
-      p.set("name", name);
-      if (desc != null) p.set("description", desc);
+        if (parsed.code) p.set("code", String(parsed.code));
+        p.set("conflict", "update");
+        p.set("message", parsed.message);
+        p.set("name", name);
+        if (desc != null) p.set("description", desc);
 
-      const existingId = anyParsed?.details?.existingId as number | undefined;
+        const existingId = anyParsed?.details?.existingId as number | undefined;
 
-      if (existingId != null) p.set("elementId", String(existingId));
-      return redirect(`/account?${p.toString()}`);
+        if (existingId != null) p.set("elementId", String(existingId));
+        return redirect(`/account?${p.toString()}`);
+      } else {
+        return jsonResponse(409, {
+          error: parsed.message,
+          source: parsed.source ?? "server",
+        });
+      }
     }
     return jsonResponse(parsed.status ?? 500, {
       error: parsed.message,

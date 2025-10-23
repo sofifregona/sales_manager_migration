@@ -1,4 +1,4 @@
-import express from "express";
+﻿import express from "express";
 import cors from "cors";
 import session from "express-session";
 import morgan from "morgan";
@@ -16,6 +16,10 @@ import transactionRoutes from "./modules/transaction/transaction.routes.js";
 import userRoutes from "./modules/user/user.routes.js";
 import { requireAuth } from "./shared/guards/auth.guard.js";
 
+import {
+  errorMiddleware,
+  notFoundMiddleware,
+} from "./shared/http/error-middleware.js";
 export function createApp() {
   const app = express();
 
@@ -63,20 +67,8 @@ export function createApp() {
   app.use("/api/v1", transactionRoutes);
   app.use("/api/v1", userRoutes);
 
-  // Temporary alias to avoid breaking existing clients
-  app.use("/api", authRoutes);
-  app.use("/api", requireAuth);
-  app.use("/api", accountRoutes);
-  app.use("/api", bartableRoutes);
-  app.use("/api", brandRoutes);
-  app.use("/api", categoryRoutes);
-  app.use("/api", employeeRoutes);
-  app.use("/api", paymentRoutes);
-  app.use("/api", providerRoutes);
-  app.use("/api", productRoutes);
-  app.use("/api", saleRoutes);
-  app.use("/api", transactionRoutes);
-  app.use("/api", userRoutes);
-
+  // Not found + error handlers
+  app.use(notFoundMiddleware);
+  app.use(errorMiddleware);
   return app;
 }

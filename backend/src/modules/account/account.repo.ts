@@ -1,6 +1,4 @@
-import { DataSource, Repository } from "typeorm";
-import { Account } from "./account.entity.js";
-import { Payment } from "../payment/payment.entity.js";
+import type { Account } from "./account.entity.js";
 
 /**
  * Narrow repository contract for Account, mapping exactly what the service uses today.
@@ -34,72 +32,4 @@ export interface AccountRepository {
   softDeactivate(id: number): Promise<void>;
 
   // cross-aggregate queries used by softDelete cascade logic
-  countActivePaymentsByAccount(id: number): Promise<number>;
-  deactivateActivePaymentsByAccount(id: number): Promise<void>;
-}
-
-export function makeAccountRepository(ds: DataSource): AccountRepository {
-  const accountRepo: Repository<Account> = ds.getRepository(Account);
-  const paymentRepo: Repository<Payment> = ds.getRepository(Payment);
-
-  return {
-    create(data) {
-      // default active true if not provided (entity also has default)
-      return accountRepo.create({ ...data, active: true });
-    },
-    save(entity) {
-      return accountRepo.save(entity);
-    },
-
-    async findById(id: number) {
-      return accountRepo.findOneBy({ id });
-    },
-    async findActiveById(id) {
-      return accountRepo.findOneBy({ id, active: true });
-    },
-    async findByNormalizedName(normalizedName) {
-      return accountRepo.findOneBy({ normalizedName });
-    },
-    async getAll({
-      includeInactive,
-      sortField = "normalizedName",
-      sortDirection = "ASC",
-    }) {
-      const where = includeInactive ? {} : { active: true };
-      // mapear sortField lógico -> columna real
-      const map: Record<string, string> = {
-        name: "normalizedName",
-        active: "active",
-        id: "id",
-      };
-      const col = map[sortField] ?? "normalizedName";
-      return accountRepo.find({
-        where,
-        order: { [col]: sortDirection },
-      });
-    },
-
-    async updateFields(id, patch) {
-      await accountRepo.update(id, patch);
-    },
-    async reactivate(id) {
-      await accountRepo.update(id, { active: true });
-    },
-    async softDeactivate(id) {
-      await accountRepo.update(id, { active: false });
-    },
-
-    async countActivePaymentsByAccount(id) {
-      return paymentRepo.count({ where: { account: { id }, active: true } });
-    },
-    async deactivateActivePaymentsByAccount(id) {
-      await paymentRepo
-        .createQueryBuilder()
-        .update()
-        .set({ active: false })
-        .where("accountId = :id", { id })
-        .andWhere("active = :active", { active: true })
-        .execute();
-    },
-  };
 }

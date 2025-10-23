@@ -1,13 +1,14 @@
-import "reflect-metadata";
+﻿import "reflect-metadata";
 import { config as loadEnv } from "dotenv";
 import argon2 from "argon2";
 import { DataSource } from "typeorm";
-import { User } from "../backend/src/modules/user/User.js";
+import { User } from "../backend/src/modules/user/user.entity.js";
 
 loadEnv();
 
 async function main() {
   const username = process.env.ADMIN_USERNAME?.trim() || "admin";
+  const name = process.env.ADMIN_NAME?.trim() || "admin";
   const role = (process.env.ADMIN_ROLE?.toUpperCase() || "ADMIN") as
     | "ADMIN"
     | "MANAGER"
@@ -33,7 +34,7 @@ async function main() {
     process.exit(1);
   }
 
-  // DataSource mínimo (solo entidad User) para evitar depender de metadatos
+  // DataSource mÃ­nimo (solo entidad User) para evitar depender de metadatos
   const ds = new DataSource({
     type: "mysql",
     host: process.env.DB_HOST,
@@ -58,6 +59,7 @@ async function main() {
 
   const admin = repo.create({
     username,
+    name,
     passwordHash,
     role,
     active: true,

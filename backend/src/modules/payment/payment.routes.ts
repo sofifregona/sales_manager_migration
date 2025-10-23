@@ -1,4 +1,4 @@
-﻿import { Router } from "express";
+import { Router } from "express";
 import {
   createPaymentHandler,
   getAllPaymentsHandler,
@@ -6,6 +6,7 @@ import {
   deactivatePaymentHandler,
   updatePaymentHandler,
   reactivatePaymentHandler,
+  reactivateSwapPaymentHandler,
 } from "./payment.controller.js";
 import { requireRole } from "../../shared/guards/auth.guard.js";
 
@@ -34,4 +35,12 @@ router.patch(
   reactivatePaymentHandler
 );
 
+// Reactivar con swap (inactiva <-> actual)
+router.post(
+  "/payments/:inactiveId/reactivate-swap",
+  requireRole(["ADMIN", "MANAGER"]),
+  reactivateSwapPaymentHandler
+);
+
 export default router;
+

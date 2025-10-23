@@ -4,17 +4,22 @@ import { jsonResponse } from "~/lib/http/jsonResponse";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import { validateRequiredId } from "~/utils/validation/validationHelpers";
 
-type Ctx = { formData: FormData };
+type Ctx = { url: URL; formData: FormData };
 
-export async function handlePaymentDeactivate({ formData }: Ctx) {
+export async function handlePaymentDeactivate({ url, formData }: Ctx) {
   const idParam = formData.get("id");
   const idReqError = validateRequiredId(idParam, "Método de pago");
-  if (idReqError)
-    return jsonResponse(422, idReqError);
+  if (idReqError) return jsonResponse(422, idReqError);
   const id = Number(idParam);
+
   try {
     await deactivatePayment(id);
-    return redirect("/payment?deleted=1");
+
+    const out = new URLSearchParams();
+    if (url.searchParams.get("includeInactive") === "1")
+      out.set("includeInactive", "1");
+    out.set("deactivated", "1");
+    return redirect(`/payment?${out.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

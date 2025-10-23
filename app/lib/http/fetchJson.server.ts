@@ -41,19 +41,18 @@ export async function fetchJson<T = unknown>(
 
   if (!res.ok) {
     const baseMessage =
-      (resBody && resBody.message) ||
+      (resBody && (resBody as any).message) ||
       `HTTP ${res.status} en ${typeof input === "string" ? input : "unknown"}`;
     const errPayload: any = {
       message: baseMessage,
       status: res.status,
     };
     if (resBody && typeof resBody === "object") {
-      if (resBody.code) errPayload.code = resBody.code;
-      if (resBody.details) errPayload.details = resBody.details;
+      if ((resBody as any).code) errPayload.code = (resBody as any).code;
+      if ((resBody as any).details) errPayload.details = (resBody as any).details;
     }
     throw new Error(JSON.stringify(errPayload));
   }
 
   return resBody as T;
 }
-

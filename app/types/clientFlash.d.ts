@@ -1,7 +1,7 @@
 export type SuccessKind =
   | "created-success"
   | "updated-success"
-  | "deleted-success"
+  | "deactivated-success"
   | "reactivated-success";
 
 export type ConflictKind = "create-conflict" | "update-conflict";

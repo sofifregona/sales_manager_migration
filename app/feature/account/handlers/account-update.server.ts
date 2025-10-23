@@ -39,30 +39,33 @@ export async function handleUpdateAccount({ url, formData }: Ctx) {
 
   try {
     await updateAccount(updatedData);
-    // setFlash({ scope: "account", kind: "updated-success" });
-    // const p = new URLSearchParams(url.search);
-    // p.set("updated", "1");
-    // p.delete("id");
-    // return redirect(`/account?${p.toString()}`);
+
     const out = new URLSearchParams();
     out.set("updated", "1");
+
     if (url.searchParams.get("includeInactive") === "1")
       out.set("includeInactive", "1");
+
     return redirect(`/account?${out.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,
       "(Error) No se pudo modificar la cuenta seleccionada."
     );
+
     if (parsed.status === 409) {
+      console.log("DENTRO DEL 409");
       const anyParsed: any = parsed as any;
       const p = new URLSearchParams(url.search);
+
       if (parsed.code) p.set("code", String(parsed.code));
       p.set("conflict", "update");
       p.set("message", parsed.message);
       p.set("name", name);
       if (desc != null) p.set("description", desc);
+
       const existingId = anyParsed?.details?.existingId as number | undefined;
+
       if (existingId != null) p.set("elementId", String(existingId));
       return redirect(`/account?${p.toString()}`);
     }

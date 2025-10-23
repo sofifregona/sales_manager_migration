@@ -10,5 +10,5 @@
     "verbatimModuleSyntax": true,
     "noEmit": true
   },
-  "include": [".", "../.react-router/types/**/*"]
+  "include": [".", "../.react-router/types/**/*", "../useAuth.ts"]
 }

@@ -8,10 +8,12 @@ import {
   reactivateSwapAccount,
   softDeleteAccount,
 } from "./account.service.js";
-import { makeAccountRepository } from "./account.repo.js";
+import { makeAccountRepository } from "./account.repo.typeorm.js";
+import { makePaymentRepository } from "../payment/payment.repo.typeorm.js";
 import { AppDataSource } from "@back/src/shared/database/data-source.js";
 
 const accountRepo = makeAccountRepository(AppDataSource);
+const paymentRepo = makePaymentRepository(AppDataSource);
 const parseId = (req: Request) => Number.parseInt(req.params.id, 10);
 
 export const createAccountHandler = async (
@@ -55,18 +57,18 @@ export const deactivateAccountHandler = async (
   res: Response,
   next: NextFunction
 ) => {
-  const user = req.session.user;
-  if (!user?.role || !["ADMIN"].includes(user?.role)) {
-    return res.status(401).json({ message: "No autenticado" });
-  }
-
   const id = parseId(req);
   const strategy = (req.body?.strategy ?? undefined) as
     | "cascade-delete-payments"
     | "cancel"
     | undefined;
   try {
-    const deactivated = await softDeleteAccount(accountRepo, id, strategy);
+    const deactivated = await softDeleteAccount(
+      accountRepo,
+      paymentRepo,
+      id,
+      strategy
+    );
     res.status(200).json(deactivated);
   } catch (error) {
     next(error);
@@ -97,11 +99,16 @@ export const reactivateSwapAccountHandler = async (
   console.log("DENTRO DEL CONTROLLER");
   const currentId = Number.parseInt(req.body.currentId, 10);
   const inactiveId = Number.parseInt(req.params.inactiveId, 10);
+  const strategy = (req.body?.strategy ?? undefined) as
+    | "cascade-delete-payments"
+    | "cancel"
+    | undefined;
   try {
-    const swaped = await reactivateSwapAccount(accountRepo, {
-      currentId,
-      inactiveId,
-    });
+    const swaped = await reactivateSwapAccount(
+      accountRepo,
+      { currentId, inactiveId, strategy },
+      paymentRepo
+    );
     res.status(200).json(swaped);
   } catch (error) {
     next(error);

@@ -1,4 +1,4 @@
-import { Account } from "./account.entity.js";
+﻿import { Account } from "./account.entity.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { normalizeText } from "../../shared/utils/helpers/normalizeText.js";
 import {
@@ -6,6 +6,7 @@ import {
   validateRangeLength,
 } from "../../shared/utils/validations/validationHelpers.js";
 import type { AccountRepository } from "./account.repo.js";
+import type { PaymentRepository } from "../payment/payment.repo.js";
 
 // SERVICE FOR CREATE A BARTABLE
 export const createAccount = async (
@@ -104,7 +105,7 @@ export const updateAccount = async (
 
   if (description !== undefined) {
     const cleanedDescription = description?.replace(/\s+/g, " ").trim() ?? null;
-    data.description = cleanedDescription;
+    patch.description = cleanedDescription;
   }
 
   if (Object.keys(patch).length > 0) {
@@ -137,10 +138,22 @@ export const reactivateAccount = async (
 
 export const reactivateSwapAccount = async (
   repo: AccountRepository,
-  data: { currentId: number; inactiveId: number }
+  data: {
+    currentId: number;
+    inactiveId: number;
+    strategy?: DeactivateStrategy;
+  },
+  paymentRepo?: PaymentRepository
 ) => {
-  console.log("DENTRO DEL SERVICE DE REACTIVATE");
-  const { currentId, inactiveId } = data;
+  const { currentId, inactiveId, strategy } = data;
+
+  if (currentId === inactiveId) {
+    throw new AppError(
+      "(Error) La cuenta a reactivar no puede ser igual a la cuenta actual",
+      400
+    );
+  }
+
   validateNumberID(currentId, "Cuenta actual");
   const currentExisting = await repo.findActiveById(currentId);
   if (!currentExisting)
@@ -160,15 +173,28 @@ export const reactivateSwapAccount = async (
     );
   }
 
-  const patch: Partial<Account> = {};
-  patch.active = false;
+  // Si la cuenta actual tiene métodos de pago activos, exigir estrategia
+  if (paymentRepo) {
+    const count = await paymentRepo.countActiveByAccount(currentId);
+    if (count > 0 && !strategy) {
+      throw new AppError(
+        "(Advertencia) La cuenta actual tiene métodos de pago asociados.",
+        409,
+        "ACCOUNT_IN_USE",
+        { count, allowedStrategies: ["cascade-delete-payments", "cancel"] }
+      );
+    }
+    if (count > 0 && strategy === "cancel") {
+      return currentExisting;
+    }
+    if (count > 0 && strategy === "cascade-delete-payments") {
+      await paymentRepo.deactivateActiveByAccount(currentId);
+    }
+  }
 
+  const patch: Partial<Account> = { active: false };
   await repo.reactivate(inactiveId);
-  const reactivate = repo.findActiveById(inactiveId);
   await repo.updateFields(currentId, patch);
-  const deactivate = repo.findActiveById(currentId);
-  console.log(reactivate);
-  console.log(deactivate);
   return await repo.findActiveById(inactiveId);
 };
 
@@ -176,6 +202,7 @@ type DeactivateStrategy = "cascade-delete-payments" | "cancel";
 
 export const softDeleteAccount = async (
   repo: AccountRepository,
+  paymentRepo: PaymentRepository,
   id: number,
   strategy?: DeactivateStrategy
 ) => {
@@ -184,7 +211,7 @@ export const softDeleteAccount = async (
   const existing = await repo.findActiveById(id);
   if (!existing) throw new AppError("(Error) Cuenta no encontrada.", 404);
 
-  const count = await repo.countActivePaymentsByAccount(id);
+  const count = await paymentRepo.countActiveByAccount(id);
 
   if (count > 0 && !strategy) {
     throw new AppError(
@@ -208,7 +235,7 @@ export const softDeleteAccount = async (
     return await repo.findActiveById(id);
   }
 
-  await repo.deactivateActivePaymentsByAccount(id);
+  await paymentRepo.deactivateActiveByAccount(id);
   await repo.softDeactivate(id);
   return;
 };

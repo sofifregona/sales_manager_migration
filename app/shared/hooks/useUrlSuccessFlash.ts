@@ -10,7 +10,6 @@ import type { SuccessKind } from "~/types/clientFlash";
 export function useUrlSuccessFlash(scope: string) {
   const location = useLocation();
   const navigate = useNavigate();
-
   useEffect(() => {
     if (!location.search) return;
     const params = new URLSearchParams(location.search);
@@ -18,7 +17,7 @@ export function useUrlSuccessFlash(scope: string) {
     const mapping: Array<{ key: string; kind: SuccessKind }> = [
       { key: "created", kind: "created-success" },
       { key: "updated", kind: "updated-success" },
-      { key: "deleted", kind: "deleted-success" },
+      { key: "deactivated", kind: "deactivated-success" },
       { key: "reactivated", kind: "reactivated-success" },
     ];
 
@@ -30,9 +29,11 @@ export function useUrlSuccessFlash(scope: string) {
     // Clean only our flags, preserve other params (e.g., filters/sorting)
     mapping.forEach(({ key }) => params.delete(key));
     const qs = params.toString();
-    navigate({ pathname: location.pathname, search: qs ? `?${qs}` : "" }, {
-      replace: true,
-    });
+    navigate(
+      { pathname: location.pathname, search: qs ? `?${qs}` : "" },
+      {
+        replace: true,
+      }
+    );
   }, [location.pathname, location.search, navigate, scope]);
 }
-

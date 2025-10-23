@@ -1,4 +1,4 @@
-import React from "react";
+﻿import React from "react";
 import { useFetcher, useLocation } from "react-router-dom";
 import { ActionPrompt } from "./ActionPrompt";
 
@@ -37,7 +37,61 @@ export function ReactivatePromptBanner({
   const location = useLocation();
 
   if (overlay) {
-    const actions = [
+    const conflict = fetcher.data as any;
+    if (conflict && conflict.code === "ACCOUNT_INACTIVE" && canReactivate) {
+      const proceed = () =>
+        fetcher.submit(
+          {
+            _action: isUpdate ? "reactivate-swap" : "reactivate",
+            inactiveId: String(inactiveId ?? ""),
+            currentId: String(currentId ?? ""),
+            id: String(inactiveId ?? ""),
+            strategy: "reactivate-account",
+          },
+          { method: isUpdate ? "post" : "post", action: `.${location.search}` }
+        );
+      return (
+        <ActionPrompt
+          open
+          message={
+            "El método de pago que intenta reactivar está asociado a una cuenta inactiva. Solo puede reactivarse si la cuenta también se reactiva.\n¿Desea reactivar ambos?"
+          }
+          onClose={onDismiss}
+          actions={[
+            { label: "Cancelar", onClick: onDismiss },
+            {
+              label: isUpdate
+                ? "Reactivar cuenta y método (swap)"
+                : "Reactivar cuenta y método",
+              onClick: proceed,
+              variant: "secondary" as const,
+            },
+          ]}
+          busy={busy}
+        />
+      );
+    }
+    if (conflict && conflict.code === "ACCOUNT_IN_USE" && isUpdate && typeof currentId === "number" && typeof inactiveId === "number") {
+      const cnt = Number((conflict as any).details?.count ?? 0);
+      const m = `La cuenta actual tiene ${cnt} método${cnt === 1 ? '' : 's'} de pago asociados.\nSi continúa, también se desactivarán los métodos de pago asociados.`;
+      const proceed = () =>
+        fetcher.submit(
+          { _action: "reactivate-swap", inactiveId: String(inactiveId), currentId: String(currentId), strategy: "cascade-delete-payments" },
+          { method: "post", action: `.${location.search}` }
+        );
+      return (
+        <ActionPrompt
+          open
+          message={m}
+          onClose={onDismiss}
+          actions={[
+            { label: "Cancelar", onClick: onDismiss },
+            { label: "Continuar y desactivar pagos", onClick: proceed, variant: "secondary" as const },
+          ]}
+          busy={busy}
+        />
+      );
+    }    const actions = [
       { label: "Cancelar", onClick: onDismiss },
       ...(canReactivate
         ? isUpdate

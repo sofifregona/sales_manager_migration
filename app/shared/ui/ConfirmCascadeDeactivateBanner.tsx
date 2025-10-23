@@ -1,5 +1,5 @@
 import React from "react";
-import { useFetcher } from "react-router-dom";
+import { useFetcher, useLocation } from "react-router-dom";
 
 type Props = {
   entityId: number;
@@ -21,19 +21,27 @@ export function ConfirmCascadeDeactivateBanner({
   proceedLabel,
 }: Props) {
   const fetcher = useFetcher();
+  const location = useLocation();
   const busy = fetcher.state !== "idle";
 
   const plural = count === 1 ? "" : "s";
-  const message = `La ${entityLabel} está asociada a ${count} ${dependentLabel}${plural}.\nSi continúa, también se eliminarán ${count === 1 ? `el ${dependentLabel}` : `los ${dependentLabel}`} asociados.`;
+  const message = `La ${entityLabel} está asociada a ${count} ${dependentLabel}${plural}.\nSi continúa, también se eliminarán ${
+    count === 1 ? `el ${dependentLabel}` : `los ${dependentLabel}`
+  } asociados.`;
 
   return (
     <div className="flash flash--warn" role="alert" style={{ marginTop: 8 }}>
       <div style={{ marginBottom: 8, whiteSpace: "pre-line" }}>{message}</div>
       <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-        <button type="button" className="btn" onClick={onCancel} disabled={busy}>
+        <button
+          type="button"
+          className="btn"
+          onClick={onCancel}
+          disabled={busy}
+        >
           Cancelar
         </button>
-        <fetcher.Form method="post" action= ".">
+        <fetcher.Form method="post" action={`.${location.search}`}>
           <input type="hidden" name="_action" value="deactivate" />
           <input type="hidden" name="id" value={entityId} />
           <input type="hidden" name="strategy" value={strategyProceed} />
@@ -50,4 +58,3 @@ export function ConfirmCascadeDeactivateBanner({
     </div>
   );
 }
-

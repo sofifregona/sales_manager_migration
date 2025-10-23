@@ -12,7 +12,7 @@ export type ReactivatePrompt = {
 
 export function useReactivateFlow(scope: string) {
   const [prompt, setPrompt] = useState<ReactivatePrompt | null>(null);
-  const { consume } = useClientFlash(scope);
+  const { consume, clear } = useClientFlash(scope);
   const location = useLocation();
 
   useEffect(() => {
@@ -35,6 +35,7 @@ export function useReactivateFlow(scope: string) {
           description: f.description,
           elementId: f.elementId,
         });
+        clear();
       }
     }
   }, [scope, consume, location.key]);

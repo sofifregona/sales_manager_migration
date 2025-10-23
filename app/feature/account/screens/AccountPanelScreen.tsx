@@ -5,6 +5,7 @@ import {
   useSearchParams,
 } from "react-router-dom";
 import React from "react";
+import { useCallback } from "react";
 import type { AccountLoaderData } from "~/feature/account/account";
 import { FlashMessages } from "~/shared/ui/FlashMessages";
 import { SuccessBanner } from "~/shared/ui/SuccessBanner";
@@ -37,7 +38,7 @@ export function AccountPanelScreen() {
   // Conflict flags (?conflict=...&message=...&elementId=...) → client-flash
   // Declare BEFORE useReactivateFlow so the effect that sets client-flash runs first
 
-  useUrlConflictFlash("account", (p: URLSearchParams) => {
+  const buildConflict = useCallback((p: URLSearchParams) => {
     const conflict = p.get("conflict"); // "create" | "update" | null
 
     if (conflict !== "create" && conflict !== "update") return null;
@@ -63,10 +64,9 @@ export function AccountPanelScreen() {
       "code",
     ];
 
-    console.log("[builder] payload=", payload);
-    console.log("[builder] cleanupKeys=", cleanupKeys);
     return { payload, cleanupKeys };
-  });
+  }, []);
+  useUrlConflictFlash("account", buildConflict);
 
   // Reactivation prompt (consumes only conflicts with elementId)
   const { prompt, dismiss } = useReactivateFlow("account");

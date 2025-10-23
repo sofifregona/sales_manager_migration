@@ -62,7 +62,8 @@ export async function reactivateAccount(id: number) {
 
 export async function reactivateAccountSwap(
   inactiveId: number,
-  currentId: number
+  currentId: number,
+  strategy?: "cascade-delete-payments" | "cancel"
 ) {
   return await fetchJson<AccountDTO>(
     `${API_BASE_URL}/${ENDPOINTS.account}/${inactiveId}/reactivate-swap`,
@@ -71,7 +72,7 @@ export async function reactivateAccountSwap(
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ currentId }),
+      body: JSON.stringify(strategy ? { currentId, strategy } : { currentId }),
     }
   );
 }

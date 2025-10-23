@@ -24,8 +24,12 @@ export async function handleReactivateSwapAccount({ url, formData }: Ctx) {
   if (inactiveIdReqError) return jsonResponse(422, inactiveIdReqError);
   const inactiveIdNum = Number(inactiveIdParam);
 
+  const strategyParam = formData.get("strategy");
+  const strategy = strategyParam
+    ? (String(strategyParam) as "cascade-delete-payments" | "cancel")
+    : undefined;
   try {
-    await reactivateAccountSwap(inactiveIdNum, currentIdNum);
+    await reactivateAccountSwap(inactiveIdNum, currentIdNum, strategy);
     // setFlash({ scope: "account", kind: "reactivated-success" });
     // const params = new URLSearchParams(url.search);
     // params.set("reactivated", "1");
@@ -44,6 +48,14 @@ export async function handleReactivateSwapAccount({ url, formData }: Ctx) {
       error,
       "(Error) No se pudo reactivar la cuenta intercambiando los estados."
     );
+    if (parsed.status === 409 && (parsed as any).code === "ACCOUNT_IN_USE") {
+      return jsonResponse(409, {
+        error: parsed.message,
+        code: (parsed as any).code,
+        details: (parsed as any).details,
+        source: parsed.source ?? "server",
+      });
+    }
     return jsonResponse(parsed.status ?? 500, {
       error: parsed.message,
       source: parsed.source ?? "server",

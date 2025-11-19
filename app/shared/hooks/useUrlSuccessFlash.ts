@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { setSuccessFlash } from "~/shared/flashActions";
+import { setSuccessFlash } from "~/shared/flash/actions";
 import type { SuccessKind } from "~/types/clientFlash";
 
 /**
@@ -18,7 +18,7 @@ export function useUrlSuccessFlash(scope: string) {
       { key: "created", kind: "created-success" },
       { key: "updated", kind: "updated-success" },
       { key: "deactivated", kind: "deactivated-success" },
-      { key: "reactivated", kind: "reactivated-success" },
+      { key: "reactivated", kind: "reactivated-success" },      { key: "reseted-password", kind: "reseted-password-success" },
     ];
 
     const found = mapping.find(({ key }) => params.get(key) === "1");
@@ -37,3 +37,5 @@ export function useUrlSuccessFlash(scope: string) {
     );
   }, [location.pathname, location.search, navigate, scope]);
 }
+
+

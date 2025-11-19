@@ -43,7 +43,6 @@ export async function deactivatePayment(id: number) {
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ active: false }),
     }
   );
 }
@@ -81,23 +80,10 @@ export async function reactivatePaymentSwap(
   );
 }
 
-export type AccountSortField = "name" | "active";
-
-export async function getAllPayments(
-  includeInactive: boolean = false,
-  opts: { sortField: AccountSortField; sortDirection: "ASC" | "DESC" } = {
-    sortField: "name",
-    sortDirection: "ASC",
-  }
-) {
-  const params = new URLSearchParams();
-  if (includeInactive)
-    params.set("includeInactive", includeInactive ? "1" : "0");
-  if (opts.sortField) params.set("sortField", opts.sortField);
-  if (opts.sortDirection) params.set("sortDirection", opts.sortDirection);
-
-  const qs = params.toString();
-  const url = `${API_BASE_URL}/${ENDPOINTS.payment}${qs ? `?${qs}` : ""}`;
+export async function getAllPayments(includeInactive: boolean = false) {
+  const url = `${API_BASE_URL}/${ENDPOINTS.payment}${
+    includeInactive ? `?includeInactive=1` : ""
+  }`;
   return await fetchJson<PaymentDTO[]>(url, {
     method: "GET",
     headers: {

@@ -1,29 +1,53 @@
 import React, { useEffect, useState } from "react";
-import { Form } from "react-router-dom";
+import { Form, useLocation, useNavigation } from "react-router-dom";
 import type { BartableDTO } from "~/feature/bartable/bartable";
 
 type Props = {
   isEditing: boolean;
   editing?: BartableDTO | null;
-  isSubmitting: boolean;
   formAction: string; // "." o `.${search}`
+  overrideNumber: string | undefined;
 };
 
 export function BartableForm({
   isEditing,
   editing,
-  isSubmitting,
   formAction,
+  overrideNumber,
 }: Props) {
   const [number, setNumber] = useState(editing?.number ?? "");
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+  const location = useLocation();
 
   useEffect(() => {
     if (isEditing) {
-      setNumber(editing?.number ?? "");
-    } else {
+      setNumber(overrideNumber ?? editing?.number ?? "");
+    }
+    // En modo creación, no limpiamos los campos para no perder lo tipeado
+  }, [isEditing, editing, overrideNumber]);
+
+  // En conflictos de creación, preseleccionar número desde cookie si viene
+  useEffect(() => {
+    if (
+      !isEditing &&
+      typeof overrideNumber === "string" &&
+      overrideNumber !== ""
+    ) {
+      setNumber(overrideNumber);
+    }
+  }, [isEditing, overrideNumber]);
+
+  // Luego de crear con éxito (?created=1 en la URL), limpiar el formulario de creación
+  const p = new URLSearchParams(location.search);
+  const successFlags = ["created", "updated", "deactivated", "reactivated"];
+  const hasSuccess = successFlags.some((k) => p.get(k) === "1");
+
+  useEffect(() => {
+    if (hasSuccess) {
       setNumber("");
     }
-  }, [isEditing, editing]);
+  }, [location.search, isEditing]);
 
   return (
     <Form method="post" action={formAction} className="bartable-form">
@@ -35,7 +59,7 @@ export function BartableForm({
         value={number}
         onChange={(e) => setNumber(e.target.value)}
         min={0}
-        max={1}
+        step={1}
         required
         aria-required
       />

@@ -20,7 +20,7 @@ export async function fetchJson<T = unknown>(
   } catch (error) {
     throw new Error(
       JSON.stringify({
-        message: "No se pudo conectar al servidor. Verific· tu conexiÛn.",
+        message: "No se pudo conectar al servidor. Verific√° tu conexi√≥n.",
         status: 500,
       })
     );

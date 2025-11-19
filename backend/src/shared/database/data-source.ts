@@ -23,8 +23,8 @@ export const AppDataSource = new DataSource({
   username: process.env.DB_USERNAME,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
-  synchronize: true, // Sacar en fase de producciÃ³n
-  dropSchema: false, // Sacar en fase de producciÃ³n
+  synchronize: true, // Sacar en fase de producción
+  dropSchema: false, // Sacar en fase de producción
   logging: false,
   entities: [
     Account,

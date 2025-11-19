@@ -5,18 +5,20 @@ import { setFlash } from "~/services/flashSession";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import { validateRequiredId } from "~/utils/validation/validationHelpers";
 
-type Ctx = { formData: FormData };
+type Ctx = { url: URL; formData: FormData };
 
-export async function handleBrandReactivate({ formData }: Ctx) {
+export async function handleBrandReactivate({ url, formData }: Ctx) {
   const idParam = formData.get("id");
   const idReqError = validateRequiredId(idParam, "Marca");
-  if (idReqError)
-    return jsonResponse(422, idReqError);
+  if (idReqError) return jsonResponse(422, idReqError);
   const idNum = Number(idParam);
   try {
     await reactivateBrand(idNum);
-    setFlash({ scope: "brand", kind: "reactivated-success" });
-    return redirect("/brand?reactivated=1");
+
+    const p = new URLSearchParams(url.search);
+    p.delete("id");
+    p.set("reactivated", "1");
+    return redirect(`/brand?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

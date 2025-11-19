@@ -1,0 +1,58 @@
+@use "sass:color"
+@use "../../../styles/tokens" as *
+
+.order-panel
+    display: flex
+    flex-wrap: wrap
+    width: 100%
+    padding-top: 2rem
+
+.order-panel__title
+    width: 100%
+    padding: 1rem 0rem
+
+.order-panel__table-section
+    width: 70%
+
+.order-panel__employee-list
+    width: 30%
+
+.order-panel__table-list
+    display: flex
+    flex-wrap: wrap
+    gap: 1rem
+
+.order-panel__table-element
+    display: flex
+
+.table-btn
+    width: 140px
+    aspect-ratio: 1 / 1
+    border-radius: 0.75rem
+    display: flex
+    flex-direction: column
+    align-items: center
+    justify-content: center
+    background-color: $color-dark-tertiary
+    border: 2px dashed #71717a
+    cursor: pointer
+    transition: background-color 150ms ease, color 150ms ease
+    text-decoration: none
+    color: #71717a
+    font-weight: 500
+
+    &:hover
+        background-color: $color-primary
+        border: 2px solid $color-light
+        color: $color-light
+
+    &--open
+        font-weight: 700
+        border: 3px solid $color-primary
+        background-color: color.mix($color-primary, $color-dark-tertiary, 30%)
+        color: $color-primary
+
+.table-icon
+    height: auto
+    width: 35px
+    padding: .3rem

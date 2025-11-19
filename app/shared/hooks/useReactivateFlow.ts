@@ -12,7 +12,7 @@ export type ReactivatePrompt = {
 
 export function useReactivateFlow(scope: string) {
   const [prompt, setPrompt] = useState<ReactivatePrompt | null>(null);
-  const { consume, clear } = useClientFlash(scope);
+  const { read, consume } = useClientFlash(scope);
   const location = useLocation();
 
   useEffect(() => {
@@ -21,10 +21,9 @@ export function useReactivateFlow(scope: string) {
       setPrompt(null);
       return;
     }
-    const f = consume() as
-      | (ConflictFlash & { reactivable?: boolean })
-      | undefined;
-    if (!f || f.scope !== scope) return;
+    // Leer sin consumir primero; consumir sólo si es conflicto reactivable válido
+    const f = read() as (ConflictFlash & { reactivable?: boolean }) | undefined;
+    if (!f || (f as any).scope !== scope) return;
     if (f.kind === "create-conflict" || f.kind === "update-conflict") {
       const hasElement = typeof f.elementId === "number";
       const shouldPrompt = (f as any).reactivable === true && hasElement;
@@ -35,10 +34,11 @@ export function useReactivateFlow(scope: string) {
           description: f.description,
           elementId: f.elementId,
         });
-        clear();
+        // Consumimos ahora que confirmamos que es un conflicto válido
+        consume();
       }
     }
-  }, [scope, consume, location.key]);
+  }, [scope, read, consume, location.key]);
 
   const dismiss = () => setPrompt(null);
 

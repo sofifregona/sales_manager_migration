@@ -5,6 +5,7 @@ import {
   getCategoryByIdHandler,
   deactivateCategoryHandler,
   reactivateCategoryHandler,
+  reactivateSwapCategoryHandler,
   updateCategoryHandler,
 } from "./category.controller.js";
 import { requireRole } from "../../shared/guards/auth.guard.js";
@@ -29,9 +30,14 @@ router.patch(
   deactivateCategoryHandler
 );
 router.patch(
-  "/brands/:id/reactivate",
+  "/categories/:id/reactivate",
   requireRole(["ADMIN", "MANAGER"]),
   reactivateCategoryHandler
+);
+router.post(
+  "/categories/:inactiveId/reactivate-swap",
+  requireRole(["ADMIN", "MANAGER"]),
+  reactivateSwapCategoryHandler
 );
 
 export default router;

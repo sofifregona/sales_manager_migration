@@ -1,18 +1,29 @@
-﻿import { transactionRepo } from "./transaction.repo.js";
-import { Transaction } from "./transaction.entity.js";
 import { AppError } from "@back/src/shared/errors/AppError.js";
 import {
   validateNumberID,
   validatePositiveNumber,
 } from "@back/src/shared/utils/validations/validationHelpers.js";
-import { getAccountById } from "../account/account.service.js";
-import { Raw, type FindOptionsWhere } from "typeorm";
-import { accountRepo } from "../account/account.repo.js";
-import { Account } from "../account/account.entity.js";
-import { getSaleById } from "../sale/sale.service.js";
+import { AppDataSource } from "@back/src/shared/database/data-source.js";
+import { makeAccountRepository } from "../account/account.repo.typeorm.js";
+import type { AccountRepository } from "../account/account.repo.js";
+import { getOpenSaleById } from "../sale/sale.service.js";
+import { makeSaleRepository } from "../sale/sale.repo.typeorm.js";
 import type { Sale } from "../sale/sale.entity.js";
+import type {
+  TransactionRepository,
+  TransactionUpdateFields,
+} from "./transaction.repo.js";
+import { makeTransactionRepository } from "./transaction.repo.typeorm.js";
+import { makeUserRepository } from "../user/user.repo.typeorm.js";
+import type { UserRepository } from "../user/user.repo.js";
+import { getUserById } from "../user/user.service.js";
 
-// SERVICE FOR CREATE A BARTABLE
+const accountRepo: AccountRepository = makeAccountRepository(AppDataSource);
+const saleRepo = makeSaleRepository(AppDataSource);
+const transactionRepo: TransactionRepository =
+  makeTransactionRepository(AppDataSource);
+const userRepo: UserRepository = makeUserRepository(AppDataSource);
+
 export const createTransaction = async (data: {
   idAccount: number;
   type: "income" | "expense";
@@ -20,11 +31,20 @@ export const createTransaction = async (data: {
   description: string | null;
   origin: "sale" | "movement";
   idSale: number | null;
+  createdById: number;
 }) => {
-  const { idAccount, type, amount, description, origin, idSale } = data;
+  const {
+    idAccount,
+    type,
+    amount,
+    description,
+    origin,
+    idSale,
+    createdById,
+  } = data;
 
   validateNumberID(idAccount, "Cuenta");
-  const account = await getAccountById(idAccount);
+  const account = await accountRepo.findById(idAccount);
   if (!account) {
     throw new AppError("(Error) Cuenta no encontrada.", 404);
   }
@@ -38,31 +58,34 @@ export const createTransaction = async (data: {
   }
 
   validatePositiveNumber(amount, "Monto");
+  validateNumberID(createdById, "Usuario");
+  const createdBy = await getUserById(userRepo, createdById);
+  if (!createdBy) {
+    throw new AppError("(Error) Usuario no encontrado.", 404);
+  }
 
   let sale: Sale | null = null;
   if (idSale) {
     validateNumberID(idSale, "Venta");
-    sale = await getSaleById(idSale);
+    sale = await getOpenSaleById(saleRepo, idSale);
     if (!sale) {
       throw new AppError("(Error) Venta no encontrada.", 404);
     }
   }
 
-  // If it doesn't exist, create a new one
-  const newTransaction = Object.assign(new Transaction(), {
-    dateTime: new Date(),
+  const newTransaction = transactionRepo.create({
     account,
     type: origin === "sale" ? "income" : type,
     origin,
     amount,
     description: description ?? null,
     sale: idSale ? sale : null,
+    createdBy,
   });
 
   return await transactionRepo.save(newTransaction);
 };
 
-// SERVICE FOR UPDATE OR DEACTIVATE A BARTABLE
 export const updateTransaction = async (updatedData: {
   id: number;
   idAccount?: number;
@@ -72,7 +95,7 @@ export const updateTransaction = async (updatedData: {
 }) => {
   const { id, idAccount, type, amount, description } = updatedData;
   validateNumberID(id, "Transacción");
-  const existing = await transactionRepo.findOneBy({ id });
+  const existing = await transactionRepo.findSimpleById(id);
   if (!existing) throw new AppError("(Error) Transacción no encontrada.", 404);
   if (existing.origin === "sale") {
     throw new AppError(
@@ -81,74 +104,62 @@ export const updateTransaction = async (updatedData: {
     );
   }
 
-  const data: Partial<Transaction> = {};
+  const patch: TransactionUpdateFields = {};
 
   if (idAccount !== undefined) {
     validateNumberID(idAccount, "Cuenta");
-    const account = await getAccountById(idAccount);
-    data.account = account as Account;
+    const account = await accountRepo.findById(idAccount);
+    if (!account) {
+      throw new AppError("(Error) Cuenta no encontrada.", 404);
+    }
+    patch.account = account;
   }
 
   if (type !== undefined) {
     if (!["expense", "income"].includes(type)) {
       throw new AppError("(Error) Operación no soportada.", 422);
     }
-    data.type = type;
+    patch.type = type;
   }
 
   if (amount !== undefined) {
     validatePositiveNumber(amount, "Monto");
-    data.amount = amount;
+    patch.amount = amount;
   }
 
   if (description !== undefined) {
-    data.description = description;
+    patch.description = description;
   }
 
-  await transactionRepo.update(id, data);
-  return await transactionRepo.findOneBy({ id });
+  await transactionRepo.updateFields(id, patch);
+  return await transactionRepo.findSimpleById(id);
 };
 
 export const deleteTransaction = async (id: number) => {
   validateNumberID(id, "Transacción");
 
-  const existing = await transactionRepo.findOneBy({ id });
+  const existing = await transactionRepo.findSimpleById(id);
   if (!existing) throw new AppError("(Error) Transacción no encontrada.", 404);
   await transactionRepo.delete(id);
 };
 
-// SERVICE FOR GETTING ALL BARTABLES
 export const getListOfTransactions = async (filter: {
   startedDate: string;
   finalDate: string;
   origin: "all" | "sale" | "movement";
 }) => {
-  const startedDate = `${filter.startedDate} 00:00:00.000000`; // inclusive
-  const finalDate = `${filter.finalDate} 23:59:59.999999`;
-
-  const where: FindOptionsWhere<Transaction> = {
-    dateTime: Raw((alias) => `${alias} >= :start AND ${alias} < :end`, {
-      start: startedDate,
-      end: finalDate,
-    }),
-  };
-  if (origin === "sale" || origin === "movement") {
-    where.origin = origin;
-  }
-  return transactionRepo.find({
-    where,
-    relations: { account: true }, // equivalente a leftJoinAndSelect
-    order: { dateTime: "DESC" },
+  const start = new Date(`${filter.startedDate} 00:00:00.000000`);
+  const end = new Date(`${filter.finalDate} 23:59:59.999999`);
+  return transactionRepo.listByDateRange({
+    start,
+    end,
+    origin: filter.origin,
   });
 };
 
-// SERVICE FOR GETTING A BARTABLE BY ID
 export const getTransactionById = async (id: number) => {
   validateNumberID(id, "Transacción");
-  const existing = await transactionRepo.findOne({
-    where: { id },
-    relations: { account: true },
-  });
+  const existing = await transactionRepo.findDetailedById(id);
   if (!existing) throw new AppError("(Error) Transacción no encontrada.", 404);
   return existing;
 };

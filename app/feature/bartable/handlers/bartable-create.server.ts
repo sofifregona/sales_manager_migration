@@ -2,45 +2,59 @@
 import { createBartable } from "~/feature/bartable/bartable-api.server";
 import type { CreateBartablePayload } from "~/feature/bartable/bartable";
 import { jsonResponse } from "~/lib/http/jsonResponse";
-import { setFlash } from "~/services/flashSession";
+import { makeConflictCookie } from "~/services/conflictCookie";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import {
   validateRequired,
   validatePositiveInteger,
 } from "~/utils/validation/validationHelpers";
 
-type Ctx = { formData: FormData };
+type Ctx = { url: URL; formData: FormData };
 
-export async function handleBartableCreate({ formData }: Ctx) {
+export async function handleBartableCreate({ url, formData }: Ctx) {
   const numParam = formData.get("number");
   const numParamError = validateRequired(numParam, "number", "NÃºmero");
-  if (numParamError)
-    return jsonResponse(422, numParamError);
+  if (numParamError) return jsonResponse(422, numParamError);
   const num = Number(numParam);
   const numError = validatePositiveInteger(num, "NÃºmero");
-  if (numError)
-    return jsonResponse(422, numError);
+  if (numError) return jsonResponse(422, numError);
 
   const newData: CreateBartablePayload = { number: num };
+
   try {
     await createBartable(newData);
-    setFlash({ scope: "bartable", kind: "created-success" });
-    return redirect("/bartable?created=1");
+
+    const p = new URLSearchParams(url.search);
+    p.delete("id");
+    p.set("created", "1");
+    return redirect(`/bartable?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(error, "(Error) No se pudo crear la mesa.");
     if (parsed.status === 409) {
-      const anyParsed: any = parsed as any;
-      setFlash({
-        scope: "bartable",
-        kind: "create-conflict",
-        message: parsed.message,
-        number: num,
-        elementId:
-          anyParsed.code === "BARTABLE_EXISTS_INACTIVE" && anyParsed.details
-            ? anyParsed.details.existingId
-            : undefined,
-      } as any);
-      return redirect("/bartable");
+      const code = String(parsed.code || "").toUpperCase();
+      if (code === "BARTABLE_EXISTS_INACTIVE") {
+        const anyParsed: any = parsed as any;
+        const p = new URLSearchParams(url.search);
+
+        if (parsed.code) p.set("code", String(parsed.code));
+        p.set("conflict", "create");
+        p.set("message", parsed.message);
+
+        const existingId = anyParsed?.details?.existingId as number | undefined;
+        if (existingId != null) p.set("elementId", String(existingId));
+
+        const headers = new Headers();
+        headers.append(
+          "Set-Cookie",
+          makeConflictCookie({ scope: "bartable", number: num })
+        );
+        return redirect(`/bartable?${p.toString()}` as any, { headers } as any);
+      } else {
+        return jsonResponse(409, {
+          error: parsed.message,
+          source: parsed.source ?? "server",
+        });
+      }
     }
     return jsonResponse(parsed.status ?? 500, {
       error: parsed.message,

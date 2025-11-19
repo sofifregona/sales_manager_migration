@@ -14,11 +14,11 @@ import {
   useQuerySorting,
 } from "~/shared/hooks/useQuerySorting";
 
-import { SortToggle } from "~/shared/ui/SortToggle";
+import { SortToggle } from "~/shared/ui/form/SortToggle";
 
-import { ConfirmPrompt } from "~/shared/ui/ConfirmPrompt";
+import { ConfirmPrompt } from "~/shared/ui/prompts/ConfirmPrompt";
 
-import { ConfirmReactivatePaymentWithAccountPrompt } from "~/shared/ui/ConfirmReactivatePaymentWithAccountPrompt";
+import { ConfirmReactivatePaymentWithAccountPrompt } from "~/shared/ui/prompts/ConfirmReactivatePaymentWithAccountPrompt";
 
 type Props = {
   payments: PaymentDTO[];
@@ -27,12 +27,28 @@ type Props = {
 };
 
 const PAYMENT_SORT_CONFIG: UseQuerySortingConfig<PaymentDTO> = {
-  defaultKey: "name",
+  defaultKey: "normalizedName",
 
   keys: [
-    { key: "name", getValue: (payment) => payment.name },
+    {
+      key: "normalizedName",
+      getValue: (payment) =>
+        (payment as any).normalizedName ??
+        (payment.name || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase(),
+    },
 
-    { key: "account", getValue: (payment) => payment.account.name },
+    {
+      key: "account",
+      getValue: (payment) =>
+        (payment as any).account?.normalizedName ??
+        (payment.account?.name || "")
+          .normalize("NFD")
+          .replace(/[\u0300-\u036f]/g, "")
+          .toLowerCase(),
+    },
 
     { key: "active", getValue: (payment) => payment.active },
   ],
@@ -61,7 +77,7 @@ export function PaymentTable({ payments, editingId }: Props) {
 
   const location = useLocation();
 
-  // Auto-cierra el overlay cuando la reactivaci?n termina sin conflicto
+  // Auto-cierra el overlay cuando la reactivación termina sin conflicto
   React.useEffect(() => {
     if (reactivateFetcher.state !== "idle") return;
     const data = reactivateFetcher.data as any;
@@ -80,7 +96,7 @@ export function PaymentTable({ payments, editingId }: Props) {
 
   return (
     <>
-      <h2>Lista de m?todos de pago</h2>
+      <h2>Lista de métodos de pago</h2>
 
       <div
         style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}
@@ -95,7 +111,7 @@ export function PaymentTable({ payments, editingId }: Props) {
       </div>
 
       {sortedPayments.length === 0 ? (
-        <p>No hay m?todos de pago para mostrar.</p>
+        <p>No hay métodos de pago para mostrar.</p>
       ) : (
         <table>
           <thead>
@@ -103,7 +119,7 @@ export function PaymentTable({ payments, editingId }: Props) {
               <SortToggle
                 currentSort={sortBy}
                 currentDir={sortDir}
-                name="name"
+                name="normalizedName"
                 label="Nombre"
               />
 
@@ -118,7 +134,7 @@ export function PaymentTable({ payments, editingId }: Props) {
                 <SortToggle
                   currentSort={sortBy}
                   currentDir={sortDir}
-                  name="status"
+                  name="active"
                   label="Estado"
                 />
               )}
@@ -222,7 +238,7 @@ export function PaymentTable({ payments, editingId }: Props) {
 
       {pendingDeactivateId != null && (
         <ConfirmPrompt
-          message="?Seguro que desea desactivar este m?todo de pago?"
+          message="¿Seguro que desea desactivar este método de pago?"
           busy={deactivating}
           onCancel={() => setPendingDeactivateId(null)}
           onConfirm={() => {

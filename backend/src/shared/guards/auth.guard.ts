@@ -1,4 +1,5 @@
 import type { Request, Response, NextFunction } from "express";
+import type { Role } from "../constants/roles.js";
 
 export function requireAuth(req: Request, res: Response, next: NextFunction) {
   if (!req.session.user)
@@ -6,12 +7,12 @@ export function requireAuth(req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-export function requireRole(roles: Array<"ADMIN" | "MANAGER" | "CASHIER">) {
+export function requireRole(roles: Role[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const user = req.session.user;
-    if (!user) return res.status(401).json({ message: "No autenticado" });
-    if (!roles.includes(user.role))
+    if (!user || !roles.includes(user.role as Role)) {
       return res.status(403).json({ message: "No autorizado" });
+    }
     next();
   };
 }

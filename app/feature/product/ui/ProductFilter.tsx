@@ -68,7 +68,7 @@ export default function ListFilter({
 
       <label>Seleccionar categoría</label>
       <select name="idCategory" defaultValue={sp.get("idCategory") ?? ""}>
-        <option value="">Todas las categorpias</option>
+        <option value="">Todas las categor�as</option>
         <option value="null">– Sin categoría –</option>
         {categories.map((c) => (
           <option key={c.id} value={c.id}>

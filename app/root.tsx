@@ -1,4 +1,4 @@
-import {
+﻿import {
   isRouteErrorResponse,
   Links,
   Meta,
@@ -8,7 +8,7 @@ import {
 } from "react-router";
 
 import type { Route } from "./+types/root";
-import "./app.css";
+import "~/styles/app.sass";
 export { loader } from "./root.server";
 
 export const links: Route.LinksFunction = () => [
@@ -20,20 +20,32 @@ export const links: Route.LinksFunction = () => [
   },
   {
     rel: "stylesheet",
-    href: "https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap",
+    href: "https://fonts.googleapis.com/css2?display=swap&family=Epilogue:wght@400;500;700;900&family=Noto+Sans:wght@400;500;700;900",
+  },
+  {
+    rel: "stylesheet",
+    href: "https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined",
+  },
+];
+
+export const meta: Route.MetaFunction = () => [
+  { title: "Sales Manager" },
+  {
+    name: "description",
+    content: "Panel de administración para gestionar ventas y operaciones.",
   },
 ];
 
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="es" className="bg-white text-slate-900 antialiased">
       <head>
         <meta charSet="utf-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <Meta />
         <Links />
       </head>
-      <body>
+      <body className="min-h-screen bg-slate-50 text-slate-900 dark:bg-gray-950 dark:text-slate-50">
         {children}
         <ScrollRestoration />
         <Scripts />

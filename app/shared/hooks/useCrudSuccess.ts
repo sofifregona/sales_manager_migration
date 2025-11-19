@@ -19,6 +19,8 @@ export function useCrudSuccess(
       case "created-success":
       case "updated-success":
       case "deactivated-success":
+      case "deleted-success":
+      case "incremented-succes":
       case "reactivated-success": {
         const k = f.kind as SuccessKind;
         setKind(k);
@@ -45,7 +47,13 @@ function defaultMsg(kind: SuccessKind): string {
       return "Modificado con éxito.";
     case "deactivated-success":
       return "Desactivado con éxito.";
+    case "deleted-success":
+      return "Eliminado con éxito.";
     case "reactivated-success":
       return "Reactivado con éxito.";
+    case "incremented-success":
+      return "Incrementados con éxito.";
+    case "reseted-password-success":
+      return "Contraseña reseteada con éxito";
   }
 }

@@ -34,7 +34,8 @@ export function useQuerySorting<T>(
 
   const sortedItems = useMemo(() => {
     const accessor = sortKeyConfig?.getValue ?? (() => "");
-    const entries = [...items];
+    const safeItems = Array.isArray(items) ? items : [];
+    const entries = [...safeItems];
 
     entries.sort((a, b) => {
       const rawA = accessor(a);

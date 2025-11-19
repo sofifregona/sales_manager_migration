@@ -1,4 +1,4 @@
-﻿import { employeeRepo } from "./employee.repo.js";
+﻿import { type EmployeeRepository } from "./employee.repo.js";
 import { Employee } from "./employee.entity.js";
 import { AppError } from "@back/src/shared/errors/AppError.js";
 
@@ -9,21 +9,27 @@ import {
   validateTelephone,
 } from "@back/src/shared/utils/validations/validationPerson.js";
 
-import { validateNumberID, validateRangeLength } from "@back/src/shared/utils/validations/validationHelpers.js";
+import {
+  validateNumberID,
+  validateRangeLength,
+} from "@back/src/shared/utils/validations/validationHelpers.js";
 
 // SERVICE FOR CREATE A BARTABLE
-export const createEmployee = async (data: {
-  name: string;
-  dni: number | null;
-  telephone: number | null;
-  email: string | null;
-  address: string | null;
-}) => {
+export const createEmployee = async (
+  repo: EmployeeRepository,
+  data: {
+    name: string;
+    dni: number | null;
+    telephone: number | null;
+    email: string | null;
+    address: string | null;
+  }
+) => {
   const { name, dni, telephone, email, address } = data;
   const cleanedName = name.replace(/\s+/g, " ").trim();
   validateRangeLength(cleanedName, 8, 80, "Nombre");
   const normalizedName = normalizeText(cleanedName);
-  const duplicate = await employeeRepo.findOneBy({ normalizedName });
+  const duplicate = await repo.findByNormalizedName(normalizedName);
 
   if (duplicate?.active) {
     throw new AppError(
@@ -36,7 +42,7 @@ export const createEmployee = async (data: {
 
   if (dni !== null) {
     validateCUI(dni, 8, "DNI");
-    const existingByDni = await employeeRepo.findOneBy({ dni });
+    const existingByDni = await repo.findByDni(dni);
     if (existingByDni?.active) {
       throw new AppError(
         "(Error) Ya existe un empleado activo con este DNI.",
@@ -57,43 +63,45 @@ export const createEmployee = async (data: {
 
   if (duplicate && !duplicate.active) {
     duplicate.active = true;
-    return await employeeRepo.save(duplicate);
+    return await repo.save(duplicate);
   }
 
-  const newEmployee = Object.assign(new Employee(), {
-    name: cleanedName,
+  const entity = repo.create({
+    name,
     normalizedName,
-    dni: dni ?? null,
-    telephone: telephone ?? null,
-    email: email != null ? email.replace(/\s+/g, " ").trim() : null,
-    address: address != null ? address.replace(/\s+/g, " ").trim() : null,
+    dni,
+    telephone,
+    email,
+    address,
     active: true,
   });
-
-  return await employeeRepo.save(newEmployee);
+  return await repo.save(entity);
 };
 
 // SERVICE FOR UPDATE OR DEACTIVATE A BARTABLE
-export const updateEmployee = async (updatedData: {
-  id: number;
-  name?: string;
-  dni?: number | null;
-  telephone?: number | null;
-  email?: string | null;
-  address?: string | null;
-}) => {
+export const updateEmployee = async (
+  repo: EmployeeRepository,
+  updatedData: {
+    id: number;
+    name?: string;
+    dni?: number | null;
+    telephone?: number | null;
+    email?: string | null;
+    address?: string | null;
+  }
+) => {
   const { id, name, dni, telephone, email, address } = updatedData;
   validateNumberID(id, "Empleado");
-  const existing = await employeeRepo.findOneBy({ id, active: true });
+  const existing = await repo.findActiveById(id);
   if (!existing) throw new AppError("(Error) Empleado no encontrado", 404);
 
-  const data: Partial<Employee> = {};
+  const patch: Partial<Employee> = {};
 
   if (name !== undefined) {
     const cleanedName = name.replace(/\s+/g, " ").trim();
     validateRangeLength(cleanedName, 8, 80, "Nombre");
     const normalizedName = normalizeText(cleanedName);
-    const duplicate = await employeeRepo.findOneBy({ normalizedName });
+    const duplicate = await repo.findByNormalizedName(normalizedName);
     if (duplicate && duplicate.id !== id && duplicate.active) {
       throw new AppError(
         "(Error) Ya existe un empleado activo con este nombre.",
@@ -111,15 +119,15 @@ export const updateEmployee = async (updatedData: {
         { existingId: duplicate.id }
       );
     } else {
-      data.name = cleanedName;
-      data.normalizedName = normalizedName;
+      patch.name = cleanedName;
+      patch.normalizedName = normalizedName;
     }
   }
 
   if (dni !== undefined) {
     if (dni !== null) {
       validateCUI(dni, 8, "DNI");
-      const duplicate = await employeeRepo.findOneBy({ dni });
+      const duplicate = await repo.findByDni(dni);
       if (duplicate && duplicate.id !== id && duplicate.active) {
         throw new AppError(
           "(Error) Ya existe un empleado activo con este DNI.",
@@ -129,34 +137,58 @@ export const updateEmployee = async (updatedData: {
         );
       }
     }
-    data.dni = dni;
+    patch.dni = dni;
   }
 
   if (telephone !== undefined) {
     if (telephone !== null) {
       validateTelephone(telephone, "Teléfono");
     }
-    data.telephone = telephone;
+    patch.telephone = telephone;
   }
 
   if (email !== undefined) {
     if (email !== null) {
       validateEmailFormat(email);
     }
-    data.email = email != null ? email.replace(/\s+/g, " ").trim() : null;
+    patch.email = email != null ? email.replace(/\s+/g, " ").trim() : null;
   }
 
   if (address !== undefined) {
-    data.address = address != null ? address.replace(/\s+/g, " ").trim() : null;
+    patch.address =
+      address != null ? address.replace(/\s+/g, " ").trim() : null;
   }
 
-  await employeeRepo.update(id, data);
-  return await employeeRepo.findOneBy({ id });
+  if (Object.keys(patch).length) {
+    await repo.updateFields(id, patch as any);
+  }
+  return await repo.findById(id);
 };
 
-export const reactivateEmployee = async (id: number) => {
+export const deactivateEmployee = async (
+  repo: EmployeeRepository,
+  id: number
+) => {
   validateNumberID(id, "Empleado");
-  const existing = await employeeRepo.findOneBy({ id });
+
+  const existing = await repo.findById(id);
+  if (!existing) throw new AppError("(Error) Empleado no encontrado.", 404);
+  const openSale = await repo.findOpenSales(id);
+  if (openSale) {
+    throw new AppError(
+      "(Error) No se puede eliminar un empleado que tenga una venta activa.",
+      404
+    );
+  }
+  await repo.deactivate(id);
+};
+
+export const reactivateEmployee = async (
+  repo: EmployeeRepository,
+  id: number
+) => {
+  validateNumberID(id, "Empleado");
+  const existing = await repo.findById(id);
   if (!existing) throw new AppError("(Error) Empleado no encontrada.", 404);
   if (existing.active) {
     throw new AppError(
@@ -166,36 +198,22 @@ export const reactivateEmployee = async (id: number) => {
       { existingId: existing.id }
     );
   }
-  await employeeRepo.update(id, { active: true });
-  return await employeeRepo.findOneBy({ id });
-};
-
-export const softDeleteEmployee = async (id: number) => {
-  validateNumberID(id, "Empleado");
-
-  const existing = await employeeRepo.findOneBy({ id, active: true });
-  if (!existing) throw new AppError("(Error) Empleado no encontrado.", 404);
-  await employeeRepo.update(id, { active: false });
+  await repo.reactivate(id);
+  return await repo.findById(id);
 };
 
 // SERVICE FOR GETTING ALL BARTABLES
-export const getAllEmployees = async (
-  includeInactive: boolean,
-  sort?: { field?: "name" | "active"; direction?: "ASC" | "DESC" }
+export const getAllEmployees = (
+  repo: EmployeeRepository,
+  includeInactive: boolean = false
 ) => {
-  const where = includeInactive ? {} : { active: true };
-  const order: Record<string, "ASC" | "DESC"> = {};
-  const field =
-    sort?.field === "name" ? "normalizedName" : sort?.field ?? "normalizedName";
-  const direction = sort?.direction ?? "ASC";
-  order[field] = direction;
-  return await employeeRepo.find({ where, order });
+  return repo.getAll(includeInactive);
 };
 
 // SERVICE FOR GETTING A BARTABLE BY ID
-export const getEmployeeById = async (id: number) => {
+export const getEmployeeById = async (repo: EmployeeRepository, id: number) => {
   validateNumberID(id, "Empleado");
-  const existing = await employeeRepo.findOneBy({ id, active: true });
-  if (!existing) throw new AppError("(Error) Empleado no encontrada", 404);
+  const existing = await repo.findById(id);
+  if (!existing) throw new AppError("(Error) Empleado no encontrado", 404);
   return existing;
 };

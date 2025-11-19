@@ -18,18 +18,20 @@ export async function brandAction({ request }: ActionFunctionArgs) {
 
     switch (parsed.intent) {
       case "deactivate":
-        return await handleBrandDeactivate({ formData });
+        return await handleBrandDeactivate({ url, formData });
       case "reactivate":
-        return await handleBrandReactivate({ formData });
+        return await handleBrandReactivate({ url, formData });
       case "reactivate-swap":
-        return await handleBrandReactivateSwap({ formData });
+        return await handleBrandReactivateSwap({ url, formData });
       case "create":
-        return await handleBrandCreate({ formData });
+        return await handleBrandCreate({ url, formData });
       case "update":
         return await handleBrandUpdate({ url, formData });
       default:
-        return jsonResponse(400, { error: "(Error) Acción no soportada.", source: "client" });
+        return jsonResponse(400, {
+          error: "(Error) Acción no soportada.",
+          source: "client",
+        });
     }
   });
 }
-

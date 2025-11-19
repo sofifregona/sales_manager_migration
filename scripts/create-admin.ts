@@ -3,20 +3,24 @@ import { config as loadEnv } from "dotenv";
 import argon2 from "argon2";
 import { DataSource } from "typeorm";
 import { User } from "../backend/src/modules/user/user.entity.js";
+import { isRole, type Role } from "../backend/src/shared/constants/roles.js";
 
 loadEnv();
 
 async function main() {
-  const username = process.env.ADMIN_USERNAME?.trim() || "admin";
-  const name = process.env.ADMIN_NAME?.trim() || "admin";
-  const role = (process.env.ADMIN_ROLE?.toUpperCase() || "ADMIN") as
-    | "ADMIN"
-    | "MANAGER"
-    | "CASHIER";
+  const usernameEnv = process.env.ADMIN_USERNAME?.trim() || "admin";
+  const nameEnv = process.env.ADMIN_NAME?.trim() || "admin";
+  const roleEnv = (process.env.ADMIN_ROLE || "ADMIN").toUpperCase();
+
+  if (!isRole(roleEnv)) {
+    throw new Error("ADMIN_ROLE inválido. Use ADMIN, MANAGER o CASHIER.");
+  }
+  const role = roleEnv as Role;
+
   const passwordHashEnv = process.env.ADMIN_PASSWORD_HASH?.trim();
   const plainPasswordEnv = process.env.ADMIN_PASSWORD?.trim();
 
-  if (!username) {
+  if (!usernameEnv) {
     console.error("Falta ADMIN_USERNAME en .env");
     process.exit(1);
   }
@@ -50,23 +54,23 @@ async function main() {
   await ds.initialize();
   const repo = ds.getRepository(User);
 
-  const existing = await repo.findOne({ where: { username } });
+  const existing = await repo.findOne({ where: { username: usernameEnv } });
   if (existing) {
-    console.log("El usuario admin ya existe (", username, ")");
+    console.log("El usuario admin ya existe (", usernameEnv, ")");
     await ds.destroy();
     process.exit(0);
   }
 
   const admin = repo.create({
-    username,
-    name,
+    username: usernameEnv,
+    name: nameEnv,
     passwordHash,
     role,
     active: true,
   });
 
   await repo.save(admin);
-  console.log("Usuario admin creado correctamente:", username);
+  console.log("Usuario admin creado correctamente:", usernameEnv);
   await ds.destroy();
 }
 

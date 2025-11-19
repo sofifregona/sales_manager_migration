@@ -1,20 +1,26 @@
-﻿import { bartableRepo } from "./bartable.repo.js";
+﻿import { type BartableRepository } from "./bartable.repo.js";
 import { Bartable } from "./bartable.entity.js";
 import { AppError } from "@back/src/shared/errors/AppError.js";
 import {
   validateNumberID,
   validatePositiveInteger,
 } from "@back/src/shared/utils/validations/validationHelpers.js";
-import { saleRepo } from "../sale/sale.repo.js";
+import { makeSaleRepository } from "../sale/sale.repo.typeorm.js";
+import { AppDataSource } from "@back/src/shared/database/data-source.js";
+import { getOpenSaleByBartableId } from "../sale/sale.service.js";
 
+const saleRepo = makeSaleRepository(AppDataSource);
 // SERVICE FOR CREATE A BARTABLE
-export const createBartable = async (data: { number: number }) => {
+export const createBartable = async (
+  repo: BartableRepository,
+  data: { number: number }
+) => {
   const { number } = data;
 
   validatePositiveInteger(number, "Número");
 
   // Validations for repeting bartables
-  const duplicate = await bartableRepo.findOneBy({ number });
+  const duplicate = await repo.findByNumber(number);
 
   // If it exists and is active, then throw an error
   if (duplicate?.active) {
@@ -37,30 +43,33 @@ export const createBartable = async (data: { number: number }) => {
   }
 
   // If it doesn't exist, create a new one
-  const newBartable = new Bartable();
-  newBartable.number = number;
-  newBartable.active = true;
-
-  return await bartableRepo.save(newBartable);
+  const entity = repo.create({
+    number,
+    active: true,
+  });
+  return await repo.save(entity);
 };
 
 // SERVICE FOR UPDATE OR DEACTIVATE A BARTABLE
-export const updateBartable = async (updatedData: {
-  id: number;
-  number?: number;
-}) => {
+export const updateBartable = async (
+  repo: BartableRepository,
+  updatedData: {
+    id: number;
+    number?: number;
+  }
+) => {
   const { id, number } = updatedData;
   validateNumberID(id, "Mesa");
 
-  const existing = await bartableRepo.findOneBy({ id, active: true });
+  const existing = await repo.findActiveById(id);
   if (!existing) throw new AppError("(Error) Mesa no encontrada", 404);
 
-  const data: Partial<Bartable> = {};
+  const patch: Partial<Bartable> = {};
 
   if (number !== undefined) {
     validatePositiveInteger(number, "Número");
 
-    const duplicate = await bartableRepo.findOneBy({ number });
+    const duplicate = await repo.findByNumber(number);
     if (duplicate && duplicate.id !== id && duplicate.active) {
       throw new AppError(
         "(Error) Ya existe una mesa activa con este número.",
@@ -79,17 +88,40 @@ export const updateBartable = async (updatedData: {
         { existingId: duplicate.id }
       );
     } else {
-      data.number = number;
+      patch.number = number;
     }
   }
 
-  await bartableRepo.update(id, data);
-  return await bartableRepo.findOneBy({ id });
+  if (Object.keys(patch).length) {
+    await repo.updateFields(id, patch as any);
+  }
+  return await repo.findById(id);
 };
 
-export const reactivateAccount = async (id: number) => {
+export const deactivateBartable = async (
+  repo: BartableRepository,
+  id: number
+) => {
   validateNumberID(id, "Mesa");
-  const existing = await bartableRepo.findOneBy({ id });
+
+  const existing = await repo.findActiveById(id);
+  if (!existing) throw new AppError("(Error) Mesa no encontrada.", 404);
+  const openSale = await getOpenSaleByBartableId(saleRepo, id);
+  if (openSale) {
+    throw new AppError(
+      "(Error) No se puede eliminar una mesa que tenga una venta activa.",
+      404
+    );
+  }
+  await repo.deactivate(id);
+};
+
+export const reactivateBartable = async (
+  repo: BartableRepository,
+  id: number
+) => {
+  validateNumberID(id, "Mesa");
+  const existing = await repo.findById(id);
   if (!existing) throw new AppError("(Error) Mesa no encontrada.", 404);
   if (existing.active) {
     throw new AppError(
@@ -99,42 +131,66 @@ export const reactivateAccount = async (id: number) => {
       { existingId: existing.id }
     );
   }
-  await bartableRepo.update(id, { active: true });
-  return await bartableRepo.findOneBy({ id });
+  await repo.reactivate(id);
+  return await repo.findById(id);
 };
 
-export const softDeleteBartable = async (id: number) => {
-  validateNumberID(id, "Mesa");
+export const reactivateBartableSwap = async (
+  repo: BartableRepository,
+  data: {
+    inactiveId: number;
+    currentId: number;
+  }
+) => {
+  const { inactiveId, currentId } = data;
+  if (inactiveId === currentId) {
+    throw new AppError(
+      "(Error) La marca a reactivar no puede ser igual a la marca actual",
+      400
+    );
+  }
+  validateNumberID(currentId, "Marca actual");
+  const currentExisting = await repo.findActiveById(currentId);
+  if (!currentExisting) throw new AppError("(Error) Marca no encontrada.", 404);
 
-  const existing = await bartableRepo.findOneBy({ id, active: true });
-  if (!existing) throw new AppError("(Error) Mesa no encontrada.", 404);
-  const openSale = await saleRepo.findOneBy({ bartable: { id }, open: true });
+  validateNumberID(inactiveId, "Marca inactiva");
+  const inactiveExisting = await repo.findById(inactiveId);
+  if (!inactiveExisting)
+    throw new AppError("(Error) Marca no encontrada.", 404);
+  if ((inactiveExisting as any).active) {
+    throw new AppError(
+      "(Error) La marca ya está activa.",
+      409,
+      "BRAND_ALREADY_ACTIVE",
+      { inactiveExistingId: (inactiveExisting as any).id }
+    );
+  }
+
+  const openSale = await getOpenSaleByBartableId(saleRepo, currentId);
   if (openSale) {
     throw new AppError(
       "(Error) No se puede eliminar una mesa que tenga una venta activa.",
       404
     );
   }
-  await bartableRepo.update(id, { active: false });
+
+  await repo.reactivate(inactiveId);
+  await repo.deactivate(currentId);
+  return await repo.findById(inactiveId);
 };
 
 // SERVICE FOR GETTING ALL BARTABLES
-export const getAllBartables = async (
-  includeInactive: boolean,
-  sort?: { field?: "number" | "active"; direction?: "ASC" | "DESC" }
+export const getAllBartables = (
+  repo: BartableRepository,
+  includeInactive: boolean = false
 ) => {
-  const where = includeInactive ? {} : { active: true };
-  const order: Record<string, "ASC" | "DESC"> = {};
-  const field = sort?.field ?? "number";
-  const direction = sort?.direction ?? "ASC";
-  order[field] = direction;
-  return await bartableRepo.find({ where, order });
+  return repo.getAll(includeInactive);
 };
 
 // SERVICE FOR GETTING A BARTABLE BY ID
-export const getBartableById = async (id: number) => {
+export const getBartableById = async (repo: BartableRepository, id: number) => {
   validateNumberID(id, "Mesa");
-  const existing = await bartableRepo.findOneBy({ id, active: true });
+  const existing = await repo.findActiveById(id);
   if (!existing) throw new AppError("(Error) Mesa no encontrada", 404);
   return existing;
 };

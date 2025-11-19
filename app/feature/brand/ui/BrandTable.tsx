@@ -1,12 +1,18 @@
-ï»¿import React from "react";
-import { Link, useFetcher, useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import {
+  Link,
+  useFetcher,
+  useLocation,
+  useSearchParams,
+} from "react-router-dom";
 import type { BrandDTO } from "~/feature/brand/brand";
 import {
   type UseQuerySortingConfig,
   useQuerySorting,
 } from "~/shared/hooks/useQuerySorting";
-import { SortToggle } from "~/shared/ui/SortToggle";
-import { DeactivateEntityPromptBanner } from "~/shared/ui/DeactivateEntityPromptBanner";
+import { SortToggle } from "~/shared/ui/form/SortToggle";
+import { ConfirmCascadeDeactivatePrompt } from "~/shared/ui/prompts/ConfirmCascadeDeactivatePrompt";
+import { ConfirmPrompt } from "~/shared/ui/prompts/ConfirmPrompt";
 
 type Props = {
   brands: BrandDTO[];
@@ -14,9 +20,9 @@ type Props = {
 };
 
 const BRAND_SORT_CONFIG: UseQuerySortingConfig<BrandDTO> = {
-  defaultKey: "name",
+  defaultKey: "normalizedName",
   keys: [
-    { key: "name", getValue: (brand) => brand.name },
+    { key: "normalizedName", getValue: (brand) => brand.normalizedName },
     { key: "active", getValue: (brand) => brand.active },
   ],
 };
@@ -26,9 +32,23 @@ export function BrandTable({ brands, editingId }: Props) {
   const deactivating = deactivateFetcher.state !== "idle";
   const reactivateFetcher = useFetcher();
   const reactivating = reactivateFetcher.state !== "idle";
+  const [pendingDeactivateId, setPendingDeactivateId] = useState<number | null>(
+    null
+  );
+  const [pendingReactivateId, setPendingReactivateId] = useState<number | null>(
+    null
+  );
+
+  const [lastDeactivateId, setLastDeactivateId] = useState<number | null>(null);
 
   const [params] = useSearchParams();
   const includeInactive = params.get("includeInactive") === "1";
+  const location = useLocation();
+  const toggleIncludeHref = (() => {
+    const p = new URLSearchParams(location.search);
+    p.set("includeInactive", includeInactive ? "0" : "1");
+    return `?${p.toString()}`;
+  })();
 
   const {
     sortedItems: sortedBrands,
@@ -42,11 +62,7 @@ export function BrandTable({ brands, editingId }: Props) {
       <div
         style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}
       >
-        <Link
-          replace
-          to={`?includeInactive=${includeInactive ? "0" : "1"}`}
-          className="btn btn--secondary"
-        >
+        <Link replace to={toggleIncludeHref} className="btn btn--secondary">
           {includeInactive ? "Ocultar inactivas" : "Ver inactivas"}
         </Link>
       </div>
@@ -59,14 +75,14 @@ export function BrandTable({ brands, editingId }: Props) {
               <SortToggle
                 currentSort={sortBy}
                 currentDir={sortDir}
-                name="name"
+                name="normalizedName"
                 label="Nombre"
               />
               {includeInactive && (
                 <SortToggle
                   currentSort={sortBy}
                   currentDir={sortDir}
-                  name="status"
+                  name="active"
                   label="Estado"
                 />
               )}
@@ -86,51 +102,51 @@ export function BrandTable({ brands, editingId }: Props) {
                 <td className="actions">
                   {brand.active ? (
                     <>
-                      <Link to={`?id=${brand.id}`}>
+                      <Link
+                        to={`?id=${brand.id}&includeInactive=${
+                          includeInactive ? "1" : "0"
+                        }`}
+                      >
                         <button type="button">Modificar</button>
                       </Link>
-                      <deactivateFetcher.Form
-                        method="post"
-                        action="."
-                        onSubmit={(e) => {
-                          if (
-                            !confirm("Â¿Seguro que desea desactivar esta marca?")
-                          ) {
-                            e.preventDefault();
-                          }
-                        }}
+
+                      <button
+                        type="button"
                         style={{ display: "inline-block", marginLeft: 8 }}
+                        disabled={deactivating}
+                        onClick={() => setPendingDeactivateId(brand.id)}
                       >
-                        <input type="hidden" name="id" value={brand.id} />
-                          <input type="hidden" name="_action" value="deactivate" />
-                        <button type="submit" disabled={deactivating}>
-                          {deactivating ? "Desactivando..." : "Desactivar"}
-                        </button>
-                      </deactivateFetcher.Form>
+                        {deactivating ? "Desactivando..." : "Desactivar"}
+                      </button>
 
                       {(() => {
                         const data = deactivateFetcher.data as any;
                         if (
                           data &&
                           data.code === "BRAND_IN_USE" &&
-                          data.details?.count != null
+                          data.details?.count != null &&
+                          lastDeactivateId === brand.id
                         ) {
                           return (
-                            <DeactivateEntityPromptBanner
+                            <ConfirmCascadeDeactivatePrompt
                               entityId={brand.id}
-                              entityLabel="marca"
+                              entityLabel="Marca"
+                              dependentLabel="Producto"
                               count={Number(data.details.count) || 0}
-                              strategyClear="clear-products-brand"
-                              strategyDeactivate="deactivate-products"
-                              optionClearLabel="Quitar marca de los productos"
-                              optionDeactivateLabel="Desactivar productos asociados"
+                              strategyProceed="cascade-deactivate-products"
                               onCancel={() => {
-                                /* no-op */
+                                setLastDeactivateId(null);
                               }}
+                              proceedLabel="Aceptar"
                             />
                           );
                         }
-                        if (data && data.error && !data.code) {
+                        if (
+                          data &&
+                          data.error &&
+                          !data.code &&
+                          lastDeactivateId === brand.id
+                        ) {
                           return (
                             <div className="inline-error" role="alert">
                               {String(data.error)}
@@ -142,23 +158,14 @@ export function BrandTable({ brands, editingId }: Props) {
                     </>
                   ) : (
                     <>
-                      <reactivateFetcher.Form method="post" action=".">
-                        <input type="hidden" name="id" value={brand.id} />
-                        <input
-                          type="hidden"
-                          name="_action"
-                          value="reactivate"
-                        />
-                        <button type="submit" disabled={reactivating}>
-                          {reactivating ? "Reactivando..." : "Reactivar"}
-                        </button>
-                      </reactivateFetcher.Form>
-
-                      {reactivateFetcher.data?.error && (
-                        <div className="inline-error" role="alert">
-                          {String((reactivateFetcher.data as any).error)}
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        style={{ display: "inline-block", marginLeft: 8 }}
+                        disabled={reactivating}
+                        onClick={() => setPendingReactivateId(brand.id)}
+                      >
+                        {reactivating ? "Reactivando..." : "Reactivar"}
+                      </button>
                     </>
                   )}
                 </td>
@@ -166,6 +173,45 @@ export function BrandTable({ brands, editingId }: Props) {
             ))}
           </tbody>
         </table>
+      )}
+
+      {pendingDeactivateId != null && (
+        <ConfirmPrompt
+          message="¿Seguro que desea desactivar esta marca?"
+          busy={deactivating}
+          onCancel={() => setPendingDeactivateId(null)}
+          onConfirm={() => {
+            const id = pendingDeactivateId;
+            setPendingDeactivateId(null);
+            setLastDeactivateId(id);
+            deactivateFetcher.submit(
+              { id: String(id), _action: "deactivate" },
+              { method: "post", action: `.${location.search}` }
+            );
+          }}
+        />
+      )}
+
+      {pendingReactivateId != null && (
+        <ConfirmPrompt
+          message="¿Seguro que desea reactivar esta marca?"
+          busy={reactivating}
+          onCancel={() => setPendingReactivateId(null)}
+          onConfirm={() => {
+            const id = pendingReactivateId;
+            setPendingReactivateId(null);
+            reactivateFetcher.submit(
+              { id: String(id), _action: "reactivate" },
+              { method: "post", action: `.${location.search}` }
+            );
+          }}
+        />
+      )}
+
+      {reactivateFetcher.data && (reactivateFetcher.data as any).error && (
+        <div className="inline-error" role="alert" style={{ marginTop: 8 }}>
+          {String((reactivateFetcher.data as any).error)}
+        </div>
       )}
     </>
   );

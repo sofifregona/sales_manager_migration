@@ -5,7 +5,7 @@ import {
   getPaymentById,
   reactivatePayment,
   updatePayment,
-  softDeletePayment,
+  deactivatePayment,
   reactivatePaymentSwap,
 } from "./payment.service.js";
 import { AppDataSource } from "@back/src/shared/database/data-source.js";
@@ -55,7 +55,7 @@ export const deactivatePaymentHandler = async (
 ) => {
   const id = parseId(req);
   try {
-    const deactivated = await softDeletePayment(paymentRepo, id);
+    const deactivated = await deactivatePayment(paymentRepo, id);
     res.status(200).json(deactivated);
   } catch (error) {
     next(error);

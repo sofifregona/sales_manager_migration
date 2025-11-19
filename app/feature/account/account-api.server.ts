@@ -43,7 +43,7 @@ export async function deactivateAccount(
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(strategy ? { strategy } : { active: false }),
+      body: JSON.stringify(strategy ? { strategy } : {}),
     }
   );
 }
@@ -68,7 +68,7 @@ export async function reactivateAccountSwap(
   return await fetchJson<AccountDTO>(
     `${API_BASE_URL}/${ENDPOINTS.account}/${inactiveId}/reactivate-swap`,
     {
-      method: "PATCH",
+      method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
@@ -77,23 +77,10 @@ export async function reactivateAccountSwap(
   );
 }
 
-export type AccountSortField = "name" | "active";
-
-export async function getAllAccounts(
-  includeInactive: boolean = false,
-  opts: { sortField: AccountSortField; sortDirection: "ASC" | "DESC" } = {
-    sortField: "name",
-    sortDirection: "ASC",
-  }
-) {
-  const params = new URLSearchParams();
-  if (includeInactive)
-    params.set("includeInactive", includeInactive ? "1" : "0");
-  if (opts.sortField) params.set("sortField", opts.sortField);
-  if (opts.sortDirection) params.set("sortDirection", opts.sortDirection);
-
-  const qs = params.toString();
-  const url = `${API_BASE_URL}/${ENDPOINTS.account}${qs ? `?${qs}` : ""}`;
+export async function getAllAccounts(includeInactive: boolean = false) {
+  const url = `${API_BASE_URL}/${ENDPOINTS.account}${
+    includeInactive ? `?includeInactive=1` : ""
+  }`;
   return await fetchJson<AccountDTO[]>(url, {
     method: "GET",
     headers: {

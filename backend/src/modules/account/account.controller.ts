@@ -28,8 +28,6 @@ export const createAccountHandler = async (
     });
     res.status(201).json(created);
   } catch (error) {
-    console.log("ACÁ PONEMOR EL ERROR");
-    console.log(error);
     next(error);
   }
 };
@@ -80,8 +78,6 @@ export const reactivateAccountHandler = async (
   res: Response,
   next: NextFunction
 ) => {
-  console.log("DENTRO DEL HANDLER DE ACCOUNT REACTIVATE");
-  console.log(req);
   const id = parseId(req);
   try {
     const reactivated = await reactivateAccount(accountRepo, id);
@@ -96,7 +92,6 @@ export const reactivateSwapAccountHandler = async (
   res: Response,
   next: NextFunction
 ) => {
-  console.log("DENTRO DEL CONTROLLER");
   const currentId = Number.parseInt(req.body.currentId, 10);
   const inactiveId = Number.parseInt(req.params.inactiveId, 10);
   const strategy = (req.body?.strategy ?? undefined) as
@@ -111,6 +106,7 @@ export const reactivateSwapAccountHandler = async (
     );
     res.status(200).json(swaped);
   } catch (error) {
+    console.log("[account.controller] reactivateSwapAccount error:", error);
     next(error);
   }
 };
@@ -120,20 +116,9 @@ export const getAllAccountsHandler = async (
   res: Response,
   next: NextFunction
 ) => {
-  console.log("Dentro del handler");
-  const { includeInactive, sortField, sortDirection } = req.query as {
-    includeInactive: string;
-    sortField: "normalizedName" | "active";
-    sortDirection: "ASC" | "DESC";
-  };
-
   try {
-    const accounts = await getAllAccounts(accountRepo, {
-      includeInactive: includeInactive === "1" || includeInactive === "true",
-      sortField: sortField ?? "normalizedName",
-      sotDirection:
-        (sortDirection ?? "ASC").toUpperCase() === "DESC" ? "DESC" : "ASC",
-    });
+    const includeInactive = ["1", "true"].includes(String(req.query.includeInactive));
+    const accounts = await getAllAccounts(accountRepo, includeInactive);
     res.status(200).json(accounts);
   } catch (error) {
     next(error);

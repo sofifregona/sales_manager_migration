@@ -1,23 +1,12 @@
-﻿import {
-  Link,
-  useActionData,
-  useFetcher,
-  useNavigation,
-  useLoaderData,
-  useLocation,
-} from "react-router-dom";
+import { useActionData, useLoaderData, useLocation } from "react-router-dom";
 import { useUrlSuccessFlash } from "~/shared/hooks/useUrlSuccessFlash";
 import type { ProviderLoaderData } from "~/feature/provider/provider";
-import { FlashMessages } from "~/shared/ui/FlashMessages";
-import { SuccessBanner } from "~/shared/ui/SuccessBanner";
+import { FlashMessages } from "~/shared/ui/feedback/FlashMessages";
+import { SuccessBanner } from "~/shared/ui/feedback/SuccessBanner";
 import { useCrudSuccess } from "~/shared/hooks/useCrudSuccess";
-import { useReactivateFlow } from "~/shared/hooks/useReactivateFlow";
-import { ReactivatePromptBanner } from "~/shared/ui/ReactivatePromptBanner";
-import { CrudHeader } from "~/shared/ui/CrudHeader";
+import { CrudHeader } from "~/shared/ui/layout/CrudHeader";
 import { ProviderForm } from "../ui/ProviderForm";
 import { ProviderTable } from "../ui/ProviderTable";
-
-useUrlSuccessFlash("provider");
 
 export function ProviderPanelScreen() {
   const { providers, editingProvider, flash } =
@@ -25,22 +14,20 @@ export function ProviderPanelScreen() {
   const actionData = useActionData() as
     | { error?: string; source?: "client" | "server" }
     | undefined;
-  const navigation = useNavigation();
+
   const location = useLocation();
-  const fetcher = useFetcher();
+  const p = new URLSearchParams(location.search);
+  const include = p.get("includeInactive");
 
-  const isSubmitting = navigation.state === "submitting";
   const isEditing = !!editingProvider;
-  const deleting = fetcher.state !== "idle";
 
-  // Convierte flags de éxito en client flash y limpia la URL
+  // Convierte flags de �xito en client flash y limpia la URL
   useUrlSuccessFlash("provider");
-  const { prompt, dismiss } = useReactivateFlow("provider");
   const { message } = useCrudSuccess("provider", {
-    "created-success": "Proveedor creado con éxito.",
-    "updated-success": "Proveedor modificado con éxito.",
-    "deleted-success": "Proveedor eliminado con éxito.",
-    "reactivated-success": "Proveedor reactivado con éxito.",
+    "created-success": "Proveedor creado con �xito.",
+    "updated-success": "Proveedor modificado con �xito.",
+    "deactivated-success": "Proveedor eliminado con �xito.",
+    "reactivated-success": "Proveedor reactivado con �xito.",
   });
 
   return (
@@ -50,7 +37,7 @@ export function ProviderPanelScreen() {
         isEditing={isEditing}
         entityLabel="proveedor"
         name={editingProvider?.name ?? null}
-        cancelHref="/provider"
+        cancelHref={`/provider${include ? `?includeInactive=${include}` : ""}`}
       />
 
       <FlashMessages
@@ -60,31 +47,9 @@ export function ProviderPanelScreen() {
 
       {message && <SuccessBanner message={message} />}
 
-      {prompt && (
-        <ReactivatePromptBanner
-          messageForUpdate={
-            prompt.message ??
-            `Se ha detectado una cuenta inactiva con este nombre. 
-            Â¿Desea reactivarla? Si reactiva la antigua cuenta, la cuenta actual se desactivarÃ¡. 
-            Si desea cambiar el nombre, haga clic en cancelar.`
-          }
-          messageForCreate={
-            prompt.message ??
-            `Se ha detectado una cuenta inactiva con este nombre. 
-            Â¿Desea reactivarla? Si desea cambiar el nombre, haga clic en cancelar.`
-          }
-          label="nombre"
-          inactiveId={prompt.elementId}
-          currentId={editingProvider?.id}
-          kind={isEditing ? "update-conflict" : "create-conflict"}
-          onDismiss={dismiss}
-        />
-      )}
-
       <ProviderForm
         isEditing={isEditing}
         editing={editingProvider}
-        isSubmitting={isSubmitting}
         formAction={isEditing ? `.${location.search}` : "."}
       />
 
@@ -97,7 +62,7 @@ export function ProviderPanelScreen() {
 }
 
 export function ProviderPanelErrorBoundary({ error }: { error: unknown }) {
-  let message = "OcurriÃ³ un error al cargar la lista de cuentas.";
+  let message = "Ocurri� un error al cargar la lista de proveedores.";
   if (error instanceof Error) {
     message = error.message;
   }

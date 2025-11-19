@@ -1,9 +1,9 @@
-import { validateRangeLength, runValidations } from "./validationHelpers";
+import { isRole, type Role } from "~/shared/constants/roles";
 
 type ValidationError = { error: string; source: "client" | "server" };
 
 // a-z, 0-9, permiten . _ - en el medio; sin duplicados consecutivos; 3–32
-const USERNAME_RE = /^(?!.*[._-]{2})[a-z0-9](?:[a-z0-9._-]{1,30}[a-z0-9])?$/;
+const USERNAME_RE = /^(?!.*[._-]{2})(?=.{5,32}$)[a-z0-9](?:[a-z0-9._-]*[a-z0-9])$/;
 
 export function validateUsernameFormat(
   username: string
@@ -11,31 +11,45 @@ export function validateUsernameFormat(
   if (!USERNAME_RE.test(username)) {
     return {
       error:
-        "(Error) Nombre de usuario: formato inválido. Solo se aceptan minúsculas, números y ._- ().",
+        "(Error) Nombre de usuario inválido. Solo se aceptan minúsculas (sin tildes), números y . _ -. " +
+        "No puede iniciar o terminar con . _ - ni contener dos de estos símbolos seguidos. No se aceptan espacios.",
       source: "client",
     };
   }
   return null;
 }
+
+export const PASSWORD_CHARS_RE =
+  /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9])[^\s]+$/;
 
 // Password: caracteres ASCII imprimibles (sin tabs/saltos/control). Longitud se valida aparte.
 export function validatePasswordFormat(
   password: string
 ): ValidationError | null {
-  if (!/^[\x20-\x7E]+$/.test(password)) {
+  if (!PASSWORD_CHARS_RE.test(password)) {
     return {
       error:
-        "(Error) Contraseña: use caracteres imprimibles (sin tabs/saltos).",
+        "(Error) Contraseña inválida. Debe incluir al menos una minúscula, una mayúscula, un número y un caracter especial; sin espacios.",
       source: "client",
     };
   }
   return null;
 }
 
-export function validateUserRole(role: string): ValidationError | null {
-  const allowed = new Set(["ADMIN", "MANAGER", "CASHIER"]);
-  if (!allowed.has(role)) {
-    return { error: "(Error) Rol inválido.", source: "client" };
+export function parseUserRole(
+  role: string
+): { ok: true; value: Role } | { ok: false; error: ValidationError } {
+  const v = String(role).trim().toUpperCase();
+  if (!isRole(v)) {
+    return {
+      ok: false,
+      error: {
+        error:
+          "(Error) Rol inválido. Valores permitidos: ADMIN, MANAGER, CASHIER.",
+        source: "client",
+      },
+    };
   }
-  return null;
+  return { ok: true, value: v as Role };
 }
+

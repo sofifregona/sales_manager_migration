@@ -15,29 +15,10 @@ export async function brandLoader({
     const flash: Flash = {} as Flash;
 
     const includeInactive = url.searchParams.get("includeInactive") === "1";
-    const rawField = url.searchParams.get("sortField");
-    if (rawField && !["name", "active"].includes(rawField)) {
-      parseAppError(
-        (flash.error = "(Error) Campo de ordenación inválido."),
-        (flash.source = "client")
-      );
-    }
-    const sortField = (rawField as "name" | "active") ?? "name";
-    const rawDirection = url.searchParams.get("sortDirection");
-    if (rawDirection && !["ASC", "DESC"].includes(rawDirection.toUpperCase())) {
-      parseAppError(
-        (flash.error = "(Error) Dirección de ordenación inválida."),
-        (flash.source = "client")
-      );
-    }
-    const sortDirection = (rawDirection as "ASC" | "DESC") ?? "ASC";
 
     let brands: BrandDTO[] | null = null;
     try {
-      brands = await getAllBrands(includeInactive, {
-        sortField,
-        sortDirection,
-      });
+      brands = await getAllBrands(includeInactive);
     } catch (error) {
       const parsed = parseAppError(
         error,

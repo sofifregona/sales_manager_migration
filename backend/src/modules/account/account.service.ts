@@ -114,10 +114,9 @@ export const reactivateAccount = async (
   repo: AccountRepository,
   id: number
 ) => {
-  console.log("DENTRO DEL SERVICE DE REACTIVATE");
   validateNumberID(id, "Cuenta");
+
   const existing = await repo.findById(id);
-  console.log(existing);
   if (!existing) throw new AppError("(Error) Cuenta no encontrada.", 404);
 
   if (existing.active) {
@@ -126,6 +125,8 @@ export const reactivateAccount = async (
   await repo.reactivate(id);
   return await repo.findActiveById(id);
 };
+
+type DeactivateStrategy = "cascade-delete-payments" | "cancel";
 
 export const reactivateSwapAccount = async (
   repo: AccountRepository,
@@ -184,8 +185,6 @@ export const reactivateSwapAccount = async (
   return await repo.findActiveById(inactiveId);
 };
 
-type DeactivateStrategy = "cascade-delete-payments" | "cancel";
-
 export const softDeleteAccount = async (
   repo: AccountRepository,
   paymentRepo: PaymentRepository,
@@ -218,7 +217,7 @@ export const softDeleteAccount = async (
   if (count === 0 || strategy === "cancel") {
     if (strategy === "cancel") return existing;
     await repo.softDeactivate(id);
-    return await repo.findActiveById(id);
+    return;
   }
 
   await paymentRepo.deactivateActiveByAccount(id);
@@ -226,15 +225,11 @@ export const softDeleteAccount = async (
   return;
 };
 
-export const getAllAccounts = async (
+export const getAllAccounts = (
   repo: AccountRepository,
-  params: {
-    includeInactive: boolean;
-    sortField?: "normalizedName" | "active";
-    sotDirection: "ASC" | "DESC";
-  }
+  includeInactive: boolean = false
 ) => {
-  return repo.getAll(params);
+  return repo.getAll(includeInactive);
 };
 
 // SERVICE FOR GETTING A BARTABLE BY ID

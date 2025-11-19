@@ -100,7 +100,7 @@ export function MovementForm({
         title="Campo obligatorio"
       />
 
-      <label htmlFor="description">Descripcion</label>
+      <label htmlFor="description">Descripción</label>
       <input
         id="description"
         name="description"

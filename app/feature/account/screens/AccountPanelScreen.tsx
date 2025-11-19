@@ -1,24 +1,21 @@
-import {
-  useActionData,
-  useLoaderData,
-  useLocation,
-  useSearchParams,
-} from "react-router-dom";
-import React from "react";
-import { useCallback } from "react";
+import { useActionData, useLoaderData, useLocation } from "react-router-dom";
+import { makeReactivableConflictBuilder } from "~/shared/conflict/builders";
+import { renderAccountSwapOverlay } from "~/feature/account/conflict/renderAccountInUseOverlay";
 import type { AccountLoaderData } from "~/feature/account/account";
-import { FlashMessages } from "~/shared/ui/FlashMessages";
-import { SuccessBanner } from "~/shared/ui/SuccessBanner";
-import { ErrorBanner } from "~/shared/ui/ErrorBanner";
+import { FlashMessages } from "~/shared/ui/feedback/FlashMessages";
+import { SuccessBanner } from "~/shared/ui/feedback/SuccessBanner";
+import { ErrorBanner } from "~/shared/ui/feedback/ErrorBanner";
 import { useCrudSuccess } from "~/shared/hooks/useCrudSuccess";
 import { useCrudError } from "~/shared/hooks/useCrudError";
 import { useReactivateFlow } from "~/shared/hooks/useReactivateFlow";
-import { ReactivatePromptBanner } from "~/shared/ui/ReactivatePromptBanner";
-import { CrudHeader } from "~/shared/ui/CrudHeader";
+import { ReactivatePromptBanner } from "~/shared/ui/prompts/ReactivatePromptBanner";
+import { CrudHeader } from "~/shared/ui/layout/CrudHeader";
 import { AccountForm } from "../ui/AccountForm";
 import { AccountTable } from "../ui/AccountTable";
 import { useUrlSuccessFlash } from "~/shared/hooks/useUrlSuccessFlash";
 import { useUrlConflictFlash } from "~/shared/hooks/useUrlConflictFlash";
+import { consumeConflictCookie } from "~/services/conflictCookie";
+import SettingsScreen from "~/routes/settings";
 
 export function AccountPanelScreen() {
   const { accounts, editingAccount, flash } =
@@ -32,47 +29,15 @@ export function AccountPanelScreen() {
   const include = p.get("includeInactive");
   const isEditing = !!editingAccount;
 
-  // Success flags (?created|updated|deleted|reactivated=1) → client-flash
   useUrlSuccessFlash("account");
+  useUrlConflictFlash(
+    "account",
+    makeReactivableConflictBuilder("account", ["ACCOUNT_EXISTS_INACTIVE"])
+  );
 
-  // Conflict flags (?conflict=...&message=...&elementId=...) → client-flash
-  // Declare BEFORE useReactivateFlow so the effect that sets client-flash runs first
-
-  const buildConflict = useCallback((p: URLSearchParams) => {
-    const conflict = p.get("conflict"); // "create" | "update" | null
-
-    if (conflict !== "create" && conflict !== "update") return null;
-    const kind = conflict === "create" ? "create-conflict" : "update-conflict";
-    const elementId = p.get("elementId");
-    const code = (p.get("code") || "").toUpperCase();
-    console.log(p.toString());
-    const payload = {
-      scope: "account",
-      kind,
-      message: p.get("message") ?? undefined,
-      name: p.get("name") ?? undefined,
-      description: p.get("description") ?? null,
-      elementId: elementId != null ? Number(elementId) : undefined,
-      reactivable: code === "ACCOUNT_EXISTS_INACTIVE",
-    };
-    const cleanupKeys = [
-      "conflict",
-      "message",
-      "name",
-      "description",
-      "elementId",
-      "code",
-    ];
-
-    return { payload, cleanupKeys };
-  }, []);
-  useUrlConflictFlash("account", buildConflict);
-
-  // Reactivation prompt (consumes only conflicts with elementId)
   const { prompt, dismiss } = useReactivateFlow("account");
 
-  // Success banner
-  const { message, kind } = useCrudSuccess("account", {
+  const { message } = useCrudSuccess("account", {
     "created-success": "Cuenta creada con éxito.",
     "updated-success": "Cuenta modificada con éxito.",
     "deactivated-success": "Cuenta eliminada con éxito.",
@@ -80,69 +45,74 @@ export function AccountPanelScreen() {
   });
 
   const conflictActive = !!prompt;
-  const overrideName = conflictActive
-    ? prompt?.name ?? new URLSearchParams(location.search).get("name") ?? ""
-    : undefined;
+  const overrideName = (() => {
+    if (!conflictActive) return undefined;
+    const extras = consumeConflictCookie<{ name?: string }>() || {};
+    return extras.name ?? "";
+  })();
 
-  // Client errors banner; include reactivable as fallback, we'll hide it if prompt is shown
   const { message: clientError } = useCrudError("account", {
     includeReactivable: true,
   });
 
   return (
     <div>
-      <h1>Cuentas</h1>
-      <CrudHeader
-        isEditing={isEditing}
-        entityLabel="cuenta"
-        name={editingAccount?.name ?? null}
-        cancelHref={`/account${include ? `?includeInactive=${include}` : ""}`}
-      />
+      <SettingsScreen />
+      <section className="settings__section">
+        <h1>Cuentas</h1>
+        <CrudHeader
+          isEditing={isEditing}
+          entityLabel="cuenta"
+          name={editingAccount?.name ?? null}
+          cancelHref={`/account${include ? `?includeInactive=${include}` : ""}`}
+        />
 
-      <FlashMessages
-        flash={{ error: flash?.error, source: flash?.source }}
-        actionError={actionData}
-      />
+        <FlashMessages
+          flash={{ error: flash?.error, source: flash?.source }}
+          actionError={actionData}
+        />
 
-      {message && <SuccessBanner message={message} />}
-      {!prompt && clientError && <ErrorBanner message={clientError} />}
+        {message && <SuccessBanner message={message} />}
+        {!prompt && clientError && <ErrorBanner message={clientError} />}
 
-      {prompt && (
-        <ReactivatePromptBanner
-          overlay
-          messageForUpdate={
-            prompt.message ??
-            `Se ha detectado una cuenta inactiva con este nombre.
+        {prompt && (
+          <ReactivatePromptBanner
+            overlay
+            renderConflictOverlay={renderAccountSwapOverlay}
+            messageForUpdate={
+              prompt.message ??
+              `Se ha detectado una cuenta inactiva con este nombre.
             ¿Desea reactivarla? Si reactiva la antigua cuenta, la cuenta actual se desactivará.
             Si desea cambiar el nombre, haga clic en cancelar.`
+            }
+            messageForCreate={
+              prompt.message ??
+              `Se ha detectado una cuenta inactiva con este nombre.
+            �Desea reactivarla? Si desea cambiar el nombre, haga clic en cancelar.`
+            }
+            label="nombre"
+            inactiveId={prompt.elementId}
+            currentId={editingAccount?.id}
+            kind={isEditing ? "update-conflict" : "create-conflict"}
+            onDismiss={dismiss}
+          />
+        )}
+
+        <AccountForm
+          key={
+            isEditing ? `update-${editingAccount.id}-account` : "create-account"
           }
-          messageForCreate={
-            prompt.message ??
-            `Se ha detectado una cuenta inactiva con este nombre.
-            ¿Desea reactivarla? Si desea cambiar el nombre, haga clic en cancelar.`
-          }
-          label="nombre"
-          inactiveId={prompt.elementId}
-          currentId={editingAccount?.id}
-          kind={isEditing ? "update-conflict" : "create-conflict"}
-          onDismiss={dismiss}
+          isEditing={isEditing}
+          editing={editingAccount}
+          formAction={`.${location.search}`}
+          overrideName={overrideName}
         />
-      )}
 
-      <AccountForm
-        key={
-          isEditing ? `update-${editingAccount.id}-account` : "create-account"
-        }
-        isEditing={isEditing}
-        editing={editingAccount}
-        formAction={`.${location.search}`}
-        overrideName={overrideName}
-      />
-
-      <AccountTable
-        accounts={accounts}
-        editingId={editingAccount?.id ?? null}
-      />
+        <AccountTable
+          accounts={accounts}
+          editingId={editingAccount?.id ?? null}
+        />
+      </section>
     </div>
   );
 }

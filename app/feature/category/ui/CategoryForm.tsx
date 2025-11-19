@@ -1,29 +1,46 @@
 import React, { useEffect, useState } from "react";
-import { Form } from "react-router-dom";
+import { Form, useLocation, useNavigation } from "react-router-dom";
 import type { CategoryDTO } from "~/feature/category/category";
 
 type Props = {
   isEditing: boolean;
   editing?: CategoryDTO | null;
-  isSubmitting: boolean;
   formAction: string; // "." o `.${search}`
+  overrideName?: string | undefined;
 };
 
 export function CategoryForm({
   isEditing,
   editing,
-  isSubmitting,
   formAction,
+  overrideName,
 }: Props) {
   const [name, setName] = useState(editing?.name ?? "");
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+  const location = useLocation();
 
   useEffect(() => {
     if (isEditing) {
-      setName(editing?.name ?? "");
-    } else {
+      setName(overrideName ?? editing?.name ?? "");
+    }
+  }, [isEditing, editing, overrideName]);
+
+  // En conflictos de creación, prellenar desde cookie si viene
+  useEffect(() => {
+    if (!isEditing && typeof overrideName === "string" && overrideName !== "") {
+      setName(overrideName);
+    }
+  }, [isEditing, overrideName]);
+  const p = new URLSearchParams(location.search);
+  const successFlags = ["created", "updated", "deactivated", "reactivated"];
+  const hasSuccess = successFlags.some((k) => p.get(k) === "1");
+
+  useEffect(() => {
+    if (hasSuccess) {
       setName("");
     }
-  }, [isEditing, editing]);
+  }, [location.search, isEditing]);
 
   return (
     <Form method="post" action={formAction} className="category-form">

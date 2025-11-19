@@ -1,4 +1,4 @@
-﻿import { redirect } from "react-router-dom";
+import { redirect } from "react-router-dom";
 import { reactivatePayment } from "~/feature/payment/payment-api.server";
 import { jsonResponse } from "~/lib/http/jsonResponse";
 import { parseAppError } from "~/utils/errors/parseAppError";
@@ -9,8 +9,7 @@ type Ctx = { url: URL; formData: FormData };
 export async function handlePaymentReactivate({ url, formData }: Ctx) {
   const idParam = formData.get("id");
   const idReqError = validateRequiredId(idParam, "Método de pago");
-  if (idReqError)
-    return jsonResponse(422, idReqError);
+  if (idReqError) return jsonResponse(422, idReqError);
   const id = Number(idParam);
   const strategyParam = formData.get("strategy");
   const strategy = strategyParam
@@ -18,11 +17,10 @@ export async function handlePaymentReactivate({ url, formData }: Ctx) {
     : undefined;
   try {
     await reactivatePayment(id, strategy);
-    const out = new URLSearchParams();
-    if (url.searchParams.get("includeInactive") === "1")
-      out.set("includeInactive", "1");
-    out.set("reactivated", "1");
-    return redirect(`/payment?${out.toString()}`);
+    const p = new URLSearchParams(url.search);
+    p.delete("id");
+    p.set("reactivated", "1");
+    return redirect(`/payment?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

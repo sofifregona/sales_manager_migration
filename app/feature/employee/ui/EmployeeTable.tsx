@@ -1,21 +1,32 @@
-import React from "react";
-import { Link, useFetcher, useSearchParams } from "react-router-dom";
+import React, { useState } from "react";
+import {
+  Link,
+  useFetcher,
+  useLocation,
+  useSearchParams,
+} from "react-router-dom";
 import type { EmployeeDTO } from "~/feature/employee/employee";
 import {
   type UseQuerySortingConfig,
   useQuerySorting,
 } from "~/shared/hooks/useQuerySorting";
-import { SortToggle } from "~/shared/ui/SortToggle";
+import { ConfirmPrompt } from "~/shared/ui/prompts/ConfirmPrompt";
+import { SortToggle } from "~/shared/ui/form/SortToggle";
 
 type Props = {
   employees: EmployeeDTO[];
   editingId?: number | null;
 };
 
+const normalize = (s: string) =>
+  (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 const EMPLOYEE_SORT_CONFIG: UseQuerySortingConfig<EmployeeDTO> = {
-  defaultKey: "name",
+  defaultKey: "normalizedName",
   keys: [
-    { key: "name", getValue: (employee) => employee.name },
+    {
+      key: "normalizedName",
+      getValue: (employee) => (employee as any).normalizedName ?? normalize(employee.name),
+    },
     { key: "active", getValue: (employee) => employee.active },
   ],
 };
@@ -25,9 +36,18 @@ export function EmployeeTable({ employees, editingId }: Props) {
   const deactivating = deactivateFetcher.state !== "idle";
   const reactivateFetcher = useFetcher();
   const reactivating = reactivateFetcher.state !== "idle";
+  const [pendingDeactivateId, setPendingDeactivateId] = useState<number | null>(
+    null
+  );
+  const [pendingReactivateId, setPendingReactivateId] = useState<number | null>(
+    null
+  );
+
+  const [lastDeactivateId, setLastDeactivateId] = useState<number | null>(null);
 
   const [params] = useSearchParams();
   const includeInactive = params.get("includeInactive") === "1";
+  const location = useLocation();
 
   const {
     sortedItems: sortedEmployees,
@@ -58,7 +78,7 @@ export function EmployeeTable({ employees, editingId }: Props) {
               <SortToggle
                 currentSort={sortBy}
                 currentDir={sortDir}
-                name="name"
+                name="normalizedName"
                 label="Nombre"
               />
               <th>DNI</th>
@@ -69,7 +89,7 @@ export function EmployeeTable({ employees, editingId }: Props) {
                 <SortToggle
                   currentSort={sortBy}
                   currentDir={sortDir}
-                  name="status"
+                  name="active"
                   label="Estado"
                 />
               )}
@@ -84,6 +104,7 @@ export function EmployeeTable({ employees, editingId }: Props) {
                   editingId === employee.id ? "row row--editing" : "row"
                 }
               >
+                <td>{employee.name}</td>
                 <td>{employee.dni}</td>
                 <td>{employee.telephone}</td>
                 <td>{employee.email}</td>
@@ -94,55 +115,48 @@ export function EmployeeTable({ employees, editingId }: Props) {
                 <td className="actions">
                   {employee.active ? (
                     <>
-                      <Link to={`?id=${employee.id}`}>
+                      <Link
+                        to={`?id=${employee.id}&includeInactive=${
+                          includeInactive ? "1" : "0"
+                        }`}
+                      >
                         <button type="button">Modificar</button>
                       </Link>
-                      <deactivateFetcher.Form
-                        method="post"
-                        action="."
-                        onSubmit={(e) => {
-                          if (
-                            !confirm(
-                              "¿Seguro que desea desactivar este empleado?"
-                            )
-                          ) {
-                            e.preventDefault();
-                          }
-                        }}
+                      <button
+                        type="button"
                         style={{ display: "inline-block", marginLeft: 8 }}
+                        disabled={deactivating}
+                        onClick={() => setPendingDeactivateId(employee.id)}
                       >
-                        <input type="hidden" name="id" value={employee.id} />
-                          <input type="hidden" name="_action" value="deactivate" />
-                        <button type="submit" disabled={deactivating}>
-                          {deactivating ? "Desactivando..." : "Desactivar"}
-                        </button>
-                      </deactivateFetcher.Form>
+                        {deactivating ? "Desactivando..." : "Desactivar"}
+                      </button>
 
-                      {deactivateFetcher.data?.error && (
-                        <div className="inline-error" role="alert">
-                          {String((deactivateFetcher.data as any).error)}
-                        </div>
-                      )}
+                      {(() => {
+                        const data = deactivateFetcher.data as any;
+                        if (
+                          data &&
+                          data.error &&
+                          lastDeactivateId === employee.id
+                        ) {
+                          return (
+                            <div className="inline-error" role="alert">
+                              {String(data.error)}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </>
                   ) : (
                     <>
-                      <reactivateFetcher.Form method="post" action=".">
-                        <input type="hidden" name="id" value={employee.id} />
-                        <input
-                          type="hidden"
-                          name="_action"
-                          value="reactivate"
-                        />
-                        <button type="submit" disabled={reactivating}>
-                          {reactivating ? "Reactivando..." : "Reactivar"}
-                        </button>
-                      </reactivateFetcher.Form>
-
-                      {reactivateFetcher.data?.error && (
-                        <div className="inline-error" role="alert">
-                          {String((reactivateFetcher.data as any).error)}
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        style={{ display: "inline-block", marginLeft: 8 }}
+                        disabled={reactivating}
+                        onClick={() => setPendingReactivateId(employee.id)}
+                      >
+                        {reactivating ? "Reactivando..." : "Reactivar"}
+                      </button>
                     </>
                   )}
                 </td>
@@ -150,6 +164,39 @@ export function EmployeeTable({ employees, editingId }: Props) {
             ))}
           </tbody>
         </table>
+      )}
+
+      {pendingDeactivateId != null && (
+        <ConfirmPrompt
+          message="¿Seguro que desea desactivar este empleado?"
+          busy={deactivating}
+          onCancel={() => setPendingDeactivateId(null)}
+          onConfirm={() => {
+            const id = pendingDeactivateId;
+            setPendingDeactivateId(null);
+            setLastDeactivateId(id);
+            deactivateFetcher.submit(
+              { id: String(id), _action: "deactivate" },
+              { method: "post", action: `.${location.search}` }
+            );
+          }}
+        />
+      )}
+
+      {pendingReactivateId != null && (
+        <ConfirmPrompt
+          message="¿Seguro que desea reactivar este empleado?"
+          busy={reactivating}
+          onCancel={() => setPendingReactivateId(null)}
+          onConfirm={() => {
+            const id = pendingReactivateId;
+            setPendingReactivateId(null);
+            reactivateFetcher.submit(
+              { id: String(id), _action: "reactivate" },
+              { method: "post", action: `.${location.search}` }
+            );
+          }}
+        />
       )}
     </>
   );

@@ -4,6 +4,7 @@ export const ENDPOINTS = {
   brand: "brands",
   category: "categories",
   employee: "employees",
+  notification: "notifications",
   payment: "payments",
   product: "products",
   productSold: "productsSold",

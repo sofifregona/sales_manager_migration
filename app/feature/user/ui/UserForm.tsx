@@ -1,48 +1,48 @@
-import React, { useEffect, useState } from "react";
-import { Form, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Form, useLocation, useNavigation } from "react-router-dom";
 import type { UserDTO } from "~/feature/user/user";
 
 type Props = {
-  isEditing: boolean;
-  resetPassword: boolean;
+  action: "update" | "reset-password" | "create";
   editing?: UserDTO | null;
-  isSubmitting: boolean;
   formAction: string; // "." o `.${search}`
 };
 
-export function UserForm({
-  isEditing,
-  resetPassword,
-  editing,
-  isSubmitting,
-  formAction,
-}: Props) {
+export function UserForm({ action, editing, formAction }: Props) {
   const [username, setUsername] = useState(editing?.username ?? "");
   const [name, setName] = useState(editing?.name ?? "");
   const [role, setRole] = useState(editing?.role ?? "");
+  const [showPassword, setShowPassword] = useState(false);
+  const [showRepeatPassword, setShowRepeatPassword] = useState(false);
+
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+  const location = useLocation();
 
   useEffect(() => {
-    if (isEditing) {
+    if (action !== "create") {
       setUsername(editing?.username ?? "");
-    } else if (!isEditing) {
-      setUsername("");
+      setName(editing?.name ?? "");
+      setRole(editing?.role ?? "");
     }
-  }, [isEditing, editing]);
+  }, [action, editing]);
 
   return (
     <Form method="post" action={formAction} className="user-form">
-      <label htmlFor="name">Nombre de usuario *</label>
+      <label htmlFor="username">Nombre de usuario *</label>
       <input
         id="username"
         name="username"
         type="text"
         value={username}
-        minLength={3}
+        minLength={5}
         maxLength={32}
-        disabled={resetPassword}
+        disabled={action === "reset-password"}
         onChange={(e) => setUsername(e.target.value)}
-        pattern={"^(?!.*[._-]{2})a-z0-9?$"}
-        required={!resetPassword}
+        pattern={
+          "^(?=.{5,32}$)(?!.*[._-]{2})[a-z0-9](?:[a-z0-9._-]*[a-z0-9])$"
+        }
+        required={action !== "reset-password"}
       />
 
       <label htmlFor="name">Nombre *</label>
@@ -52,26 +52,62 @@ export function UserForm({
         type="text"
         value={name}
         onChange={(e) => setName(e.target.value)}
-        onBlur={(e) =>
-          setName(e.target.value.replace(/\s+/g, "").toLowerCase())
-        }
-        minLength={3}
+        onBlur={(e) => setName(e.target.value.replace(/\s+/g, " ").trim())}
+        minLength={5}
         maxLength={80}
-        disabled={resetPassword}
-        required={!resetPassword}
+        disabled={action === "reset-password"}
+        required={action !== "reset-password"}
       />
 
-      <label htmlFor="password">Password *</label>
+      <label htmlFor="password">Contraseña *</label>
       <input
         id="password"
         name="password"
-        type="password"
-        disabled={!resetPassword}
+        type={showPassword ? "text" : "password"}
+        autoComplete="new-password"
+        disabled={action === "update"}
         minLength={8}
-        maxLength={128}
-        pattern="^[\x20-\x7E]{12,128}$"
-        required={resetPassword || !isEditing}
+        maxLength={80}
+        pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9])[^\\s]+$"
+        required={action !== "update"}
       />
+      {action !== "update" && (
+        <button
+          type="button"
+          className="btn btn--secondary"
+          onClick={() => setShowPassword((v) => !v)}
+          style={{ marginTop: 6, marginBottom: 12 }}
+          aria-pressed={showPassword}
+          aria-controls="password"
+        >
+          {showPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+        </button>
+      )}
+
+      <label htmlFor="repetedPassword">Repetir contraseña *</label>
+      <input
+        id="repetedPassword"
+        name="repetedPassword"
+        type={showRepeatPassword ? "text" : "password"}
+        autoComplete="new-password"
+        disabled={action === "update"}
+        minLength={8}
+        maxLength={80}
+        pattern="^(?=.*[a-z])(?=.*[A-Z])(?=.*\\d)(?=.*[^A-Za-z0-9])[^\\s]+$"
+        required={action !== "update"}
+      />
+      {action !== "update" && (
+        <button
+          type="button"
+          className="btn btn--secondary"
+          onClick={() => setShowRepeatPassword((v) => !v)}
+          style={{ marginTop: 6, marginBottom: 12 }}
+          aria-pressed={showRepeatPassword}
+          aria-controls="repetedPassword"
+        >
+          {showRepeatPassword ? "Ocultar contraseña" : "Mostrar contraseña"}
+        </button>
+      )}
 
       <label htmlFor="role">Rol *</label>
       <select
@@ -79,11 +115,11 @@ export function UserForm({
         name="role"
         value={role}
         onChange={(e) => setRole(e.target.value)}
-        disabled={resetPassword}
-        required
+        disabled={action === "reset-password"}
+        required={action !== "reset-password"}
       >
         <option value="" disabled>
-          — Selecciona un rol —
+          Selecciona un rol
         </option>
         <option key={`opt_role_CASHIER`} value="CASHIER">
           CAJERO
@@ -92,17 +128,11 @@ export function UserForm({
           MANAGER
         </option>
         <option key={`opt_role_ADMIN`} value="ADMIN">
-          ADMIN
+          ADMINISTRADOR
         </option>
       </select>
 
-      <input
-        type="hidden"
-        name="_action"
-        value={
-          !isEditing ? "create" : resetPassword ? "resetPassword" : "update"
-        }
-      />
+      <input type="hidden" name="_action" value={action} />
       <button type="submit" disabled={isSubmitting}>
         {isSubmitting ? "Guardando..." : "Guardar"}
       </button>
@@ -111,3 +141,4 @@ export function UserForm({
     </Form>
   );
 }
+

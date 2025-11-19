@@ -5,7 +5,8 @@ import {
   getBartableByIdHandler,
   deactivateBartableHandler,
   updateBartableHandler,
-  reactivateAccountHandler,
+  reactivateBartableHandler,
+  reactivateBartableSwapHandler,
 } from "./bartable.controller.js";
 import { requireRole } from "../../shared/guards/auth.guard.js";
 
@@ -31,7 +32,14 @@ router.patch(
 router.patch(
   "/bartables/:id/reactivate",
   requireRole(["ADMIN", "MANAGER"]),
-  reactivateAccountHandler
+  reactivateBartableHandler
+);
+
+// Reactivar inactiva y desactivar actual (swap)
+router.post(
+  "/bartables/reactivate-swap",
+  requireRole(["ADMIN", "MANAGER"]),
+  reactivateBartableSwapHandler
 );
 
 export default router;

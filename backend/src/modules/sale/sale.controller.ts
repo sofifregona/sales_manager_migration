@@ -1,109 +1,144 @@
-﻿import type { Request, Response } from "express";
+﻿import type { NextFunction, Request, Response } from "express";
 import {
   createSale,
   updateSale,
   getAllOpenSales,
   getSaleById,
+  getOpenSaleById,
   getListOfSales,
   deleteSale,
+  closeSale,
 } from "./sale.service.js";
 import { AppError } from "../../shared/errors/AppError.js";
+import { AppDataSource } from "@back/src/shared/database/data-source.js";
+import { makeSaleRepository } from "./sale.repo.typeorm.js";
 
-export const createSaleHandler = async (req: Request, res: Response) => {
+const saleRepo = makeSaleRepository(AppDataSource);
+
+export const createSaleHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const sale = await createSale(req.body);
+    const sessionUser = req.session?.user;
+    if (!sessionUser) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+    const sale = await createSale(saleRepo, {
+      ...req.body,
+      createdById: sessionUser.id,
+    });
     res.status(201).json(sale);
   } catch (error) {
-    console.error("Error al intentar crear la venta: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const message = isAppError ? error.message : "Ocurrió un error inesperado";
-
-    res.status(status).json({ message });
+    next(error);
   }
 };
 
-export const updateSaleHandler = async (req: Request, res: Response) => {
+export const updateSaleHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const id = parseInt(req.params.id, 10);
   try {
-    const updated = await updateSale({ id, ...req.body });
+    const updated = await updateSale(saleRepo, { id, ...req.body });
     res.status(200).json(updated);
   } catch (error) {
-    console.error("Error al intentar modificar la venta: ", error);
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const message = isAppError ? error.message : "Ocurrió un error inesperado";
-    res.status(status).json({ message });
+    next(error);
   }
 };
 
-export const deleteSaleHandler = async (req: Request, res: Response) => {
+export const closeSaleHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const id = parseInt(req.params.id, 10);
   try {
-    const sale = await deleteSale(id);
+    const sessionUser = req.session?.user;
+    if (!sessionUser) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+    const updated = await closeSale(saleRepo, {
+      id,
+      idPayment: req.body.idPayment,
+      closedById: sessionUser.id,
+    });
+    res.status(200).json(updated);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deleteSaleHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const id = parseInt(req.params.id, 10);
+  try {
+    const sessionUser = req.session?.user;
+    if (!sessionUser) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+    const sale = await deleteSale(saleRepo, {
+      id,
+      force: sessionUser.role === "ADMIN",
+    });
     res.status(200).json(sale);
   } catch (error) {
-    console.error("Error al intentar eliminar la venta: ", error);
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const message = isAppError ? error.message : "Ocurrió un error inesperado";
-    res.status(status).json({ message });
+    next(error);
   }
 };
 
-export const getAllSalesHandler = async (_req: Request, res: Response) => {
+export const getAllSalesHandler = async (
+  _req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const sales = await getAllOpenSales();
+    const sales = await getAllOpenSales(saleRepo);
     res.status(200).json(sales);
   } catch (error) {
-    console.error("Error al intentar acceder a la lista de mesas: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const message = isAppError ? error.message : "Ocurrió un error inesperado";
-
-    res.status(status).json({ message });
+    next(error);
   }
 };
 
-export const getListOfSalesHandler = async (req: Request, res: Response) => {
-  const { startedDate, finalDate, groupBy } = req.query;
+export const getListOfSalesHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   console.log("DENTRO DEL HANDLER");
+  const { startedDate, finalDate, groupBy } = req.query;
   console.log(groupBy);
   try {
-    const totalSales = await getListOfSales({
+    const totalSales = await getListOfSales(saleRepo, {
       startedDate: startedDate!.toString(),
       finalDate: finalDate!.toString(),
       groupBy: groupBy!.toString(),
     });
     res.status(200).json(totalSales);
   } catch (error) {
-    console.error(
-      "Error al intentar acceder a la lista de transacciones: ",
-      error
-    );
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const message = isAppError ? error.message : "Ocurrió un error inesperado";
-
-    res.status(status).json({ message });
+    next(error);
   }
 };
 
-export const getSaleByIdHandler = async (req: Request, res: Response) => {
+export const getSaleByIdHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const id = parseInt(req.params.id, 10);
   try {
-    const sale = await getSaleById(id);
+    const includeClosed = req.query.includeClosedSales === "true";
+    const openOnly = !includeClosed;
+    const sale = openOnly
+      ? await getOpenSaleById(saleRepo, id)
+      : await getSaleById(saleRepo, id);
     res.status(200).json(sale);
   } catch (error) {
-    console.error("Error al intentar acceder al proveedor: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const message = isAppError ? error.message : "Ocurrió un error inesperado";
-
-    res.status(status).json({ message });
+    next(error);
   }
 };

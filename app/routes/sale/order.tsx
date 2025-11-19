@@ -1,5 +1,5 @@
-export { saleListLoader as loader } from "~/feature/sale/loader/saleLoader.server";
-import { createSaleAction } from "~/feature/sale/action/createSale.server";
+export { saleListLoader as loader } from "~/feature/sale/sale-loader.server";
+import { createSaleAction } from "~/feature/sale/actions/sale-create.server";
 export { createSaleAction as action };
 import {
   OrderPanelScreen,

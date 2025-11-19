@@ -34,7 +34,7 @@ router.patch(
   requireRole(["ADMIN", "MANAGER"]),
   reactivateAccountHandler
 );
-router.patch(
+router.post(
   "/accounts/:inactiveId/reactivate-swap",
   requireRole(["ADMIN", "MANAGER"]),
   reactivateSwapAccountHandler

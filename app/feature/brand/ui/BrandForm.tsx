@@ -1,29 +1,49 @@
-import React, { useEffect, useState } from "react";
-import { Form } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Form, useLocation, useNavigation } from "react-router-dom";
 import type { BrandDTO } from "~/feature/brand/brand";
 
 type Props = {
   isEditing: boolean;
   editing?: BrandDTO | null;
-  isSubmitting: boolean;
   formAction: string; // "." o `.${search}`
+  overrideName: string | undefined;
 };
 
 export function BrandForm({
   isEditing,
   editing,
-  isSubmitting,
   formAction,
+  overrideName,
 }: Props) {
   const [name, setName] = useState(editing?.name ?? "");
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+  const location = useLocation();
 
   useEffect(() => {
     if (isEditing) {
-      setName(editing?.name ?? "");
-    } else {
+      setName(overrideName ?? editing?.name ?? "");
+    }
+    // En modo creación, no limpiamos los campos para no perder lo tipeado
+  }, [isEditing, editing, overrideName]);
+
+  // En conflictos de creación, prellenar desde cookie si viene
+  useEffect(() => {
+    if (!isEditing && typeof overrideName === "string" && overrideName !== "") {
+      setName(overrideName);
+    }
+  }, [isEditing, overrideName]);
+
+  // Luego de crear con éxito (?created=1 en la URL), limpiar el formulario de creación
+  const p = new URLSearchParams(location.search);
+  const successFlags = ["created", "updated", "deactivated", "reactivated"];
+  const hasSuccess = successFlags.some((k) => p.get(k) === "1");
+
+  useEffect(() => {
+    if (hasSuccess) {
       setName("");
     }
-  }, [isEditing, editing]);
+  }, [location.search, isEditing]);
 
   return (
     <Form method="post" action={formAction} className="brand-form">

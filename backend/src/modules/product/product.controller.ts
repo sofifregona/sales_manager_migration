@@ -1,4 +1,4 @@
-﻿import type { Request, Response } from "express";
+﻿import type { Express, NextFunction, Request, Response } from "express";
 import {
   createProduct,
   getListOfProducts,
@@ -6,133 +6,172 @@ import {
   updateProduct,
   incrementProduct,
   reactivateProduct,
+  deactivateProduct,
 } from "./product.service.js";
-import { AppError } from "@back/src/shared/errors/AppError.js";
+import { AppDataSource } from "@back/src/shared/database/data-source.js";
+import { makeProductRepository } from "./product.repo.typeorm.js";
+import { uploadProductImage } from "@back/src/shared/cloudary.js";
+import { unlink } from "node:fs/promises";
 
-export const createProductHandler = async (req: Request, res: Response) => {
+const productRepo = makeProductRepository(AppDataSource);
+const parseId = (req: Request) => Number.parseInt(req.params.id, 10);
+
+type ProductImagePayload = {
+  imageUrl: string;
+  imagePublicId: string | null;
+};
+
+type MulterRequest = Request & {
+  file?: Express.Multer.File | undefined;
+};
+
+const cleanupUploadedFile = async (file?: Express.Multer.File | null) => {
+  if (!file?.path) {
+    return;
+  }
   try {
-    const product = await createProduct(req.body);
+    await unlink(file.path);
+  } catch {
+    // ignore cleanup errors
+  }
+};
+
+const resolveProductImage = async (
+  req: Request
+): Promise<ProductImagePayload | null> => {
+  const selectedSample =
+    typeof req.body?.selectedSampleImage === "string"
+      ? req.body.selectedSampleImage.trim()
+      : "";
+  const file = (req as MulterRequest).file;
+
+  console.log("[product] selectedSampleImage:", selectedSample || "<empty>");
+  if (file?.originalname) {
+    console.log("[product] upload received file:", file.originalname);
+  }
+
+  if (selectedSample) {
+    await cleanupUploadedFile(file);
+    console.log("[product] using sample image url:", selectedSample);
+    return { imageUrl: selectedSample, imagePublicId: null };
+  }
+
+  if (file?.path) {
+    try {
+      const uploadResult = await uploadProductImage(file.path);
+      return {
+        imageUrl: uploadResult.secure_url ?? uploadResult.url,
+        imagePublicId: uploadResult.public_id ?? null,
+      };
+    } finally {
+      await cleanupUploadedFile(file);
+    }
+  }
+
+  await cleanupUploadedFile(file);
+  return null;
+};
+
+const buildProductPayload = async (
+  req: Request
+): Promise<any> => {
+  const basePayload: Record<string, any> = { ...req.body };
+  const imagePayload = await resolveProductImage(req);
+
+  if (imagePayload) {
+    basePayload.imageUrl = imagePayload.imageUrl;
+    basePayload.imagePublicId = imagePayload.imagePublicId;
+  }
+
+  delete basePayload.selectedSampleImage;
+
+  console.log("[product] payload ready", {
+    imageUrl: basePayload.imageUrl ?? null,
+    imagePublicId: basePayload.imagePublicId ?? null,
+  });
+
+  return basePayload;
+};
+
+
+export const createProductHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const payload = await buildProductPayload(req);
+    const product = await createProduct(productRepo, payload);
     res.status(201).json(product);
   } catch (error) {
-    console.error("Error al intentar crear el producto: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    await cleanupUploadedFile((req as MulterRequest).file);
+    next(error);
   }
 };
 
-export const updateProductHandler = async (req: Request, res: Response) => {
+export const updateProductHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const id = parseInt(req.params.id, 10);
-
   try {
-    const updated = await updateProduct({ id, ...req.body });
+    const payload = await buildProductPayload(req);
+    const updated = await updateProduct(productRepo, { id, ...payload });
     res.status(200).json(updated);
   } catch (error) {
-    console.error("Error al intentar modificar el producto: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    await cleanupUploadedFile((req as MulterRequest).file);
+    next(error);
   }
 };
 
-export const incrementProductHandler = async (req: Request, res: Response) => {
+export const incrementProductHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const incremented = await incrementProduct(req.body);
+    const incremented = await incrementProduct(productRepo, req.body);
     res.status(200).json(incremented);
   } catch (error) {
-    console.error(
-      "Error al intentar incrementar los precios de los productos: ",
-      error
-    );
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };
 
-export const deactivateProductHandler = async (req: Request, res: Response) => {
+export const deactivateProductHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const id = parseInt(req.params.id, 10);
 
   try {
-    const product = await updateProduct({ id, active: false });
-    res.status(200).json(product);
+    const deactivate = await deactivateProduct(productRepo, id);
+    res.status(200).json(deactivate);
   } catch (error) {
-    console.error("Error al intentar eliminar el producto: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };
 
-export const reactivateProductHandler = async (req: Request, res: Response) => {
+export const reactivateProductHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const id = parseInt(req.params.id, 10);
   try {
-    const brand = await reactivateProduct(id);
+    const brand = await reactivateProduct(productRepo, id);
     res.status(200).json(brand);
   } catch (error) {
-    console.error("Error al intentar reactivar el producto: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };
 
-export const getListOfProductsHandler = async (req: Request, res: Response) => {
+export const getListOfProductsHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const {
     includeInactive,
     name,
@@ -152,7 +191,7 @@ export const getListOfProductsHandler = async (req: Request, res: Response) => {
 
     const fieldRaw = (sortField?.toString() || "name").toLowerCase();
     const allowed = new Set([
-      "name",
+      "normalizedName",
       "code",
       "price",
       "provider",
@@ -160,8 +199,8 @@ export const getListOfProductsHandler = async (req: Request, res: Response) => {
       "category",
       "active",
     ]);
-    const field = (allowed.has(fieldRaw) ? fieldRaw : "name") as
-      | "name"
+    const field = (allowed.has(fieldRaw) ? fieldRaw : "normalizedName") as
+      | "normalizedName"
       | "code"
       | "price"
       | "provider"
@@ -172,9 +211,9 @@ export const getListOfProductsHandler = async (req: Request, res: Response) => {
     const direction: "ASC" | "DESC" =
       sortDirection?.toString().toUpperCase() === "DESC" ? "DESC" : "ASC";
 
-    const products = await getListOfProducts(
-      includeInactiveBool,
-      {
+    const products = await getListOfProducts(productRepo, {
+      includeInactive: includeInactiveBool,
+      filter: {
         name: name?.toString(),
         code: code?.toString(),
         minPrice:
@@ -200,48 +239,28 @@ export const getListOfProductsHandler = async (req: Request, res: Response) => {
             ? Number(idProvider)
             : undefined,
       },
-      { field, direction }
-    );
+      sort: {
+        field,
+        direction,
+      },
+    });
     res.status(200).json(products);
   } catch (error) {
-    console.error("Error al intentar acceder a la lista de productos: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };
 
-export const getProductByIdHandler = async (req: Request, res: Response) => {
+export const getProductByIdHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const id = parseInt(req.params.id, 10);
   try {
-    const product = await getProductById(id);
+    const product = await getProductById(productRepo, id);
     res.status(200).json(product);
   } catch (error) {
-    console.error("Error al intentar acceder al proveedor: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };
+

@@ -1,11 +1,19 @@
 ﻿import { redirect } from "react-router-dom";
-import { updateEmployee } from "~/feature/employee/employeeApi.server";
+import { updateEmployee } from "~/feature/employee/employee-api.server";
 import type { UpdateEmployeePayload } from "~/feature/employee/employee";
 import { jsonResponse } from "~/lib/http/jsonResponse";
-import { setFlash } from "~/services/flashSession";
 import { parseAppError } from "~/utils/errors/parseAppError";
-import { validateRequired, validateRequiredId, validateType } from "~/utils/validation/validationHelpers";
-import { validateCUI, validateEmailFormat, validateTelephone } from "~/utils/validation/validationPerson";
+import {
+  validateRequired,
+  validateRequiredId,
+  validateType,
+} from "~/utils/validation/validationHelpers";
+import {
+  validateCUI,
+  validateEmailFormat,
+  validateTelephone,
+} from "~/utils/validation/validationPerson";
+// No usamos cookies de conflicto para employee (reactivación solo desde tabla)
 
 type Ctx = { url: URL; formData: FormData };
 
@@ -76,24 +84,45 @@ export async function handleEmployeeUpdate({ url, formData }: Ctx) {
   if (idReqError) return jsonResponse(422, idReqError);
   const id = Number(idParam);
 
-  const payload: UpdateEmployeePayload = { id, name, dni, telephone, email, address };
+  const updatedData: UpdateEmployeePayload = {
+    id,
+    name,
+    dni,
+    telephone,
+    email,
+    address,
+  };
 
   try {
-    await updateEmployee(payload);
-    return redirect("/employee?updated=1");
+    await updateEmployee(updatedData);
+    const p = new URLSearchParams(url.search);
+    p.delete("id");
+    p.set("updated", "1");
+    return redirect(`/employee?${p.toString()}`);
   } catch (error) {
-    const parsed = parseAppError(error, "(Error) No se pudo modificar el empleado seleccionado.");
+    const parsed = parseAppError(
+      error,
+      "(Error) No se pudo modificar el empleado seleccionado."
+    );
+
     if (parsed.status === 409) {
-      const conflictField = /DNI/i.test(parsed.message) ? "dni" : "name";
-      setFlash({
-        scope: "employee",
-        kind: "update-conflict",
-        message: parsed.message,
-        name,
-        conflictField,
-      } as any);
-      return redirect("/employee");
+      const code = String(parsed.code || "").toUpperCase();
+      if (code === "EMPLOYEE_EXISTS_INACTIVE") {
+        return jsonResponse(409, {
+          error:
+            "Ya existe un empleado inactivo con estos datos. Para reactivarlo búsquelo en la tabla (click en 'Ver inactivos').",
+          source: parsed.source ?? "server",
+          code: parsed.code,
+        });
+      }
+      return jsonResponse(409, {
+        error: parsed.message,
+        source: parsed.source ?? "server",
+      });
     }
-    return jsonResponse(parsed.status ?? 500, { error: parsed.message, source: parsed.source ?? "server" });
+    return jsonResponse(parsed.status ?? 500, {
+      error: parsed.message,
+      source: parsed.source ?? "server",
+    });
   }
 }

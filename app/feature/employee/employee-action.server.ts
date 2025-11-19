@@ -1,4 +1,4 @@
-﻿import type { ActionFunctionArgs } from "react-router-dom";
+import type { ActionFunctionArgs } from "react-router-dom";
 import { runWithRequest } from "~/lib/http/requestContext.server";
 import { jsonResponse } from "~/lib/http/jsonResponse";
 import { parseCRUDIntent } from "~/utils/validation/intents";
@@ -6,7 +6,6 @@ import { handleEmployeeCreate } from "./handlers/employee-create.server";
 import { handleEmployeeUpdate } from "./handlers/employee-update.server";
 import { handleEmployeeDeactivate } from "./handlers/employee-deactivate.server";
 import { handleEmployeeReactivate } from "./handlers/employee-reactivate.server";
-import { handleEmployeeReactivateSwap } from "./handlers/employee-reactivate-swap.server";
 
 export async function employeeAction({ request }: ActionFunctionArgs) {
   return runWithRequest(request, async () => {
@@ -18,13 +17,11 @@ export async function employeeAction({ request }: ActionFunctionArgs) {
 
     switch (parsed.intent) {
       case "deactivate":
-        return await handleEmployeeDeactivate({ formData });
+        return await handleEmployeeDeactivate({ url, formData });
       case "reactivate":
-        return await handleEmployeeReactivate({ formData });
-      case "reactivate-swap":
-        return await handleEmployeeReactivateSwap({ formData });
+        return await handleEmployeeReactivate({ url, formData });
       case "create":
-        return await handleEmployeeCreate({ formData });
+        return await handleEmployeeCreate({ url, formData });
       case "update":
         return await handleEmployeeUpdate({ url, formData });
       default:

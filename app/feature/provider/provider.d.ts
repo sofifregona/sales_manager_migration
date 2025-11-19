@@ -19,8 +19,13 @@ export interface CreateProviderPayload {
   address?: string | null;
 }
 
-export interface UpdateProviderPayload extends CreateProviderPayload {
+export interface UpdateProviderPayload {
   id: number;
+  name?: string;
+  cuit?: number | null;
+  telephone?: number | null;
+  email?: string | null;
+  address?: string | null;
 }
 
 export interface ProviderLoaderData {

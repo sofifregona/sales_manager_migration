@@ -20,5 +20,6 @@ export default [
     route("sale/order", "routes/sale/order.tsx"),
     route("sale/:id/edit", "routes/sale/edit.tsx"),
     route("transaction", "routes/transaction.tsx"),
+    route("settings", "routes/settings.tsx"),
   ]),
 ] satisfies RouteConfig;

@@ -2,7 +2,10 @@ export type SuccessKind =
   | "created-success"
   | "updated-success"
   | "deactivated-success"
-  | "reactivated-success";
+  | "deleted-success"
+  | "reactivated-success"
+  | "incremented-success"
+  | "reseted-password-success";
 
 export type ConflictKind = "create-conflict" | "update-conflict";
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+﻿import { useEffect, useState } from "react";
 import { Form, useLocation, useNavigation } from "react-router-dom";
 import type { AccountDTO } from "~/feature/account/account";
 import type { PaymentDTO } from "~/feature/payment/payment";
@@ -9,6 +9,7 @@ type Props = {
   accounts: AccountDTO[];
   formAction: string; // "." o `.${search}`
   overrideName: string | undefined;
+  overrideAccountId?: number | undefined;
 };
 
 export function PaymentForm({
@@ -17,6 +18,7 @@ export function PaymentForm({
   accounts,
   formAction,
   overrideName,
+  overrideAccountId,
 }: Props) {
   const [name, setName] = useState(editing?.name ?? "");
   const [idAccount, setIdAccount] = useState(editing?.account.id ?? "");
@@ -31,6 +33,13 @@ export function PaymentForm({
     }
     // En modo creación, no limpiamos los campos para no perder lo tipeado
   }, [isEditing, editing, overrideName]);
+
+  // En conflictos de creación, preseleccionar cuenta desde cookie si viene
+  useEffect(() => {
+    if (!isEditing && typeof overrideAccountId === "number") {
+      setIdAccount(String(overrideAccountId));
+    }
+  }, [isEditing, overrideAccountId]);
 
   // Luego de crear con éxito (?created=1 en la URL), limpiar el formulario de creación
   const p = new URLSearchParams(location.search);
@@ -67,7 +76,7 @@ export function PaymentForm({
         required
       >
         <option value="" disabled>
-          - Seleccion una cuenta -
+          - Seleccione una cuenta -
         </option>
         {accounts.map((a) => (
           <option key={a.id} value={a.id}>

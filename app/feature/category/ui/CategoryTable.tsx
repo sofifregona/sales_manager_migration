@@ -1,12 +1,18 @@
-﻿import React from "react";
-import { Link, useFetcher, useSearchParams } from "react-router-dom";
+import { useState } from "react";
+import {
+  Link,
+  useFetcher,
+  useLocation,
+  useSearchParams,
+} from "react-router-dom";
 import type { CategoryDTO } from "~/feature/category/category";
 import {
   type UseQuerySortingConfig,
   useQuerySorting,
 } from "~/shared/hooks/useQuerySorting";
-import { SortToggle } from "~/shared/ui/SortToggle";
-import { DeactivateEntityPromptBanner } from "~/shared/ui/DeactivateEntityPromptBanner";
+import { SortToggle } from "~/shared/ui/form/SortToggle";
+import { ConfirmCascadeDeactivatePrompt } from "~/shared/ui/prompts/ConfirmCascadeDeactivatePrompt";
+import { ConfirmPrompt } from "~/shared/ui/prompts/ConfirmPrompt";
 
 type Props = {
   categories: CategoryDTO[];
@@ -14,9 +20,9 @@ type Props = {
 };
 
 const CATEGORY_SORT_CONFIG: UseQuerySortingConfig<CategoryDTO> = {
-  defaultKey: "name",
+  defaultKey: "normalizedName",
   keys: [
-    { key: "name", getValue: (category) => category.name },
+    { key: "normalizedName", getValue: (category) => category.normalizedName },
     { key: "active", getValue: (category) => category.active },
   ],
 };
@@ -26,9 +32,23 @@ export function CategoryTable({ categories, editingId }: Props) {
   const deactivating = deactivateFetcher.state !== "idle";
   const reactivateFetcher = useFetcher();
   const reactivating = reactivateFetcher.state !== "idle";
+  const [pendingDeactivateId, setPendingDeactivateId] = useState<number | null>(
+    null
+  );
+  const [pendingReactivateId, setPendingReactivateId] = useState<number | null>(
+    null
+  );
+
+  const [lastDeactivateId, setLastDeactivateId] = useState<number | null>(null);
 
   const [params] = useSearchParams();
   const includeInactive = params.get("includeInactive") === "1";
+  const location = useLocation();
+  const toggleIncludeHref = (() => {
+    const p = new URLSearchParams(location.search);
+    p.set("includeInactive", includeInactive ? "0" : "1");
+    return `?${p.toString()}`;
+  })();
 
   const {
     sortedItems: sortedCategories,
@@ -42,11 +62,7 @@ export function CategoryTable({ categories, editingId }: Props) {
       <div
         style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}
       >
-        <Link
-          replace
-          to={`?includeInactive=${includeInactive ? "0" : "1"}`}
-          className="btn btn--secondary"
-        >
+        <Link replace to={toggleIncludeHref} className="btn btn--secondary">
           {includeInactive ? "Ocultar inactivas" : "Ver inactivas"}
         </Link>
       </div>
@@ -59,14 +75,14 @@ export function CategoryTable({ categories, editingId }: Props) {
               <SortToggle
                 currentSort={sortBy}
                 currentDir={sortDir}
-                name="name"
+                name="normalizedName"
                 label="Nombre"
               />
               {includeInactive && (
                 <SortToggle
                   currentSort={sortBy}
                   currentDir={sortDir}
-                  name="status"
+                  name="active"
                   label="Estado"
                 />
               )}
@@ -77,9 +93,7 @@ export function CategoryTable({ categories, editingId }: Props) {
             {sortedCategories.map((category) => (
               <tr
                 key={category.id}
-                className={
-                  editingId === category.id ? "row row--editing" : "row"
-                }
+                className={editingId === category.id ? "row row--editing" : "row"}
               >
                 <td>{category.name}</td>
                 {includeInactive && (
@@ -88,53 +102,51 @@ export function CategoryTable({ categories, editingId }: Props) {
                 <td className="actions">
                   {category.active ? (
                     <>
-                      <Link to={`?id=${category.id}`}>
+                      <Link
+                        to={`?id=${category.id}&includeInactive=${
+                          includeInactive ? "1" : "0"
+                        }`}
+                      >
                         <button type="button">Modificar</button>
                       </Link>
-                      <deactivateFetcher.Form
-                        method="post"
-                        action="."
-                        onSubmit={(e) => {
-                          if (
-                            !confirm(
-                              "¿Seguro que desea desactivar esta categoría?"
-                            )
-                          ) {
-                            e.preventDefault();
-                          }
-                        }}
+
+                      <button
+                        type="button"
                         style={{ display: "inline-block", marginLeft: 8 }}
+                        disabled={deactivating}
+                        onClick={() => setPendingDeactivateId(category.id)}
                       >
-                        <input type="hidden" name="id" value={category.id} />
-                          <input type="hidden" name="_action" value="deactivate" />
-                        <button type="submit" disabled={deactivating}>
-                          {deactivating ? "Desactivando..." : "Desactivar"}
-                        </button>
-                      </deactivateFetcher.Form>
+                        {deactivating ? "Desactivando..." : "Desactivar"}
+                      </button>
 
                       {(() => {
                         const data = deactivateFetcher.data as any;
                         if (
                           data &&
                           data.code === "CATEGORY_IN_USE" &&
-                          data.details?.count != null
+                          data.details?.count != null &&
+                          lastDeactivateId === category.id
                         ) {
                           return (
-                            <DeactivateEntityPromptBanner
+                            <ConfirmCascadeDeactivatePrompt
                               entityId={category.id}
-                              entityLabel="categoría"
+                              entityLabel="Categoría"
+                              dependentLabel="Producto"
                               count={Number(data.details.count) || 0}
-                              strategyClear="clear-products-category"
-                              strategyDeactivate="deactivate-products"
-                              optionClearLabel="Quitar categoría de los productos"
-                              optionDeactivateLabel="Desactivar productos asociados"
+                              strategyProceed="cascade-deactivate-products"
                               onCancel={() => {
-                                /* no-op */
+                                setLastDeactivateId(null);
                               }}
+                              proceedLabel="Aceptar"
                             />
                           );
                         }
-                        if (data && data.error && !data.code) {
+                        if (
+                          data &&
+                          data.error &&
+                          !data.code &&
+                          lastDeactivateId === category.id
+                        ) {
                           return (
                             <div className="inline-error" role="alert">
                               {String(data.error)}
@@ -146,23 +158,14 @@ export function CategoryTable({ categories, editingId }: Props) {
                     </>
                   ) : (
                     <>
-                      <reactivateFetcher.Form method="post" action=".">
-                        <input type="hidden" name="id" value={category.id} />
-                        <input
-                          type="hidden"
-                          name="_action"
-                          value="reactivate"
-                        />
-                        <button type="submit" disabled={reactivating}>
-                          {reactivating ? "Reactivando..." : "Reactivar"}
-                        </button>
-                      </reactivateFetcher.Form>
-
-                      {reactivateFetcher.data?.error && (
-                        <div className="inline-error" role="alert">
-                          {String((reactivateFetcher.data as any).error)}
-                        </div>
-                      )}
+                      <button
+                        type="button"
+                        style={{ display: "inline-block", marginLeft: 8 }}
+                        disabled={reactivating}
+                        onClick={() => setPendingReactivateId(category.id)}
+                      >
+                        {reactivating ? "Reactivando..." : "Reactivar"}
+                      </button>
                     </>
                   )}
                 </td>
@@ -171,6 +174,46 @@ export function CategoryTable({ categories, editingId }: Props) {
           </tbody>
         </table>
       )}
+
+      {pendingDeactivateId != null && (
+        <ConfirmPrompt
+          message="¿Seguro que desea desactivar esta categoría?"
+          busy={deactivating}
+          onCancel={() => setPendingDeactivateId(null)}
+          onConfirm={() => {
+            const id = pendingDeactivateId;
+            setPendingDeactivateId(null);
+            setLastDeactivateId(id);
+            deactivateFetcher.submit(
+              { id: String(id), _action: "deactivate" },
+              { method: "post", action: `.${location.search}` }
+            );
+          }}
+        />
+      )}
+
+      {pendingReactivateId != null && (
+        <ConfirmPrompt
+          message="¿Seguro que desea reactivar esta categoría?"
+          busy={reactivating}
+          onCancel={() => setPendingReactivateId(null)}
+          onConfirm={() => {
+            const id = pendingReactivateId;
+            setPendingReactivateId(null);
+            reactivateFetcher.submit(
+              { id: String(id), _action: "reactivate" },
+              { method: "post", action: `.${location.search}` }
+            );
+          }}
+        />
+      )}
+
+      {reactivateFetcher.data && (reactivateFetcher.data as any).error && (
+        <div className="inline-error" role="alert" style={{ marginTop: 8 }}>
+          {String((reactivateFetcher.data as any).error)}
+        </div>
+      )}
     </>
   );
 }
+

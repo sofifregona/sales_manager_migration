@@ -5,25 +5,26 @@ import { setFlash } from "~/services/flashSession";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import { validateRequiredId } from "~/utils/validation/validationHelpers";
 
-type Ctx = { formData: FormData };
+type Ctx = { url: URL; formData: FormData };
 
-export async function handleBrandDeactivate({ formData }: Ctx) {
+export async function handleBrandDeactivate({ url, formData }: Ctx) {
   const idParam = formData.get("id");
   const idReqError = validateRequiredId(idParam, "Marca");
-  if (idReqError)
-    return jsonResponse(422, idReqError);
+  if (idReqError) return jsonResponse(422, idReqError);
   const idNum = Number(idParam);
+  const strategy = formData.get("strategy")
+    ? (String(formData.get("strategy")) as
+        | "clear-products-brand"
+        | "cascade-deactivate-products"
+        | "cancel")
+    : undefined;
 
   try {
-    const strategy = formData.get("strategy")
-      ? (String(formData.get("strategy")) as
-          | "clear-products-brand"
-          | "deactivate-products"
-          | "cancel")
-      : undefined;
     await deactivateBrand(idNum, strategy);
-    setFlash({ scope: "brand", kind: "deleted-success" });
-    return redirect("/brand?deleted=1");
+    const p = new URLSearchParams(url.search);
+    p.delete("id");
+    p.set("deactivated", "1");
+    return redirect(`/brand?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

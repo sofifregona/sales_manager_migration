@@ -18,18 +18,20 @@ export async function bartableAction({ request }: ActionFunctionArgs) {
 
     switch (parsed.intent) {
       case "deactivate":
-        return await handleBartableDeactivate({ formData });
+        return await handleBartableDeactivate({ url, formData });
       case "reactivate":
-        return await handleBartableReactivate({ formData });
+        return await handleBartableReactivate({ url, formData });
       case "reactivate-swap":
-        return await handleBartableReactivateSwap({ formData });
+        return await handleBartableReactivateSwap({ url, formData });
       case "create":
-        return await handleBartableCreate({ formData });
+        return await handleBartableCreate({ url, formData });
       case "update":
         return await handleBartableUpdate({ url, formData });
       default:
-        return jsonResponse(400, { error: "(Error) Acción no soportada.", source: "client" });
+        return jsonResponse(400, {
+          error: "(Error) Acción no soportada.",
+          source: "client",
+        });
     }
   });
 }
-

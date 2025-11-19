@@ -1,13 +1,10 @@
-﻿import { redirect } from "react-router-dom";
+import { redirect } from "react-router-dom";
 import { updatePayment } from "~/feature/payment/payment-api.server";
 import type { UpdatePaymentPayload } from "~/feature/payment/payment";
 import { jsonResponse } from "~/lib/http/jsonResponse";
-// import { setFlash } from "~/services/flashSession";
 import { parseAppError } from "~/utils/errors/parseAppError";
-import {
-  validateRequired,
-  validateRequiredId,
-} from "~/utils/validation/validationHelpers";
+import { validateRequired, validateRequiredId } from "~/utils/validation/validationHelpers";
+import { makeConflictCookie } from "~/services/conflictCookie";
 
 type Ctx = { url: URL; formData: FormData };
 
@@ -32,11 +29,10 @@ export async function handlePaymentUpdate({ url, formData }: Ctx) {
   const payload: UpdatePaymentPayload = { id, idAccount, name };
   try {
     await updatePayment(payload);
-    const out = new URLSearchParams();
-    if (url.searchParams.get("includeInactive") === "1")
-      out.set("includeInactive", "1");
-    out.set("updated", "1");
-    return redirect(`/payment?${out.toString()}`);
+    const p = new URLSearchParams(url.search);
+    p.delete("id");
+    p.set("updated", "1");
+    return redirect(`/payment?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,
@@ -44,17 +40,30 @@ export async function handlePaymentUpdate({ url, formData }: Ctx) {
     );
 
     if (parsed.status === 409) {
-      const anyParsed: any = parsed as any;
-      const p = new URLSearchParams(url.search);
+      const code = String(parsed.code || "").toUpperCase();
+      if (code === "PAYMENT_EXISTS_INACTIVE") {
+        const anyParsed: any = parsed as any;
+        const p = new URLSearchParams(url.search);
 
-      p.set("conflict", "update");
-      if (parsed.code) p.set("code", String(parsed.code));
-      p.set("message", parsed.message);
-      p.set("name", name);
+        p.set("conflict", "update");
+        if (parsed.code) p.set("code", String(parsed.code));
+        p.set("message", parsed.message);
 
-      const existingId = anyParsed?.details?.existingId as number | undefined;
-      if (existingId != null) p.set("elementId", String(existingId));
-      return redirect(`/payment?${p.toString()}`);
+        const existingId = anyParsed?.details?.existingId as number | undefined;
+        if (existingId != null) p.set("elementId", String(existingId));
+
+        const headers = new Headers();
+        headers.append(
+          "Set-Cookie",
+          makeConflictCookie({ scope: "payment", name, idAccount })
+        );
+        return redirect(`/payment?${p.toString()}` as any, { headers } as any);
+      } else {
+        return jsonResponse(409, {
+          error: parsed.message,
+          source: parsed.source ?? "server",
+        });
+      }
     }
     return jsonResponse(parsed.status ?? 500, {
       error: parsed.message,

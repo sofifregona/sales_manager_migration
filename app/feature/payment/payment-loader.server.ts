@@ -17,33 +17,14 @@ export async function paymentLoader({
     const flash: Flash = {} as Flash;
 
     const includeInactive = url.searchParams.get("includeInactive") === "1";
-    const rawField = url.searchParams.get("sortField");
-    if (rawField && !["name", "active"].includes(rawField)) {
-      parseAppError(
-        (flash.error = "(Error) Campo de ordenación inválido."),
-        (flash.source = "client")
-      );
-    }
-    const sortField = (rawField as "name" | "active") ?? "name";
-    const rawDirection = url.searchParams.get("sortDirection");
-    if (rawDirection && !["ASC", "DESC"].includes(rawDirection.toUpperCase())) {
-      parseAppError(
-        (flash.error = "(Error) Dirección de ordenación inválida."),
-        (flash.source = "client")
-      );
-    }
-    const sortDirection = (rawDirection as "ASC" | "DESC") ?? "ASC";
 
     let payments: PaymentDTO[] | null = null;
     try {
-      payments = await getAllPayments(includeInactive, {
-        sortField,
-        sortDirection,
-      });
+      payments = await getAllPayments(includeInactive);
     } catch (error) {
       const parsed = parseAppError(
         error,
-        "(Error) No se pudo obtener la lista de métodos de pago."
+        "(Error) No se pudo obtener la lista de mÃ©todos de pago."
       );
       throw jsonResponse(parsed.status ?? 500, {
         error: parsed.message,
@@ -69,7 +50,7 @@ export async function paymentLoader({
     let editingPayment: PaymentDTO | null = null;
 
     if (idParam) {
-      const idRequiredError = validateRequiredId(idParam, "Método de pago");
+      const idRequiredError = validateRequiredId(idParam, "MÃ©todo de pago");
       if (idRequiredError) {
         flash.error = idRequiredError.error;
         flash.source = idRequiredError.source;
@@ -82,7 +63,7 @@ export async function paymentLoader({
       } catch (error) {
         const parsed = parseAppError(
           error,
-          "(Error) No se pudo cargar el método de pago seleccionado."
+          "(Error) No se pudo cargar el mÃ©todo de pago seleccionado."
         );
         flash.error = parsed.message;
         flash.source = parsed.source;
@@ -92,3 +73,5 @@ export async function paymentLoader({
     return { accounts, payments, editingPayment, flash };
   });
 }
+
+

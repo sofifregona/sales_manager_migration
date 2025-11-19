@@ -4,9 +4,9 @@ import { jsonResponse } from "~/lib/http/jsonResponse";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import { validateRequiredId } from "~/utils/validation/validationHelpers";
 
-type Ctx = { formData: FormData };
+type Ctx = { url: URL; formData: FormData };
 
-export async function handleProviderReactivate({ formData }: Ctx) {
+export async function handleProviderReactivate({ url, formData }: Ctx) {
   const idParam = formData.get("id");
   const idReqError = validateRequiredId(idParam, "Proveedor");
   if (idReqError)
@@ -14,7 +14,9 @@ export async function handleProviderReactivate({ formData }: Ctx) {
   const idNum = Number(idParam);
   try {
     await reactivateProvider(idNum);
-    return redirect("/provider?reactivated=1");
+    const p = new URLSearchParams(url.search);
+    p.set("reactivated", "1");
+    return redirect(`/provider?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

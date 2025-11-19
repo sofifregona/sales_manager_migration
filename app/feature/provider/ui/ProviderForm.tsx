@@ -1,33 +1,33 @@
-import React, { useEffect, useState } from "react";
-import { Form } from "react-router-dom";
+import React, { useEffect, useRef, useState } from "react";
+import { useFetcher } from "react-router-dom";
 import type { ProviderDTO } from "~/feature/provider/provider";
 
 type Props = {
   isEditing: boolean;
   editing?: ProviderDTO | null;
-  isSubmitting: boolean;
   formAction: string; // "." o `.${search}`
 };
 
-export function ProviderForm({
-  isEditing,
-  editing,
-  isSubmitting,
-  formAction,
-}: Props) {
-  const [name, setName] = useState(editing?.name ?? "");
-  const [cuit, setCuit] = useState(
+export function ProviderForm({ isEditing, editing, formAction }: Props) {
+  const fetcher = useFetcher();
+  const isSubmitting = fetcher.state === "submitting";
+  const originalRef = useRef<ProviderDTO | null>(editing ?? null);
+  const [name, setName] = useState<string>(editing?.name ?? "");
+  const [cuit, setCuit] = useState<string>(
     editing?.cuit
       ? `${editing?.cuit.toString().slice(0, 2)}-${editing?.cuit
           .toString()
           .slice(2, 10)}-${editing?.cuit.toString().slice(10)}`
       : ""
   );
-  const [telephone, setTelephone] = useState(editing?.telephone ?? "");
-  const [email, setEmail] = useState(editing?.email ?? "");
-  const [address, setAddress] = useState(editing?.address ?? "");
+  const [telephone, setTelephone] = useState<string>(
+    editing?.telephone?.toString() ?? ""
+  );
+  const [email, setEmail] = useState<string>(editing?.email ?? "");
+  const [address, setAddress] = useState<string>(editing?.address ?? "");
 
   useEffect(() => {
+    originalRef.current = editing ?? null;
     if (isEditing) {
       setName(editing?.name ?? "");
       setCuit(
@@ -37,10 +37,10 @@ export function ProviderForm({
               .slice(2, 10)}-${editing?.cuit.toString().slice(10)}`
           : ""
       );
-      setTelephone(editing?.telephone ?? "");
+      setTelephone(editing?.telephone?.toString() ?? "");
       setEmail(editing?.email ?? "");
       setAddress(editing?.address ?? "");
-    } else if (!isEditing) {
+    } else {
       setName("");
       setCuit("");
       setTelephone("");
@@ -60,8 +60,72 @@ export function ProviderForm({
     setCuit(formatted);
   };
 
+  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const formElement = event.currentTarget;
+
+    if (!isEditing) {
+      const formData = new FormData(formElement);
+      fetcher.submit(formData, { method: "post", action: formAction });
+      return;
+    }
+
+    const original = originalRef.current;
+    if (!original) return;
+
+    const patch = new FormData();
+    const trimmedName = name.replace(/\s+/g, " ").trim();
+    const originalName = (original.name ?? "").replace(/\s+/g, " ").trim();
+    let hasChanges = false;
+
+    if (trimmedName !== originalName) {
+      patch.append("name", trimmedName);
+      hasChanges = true;
+    }
+
+    const digits = cuit.replace(/\D/g, "");
+    const originalDigits = original.cuit?.toString() ?? "";
+    if (digits !== originalDigits) {
+      patch.append("cuit", cuit);
+      hasChanges = true;
+    }
+
+    const telephoneValue = telephone;
+    const originalTelephone = original.telephone?.toString() ?? "";
+    if (telephoneValue !== originalTelephone) {
+      patch.append("telephone", telephoneValue);
+      hasChanges = true;
+    }
+
+    const emailValue = email.trim();
+    const originalEmail = original.email ?? "";
+    if (emailValue !== originalEmail) {
+      patch.append("email", emailValue);
+      hasChanges = true;
+    }
+
+    const addressValue = address.trim();
+    const originalAddress = original.address ?? "";
+    if (addressValue !== originalAddress) {
+      patch.append("address", addressValue);
+      hasChanges = true;
+    }
+
+    if (!hasChanges) {
+      return;
+    }
+
+    patch.append("_action", "update");
+    fetcher.submit(patch, { method: "post", action: formAction });
+  };
+
   return (
-    <Form method="post" action={formAction} className="provider-form">
+    <fetcher.Form
+      method="post"
+      action={formAction}
+      className="provider-form"
+      onSubmit={handleSubmit}
+    >
       <label htmlFor="name">Nombre *</label>
       <input
         id="name"
@@ -119,6 +183,6 @@ export function ProviderForm({
       </button>
 
       <p className="hint">(*) Campos obligatorios.</p>
-    </Form>
+    </fetcher.Form>
   );
 }

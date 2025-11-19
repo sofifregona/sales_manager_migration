@@ -54,8 +54,11 @@ export interface CreateSalePayload {
 export interface UpdateSalePayload extends Partial<CreateSalePayload> {
   id: number;
   product: { idProduct?: number; op?: string };
-  idPayment?: number;
-  open: boolean;
+}
+
+export interface CloseSalePayload {
+  id: number;
+  idPayment: number;
 }
 
 export interface SaleListLoaderData {

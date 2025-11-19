@@ -7,6 +7,9 @@ export const CRUD_INTENTS = [
   "deactivate",
   "reactivate",
   "reactivate-swap",
+  "increment",
+  "reset-password",
+  "close",
 ] as const;
 export type CRUDIntent = (typeof CRUD_INTENTS)[number];
 

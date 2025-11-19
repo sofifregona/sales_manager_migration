@@ -9,19 +9,33 @@ export interface ProductDTO {
   name: string;
   normalizedName: string;
   price: number;
+  imageUrl: string | null;
+  imagePublicId: string | null;
   category: CategoryDTO | null;
   provider: ProviderDTO | null;
   brand: BrandDTO | null;
   active: boolean;
+  stockEnabled: boolean;
+  quantity: number | null;
+  negativeQuantityWarning: boolean;
+  minQuantityWarning: boolean;
+  minQuantity: number | null;
 }
 
 export interface CreateProductPayload {
   code: number;
   name: string;
   price: number;
+  imageUrl?: string | null;
+  imagePublicId?: string | null;
   idCategory?: number | null;
   idProvider?: number | null;
   idBrand?: number | null;
+  stockEnabled: boolean;
+  quantity: number | null;
+  negativeQuantityWarning: boolean;
+  minQuantityWarning: boolean;
+  minQuantity: number | null;
 }
 
 export interface UpdateProductPayload extends CreateProductPayload {

@@ -1,42 +1,122 @@
-import type { Request, Response } from "express";
-import { changeMyPassword, resetUserPassword } from "./user.service.js";
+import type { NextFunction, Request, Response } from "express";
+import {
+  createUser,
+  deactivateUser,
+  getAllUsers,
+  getUserById,
+  reactivateUser,
+  resetUserPassword,
+  updateUser,
+} from "./user.service.js";
+import { makeUserRepository } from "./user.repo.typeorm.js";
+import { AppDataSource } from "@back/src/shared/database/data-source.js";
 
-export async function changeMyPasswordHandler(req: Request, res: Response) {
+const userRepo = makeUserRepository(AppDataSource);
+const parseId = (req: Request) => Number.parseInt(req.params.id, 10);
+
+export const createUserHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const user = req.session.user;
-    if (!user) return res.status(401).json({ message: "No autenticado" });
-
-    const { currentPassword, newPassword } = req.body ?? {};
-    if (!currentPassword || !newPassword) {
-      return res
-        .status(400)
-        .json({ message: "currentPassword y newPassword son requeridos" });
-    }
-
-    await changeMyPassword(
-      user.id,
-      String(currentPassword),
-      String(newPassword)
-    );
-    return res.status(204).end();
-  } catch (err: any) {
-    const message = err?.message || "No se pudo cambiar la contraseña";
-    return res.status(400).json({ message });
+    const user = await createUser(userRepo, req.body);
+    res.status(201).json(user);
+  } catch (error) {
+    next(error);
   }
-}
+};
 
-export async function resetUserPasswordHandler(req: Request, res: Response) {
+export const updateUserHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const id = parseId(req);
   try {
-    const { id } = req.params as { id: string };
+    const updated = await updateUser(userRepo, { id, ...req.body });
+    res.status(200).json(updated);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const deactivateUserHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const id = parseId(req);
+  try {
+    const user = await deactivateUser(userRepo, id);
+    res.status(200).json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const reactivateUserHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const id = parseId(req);
+  try {
+    const user = await reactivateUser(userRepo, id);
+    res.status(200).json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAllUsersHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const includeInactive = req.query.includeInactive as string | undefined;
+  try {
+    const users = await getAllUsers(
+      userRepo,
+      includeInactive === "1" || includeInactive === "true"
+    );
+    res.status(200).json(users);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getUserByIdHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const id = parseId(req);
+  try {
+    const user = await getUserById(userRepo, id);
+    res.status(200).json(user);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const resetUserPasswordHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const id = parseId(req);
     const { newPassword } = req.body ?? {};
     if (!newPassword) {
       return res.status(400).json({ message: "newPassword es requerido" });
     }
-
-    await resetUserPassword(Number(id), String(newPassword));
+    await resetUserPassword(userRepo, {
+      id,
+      newPassword: String(newPassword),
+    });
     return res.status(204).end();
-  } catch (err: any) {
-    const message = err?.message || "No se pudo resetear la contraseña";
-    return res.status(400).json({ message });
+  } catch (error) {
+    next(error);
   }
-}
+};

@@ -1,4 +1,4 @@
-﻿import type { ActionFunctionArgs } from "react-router-dom";
+import type { ActionFunctionArgs } from "react-router-dom";
 import { runWithRequest } from "~/lib/http/requestContext.server";
 import { jsonResponse } from "~/lib/http/jsonResponse";
 import { parseCRUDIntent } from "~/utils/validation/intents";
@@ -35,3 +35,4 @@ export async function paymentAction({ request }: ActionFunctionArgs) {
     }
   });
 }
+

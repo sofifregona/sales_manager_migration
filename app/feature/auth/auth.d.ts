@@ -1,4 +1,4 @@
-export type Role = "ADMIN" | "MANAGER" | "CASHIER";
+import type { Role } from "~/shared/constants/roles";
 
 // DTO devuelto por el backend al consultar la sesión actual (/auth/me) o tras login
 export interface AuthUserDTO {
@@ -16,15 +16,6 @@ export interface AuthLoaderData {
 export interface LoginPayload {
   username: string;
   password: string;
-}
-
-export interface ChangePasswordPayload {
-  currentPassword: string;
-  newPassword: string;
-}
-
-export interface ResetPasswordPayload {
-  newPassword?: string;
 }
 
 // Respuesta de action de login

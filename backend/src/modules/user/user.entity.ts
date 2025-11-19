@@ -1,4 +1,5 @@
 import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { ROLES, type Role } from "@back/src/shared/constants/roles.js";
 
 @Entity()
 export class User {
@@ -14,8 +15,8 @@ export class User {
   @Column({ type: "varchar", length: 255, nullable: false })
   passwordHash!: string;
 
-  @Column({ type: "varchar", length: 20, nullable: false })
-  role!: "ADMIN" | "MANAGER" | "CASHIER";
+  @Column({ type: "enum", enum: ROLES, nullable: false })
+  role!: Role;
 
   @Column({ type: "boolean", default: true, nullable: false })
   active!: boolean;

@@ -20,8 +20,6 @@ export function AccountForm({
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
   const location = useLocation();
-  console.log("DENTRO DEL ACCOUNT FORM");
-  console.log(overrideName);
 
   useEffect(() => {
     if (isEditing) {
@@ -29,7 +27,14 @@ export function AccountForm({
       setDescription(editing?.description ?? "");
     }
     // En modo creación, no limpiamos los campos para no perder lo tipeado
-  }, [isEditing, editing]);
+  }, [isEditing, editing, overrideName]);
+
+  // En conflictos de creación, prellenar desde cookie si viene
+  useEffect(() => {
+    if (!isEditing && typeof overrideName === "string" && overrideName !== "") {
+      setName(overrideName);
+    }
+  }, [isEditing, overrideName]);
 
   // Luego de crear con éxito (?created=1 en la URL), limpiar el formulario de creación
   const p = new URLSearchParams(location.search);
@@ -54,7 +59,7 @@ export function AccountForm({
         onChange={(e) => setName(e.target.value)}
         onBlur={(e) => setName(e.target.value.replace(/\s+/g, " ").trim())}
         maxLength={80}
-        minLength={8}
+        minLength={5}
         required
       />
 

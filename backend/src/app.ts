@@ -1,7 +1,10 @@
-﻿import express from "express";
+import express from "express";
 import cors from "cors";
 import session from "express-session";
+import connectRedis from "connect-redis";
+import { createClient } from "redis";
 import morgan from "morgan";
+
 import accountRoutes from "./modules/account/account.routes.js";
 import authRoutes from "./modules/auth/auth.routes.js";
 import bartableRoutes from "./modules/bartable/bartable.routes.js";
@@ -20,31 +23,67 @@ import {
   errorMiddleware,
   notFoundMiddleware,
 } from "./shared/http/error-middleware.js";
-export function createApp() {
-  const app = express();
+import RedisStore from "connect-redis";
 
+export async function buildApp() {
+  const app = express();
+  const isProd = process.env.NODE_ENV === "production";
+  const FRONTEND_ORIGIN =
+    process.env.FRONTEND_ORIGIN || "http://localhost:5173";
+
+  app.set("trust proxy", 1);
+  app.use(express.json());
+
+  // CORS primero
   app.use(
     cors({
-      origin: true,
+      origin: FRONTEND_ORIGIN,
       credentials: true,
     })
   );
-  app.use(express.json());
-  app.set("trust proxy", 1);
-  app.use(
-    session({
-      name: "sid",
-      secret: process.env.SESSION_SECRET || "dev-secret-change-me",
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        httpOnly: true,
-        sameSite: "lax",
-        secure: process.env.NODE_ENV === "production",
-        maxAge: 1000 * 60 * 60 * 8,
-      },
-    })
-  );
+
+  // Sesión: Redis si está definido REDIS_URL; si no, MemoryStore (dev)
+  const REDIS_URL = process.env.REDIS_URL;
+  if (REDIS_URL) {
+    const redisClient = createClient({ url: REDIS_URL });
+    await redisClient.connect();
+    const sessionStore = new RedisStore({
+      client: redisClient,
+      prefix: "sess:",
+    });
+    app.use(
+      session({
+        name: "sid",
+        store: sessionStore,
+        secret: process.env.SESSION_SECRET || "dev-secret-change-me",
+        resave: false,
+        saveUninitialized: false,
+        rolling: true,
+        cookie: {
+          httpOnly: true,
+          sameSite: "lax",
+          secure: isProd,
+          maxAge: 1000 * 60 * 60 * 8,
+        },
+      })
+    );
+  } else {
+    app.use(
+      session({
+        name: "sid",
+        secret: process.env.SESSION_SECRET || "dev-secret-change-me",
+        resave: false,
+        saveUninitialized: false,
+        rolling: true,
+        cookie: {
+          httpOnly: true,
+          sameSite: "lax",
+          secure: isProd,
+          maxAge: 1000 * 60 * 60 * 8,
+        },
+      })
+    );
+  }
 
   app.use(morgan("dev"));
   // API version header
@@ -52,6 +91,7 @@ export function createApp() {
     res.setHeader("API-Version", "v1");
     next();
   });
+
   // v1 routes
   app.use("/api/v1", authRoutes);
   app.use("/api/v1", requireAuth);

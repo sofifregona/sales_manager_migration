@@ -1,4 +1,4 @@
-﻿import { redirect } from "react-router-dom";
+import { redirect } from "react-router-dom";
 import { reactivatePaymentSwap } from "~/feature/payment/payment-api.server";
 import { jsonResponse } from "~/lib/http/jsonResponse";
 import { parseAppError } from "~/utils/errors/parseAppError";
@@ -14,27 +14,26 @@ export async function handlePaymentReactivateSwap({ url, formData }: Ctx) {
     currentIdParam,
     "Método de pago actual"
   );
-  if (currentIdReqError)
-    return jsonResponse(422, currentIdReqError);
+  if (currentIdReqError) return jsonResponse(422, currentIdReqError);
   const currentId = Number(currentIdParam);
 
   const inactiveIdReqError = validateRequiredId(
     inactiveIdParam,
     "Método de pago inactivo"
   );
-  if (inactiveIdReqError)
-    return jsonResponse(422, inactiveIdReqError);
+  if (inactiveIdReqError) return jsonResponse(422, inactiveIdReqError);
   const inactiveId = Number(inactiveIdParam);
 
   const strategyParam = formData.get("strategy");
-  const strategy = strategyParam ? (String(strategyParam) as "reactivate-account" | "cancel") : undefined;
+  const strategy = strategyParam
+    ? (String(strategyParam) as "reactivate-account" | "cancel")
+    : undefined;
   try {
     await reactivatePaymentSwap(inactiveId, currentId, strategy);
-    const out = new URLSearchParams();
-    if (url.searchParams.get("includeInactive") === "1")
-      out.set("includeInactive", "1");
-    out.set("reactivated", "1");
-    return redirect(`/payment?${out.toString()}`);
+    const p = new URLSearchParams(url.search);
+    p.delete("id");
+    p.set("reactivated", "1");
+    return redirect(`/payment?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

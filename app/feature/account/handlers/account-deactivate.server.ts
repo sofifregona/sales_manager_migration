@@ -1,7 +1,6 @@
 ﻿import { redirect } from "react-router-dom";
 import { deactivateAccount } from "~/feature/account/account-api.server";
 import { jsonResponse } from "~/lib/http/jsonResponse";
-import { setFlash } from "~/services/flashSession";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import { validateRequiredId } from "~/utils/validation/validationHelpers";
 
@@ -20,15 +19,10 @@ export async function handleDeactivateAccount({ url, formData }: Ctx) {
           | "cancel")
       : undefined;
     await deactivateAccount(idNum, strategy);
-    // setFlash({ scope: "account", kind: "deleted-success" });
-    // const params = new URLSearchParams(url.search);
-    // params.set("deactivated", "1");
-    // return redirect(`/account?${params.toString()}`);
-    const out = new URLSearchParams();
-    out.set("deactivated", "1");
-    if (url.searchParams.get("includeInactive") === "1")
-      out.set("includeInactive", "1");
-    return redirect(`/account?${out.toString()}`);
+    const p = new URLSearchParams(url.search);
+    p.delete("id");
+    p.set("deactivated", "1");
+    return redirect(`/account?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

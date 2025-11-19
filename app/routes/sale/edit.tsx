@@ -1,5 +1,5 @@
-export { saleLoader as loader } from "~/feature/sale/loader/saleLoader.server";
-import { updateSaleAction } from "~/feature/sale/action/updateSale.server";
+export { saleLoader as loader } from "~/feature/sale/sale-loader.server";
+import { updateSaleAction } from "~/feature/sale/actions/sale-update.server";
 export { updateSaleAction as action };
 import {
   OpenSalePanelScreen,

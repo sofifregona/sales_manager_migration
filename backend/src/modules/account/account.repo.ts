@@ -17,11 +17,7 @@ export interface AccountRepository {
   findById(id: number): Promise<Account | null>;
   findActiveById(id: number): Promise<Account | null>;
   findByNormalizedName(normalizedName: string): Promise<Account | null>;
-  getAll(params: {
-    includeInactive: boolean;
-    sortField?: "normalizedName" | "active" | "id";
-    sortDirection?: "ASC" | "DESC";
-  }): Promise<Account[]>;
+  getAll(includeInactive: boolean): Promise<Account[]>;
 
   // updates used by service
   updateFields(

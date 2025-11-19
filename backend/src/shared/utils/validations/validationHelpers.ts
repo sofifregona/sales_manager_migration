@@ -73,6 +73,27 @@ export function validateRangeLength(
   }
 }
 
+export function validateUsernameFormat(username: string) {
+  const user = (username ?? "").trim();
+  if (user === "") throw new AppError(`(Error) El usuario es requerido.`, 422);
+
+  if (/\s/.test(user)) {
+    throw new AppError(
+      `(Error) El nombre de usuario no puede tener espacios.`,
+      422
+    );
+  }
+
+  // Solo ASCII alfanumérico y . _ -
+  const re = /^[A-Za-z0-9._-]+$/;
+  if (!re.test(user)) {
+    throw new AppError(
+      `(Error) Nombre de usuario inválido. Solo se permiten letras sin tildes, números y los caracteres . _ -`,
+      422
+    );
+  }
+}
+
 // OTRAS VALIDACIONES
 export function validateParamFromList(param: string, list: string[]) {
   return list.includes(param);

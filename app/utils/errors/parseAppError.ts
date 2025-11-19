@@ -12,8 +12,6 @@ export function parseAppError(
 ): AppError {
   if (error instanceof Error) {
     try {
-      console.log("DENTRO DEL PARSE");
-      console.log(error.toString());
       const parsed = JSON.parse(error.message) as Partial<AppError>;
       return {
         message: parsed.message ?? fallback,

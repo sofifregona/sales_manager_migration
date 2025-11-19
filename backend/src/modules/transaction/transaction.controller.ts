@@ -10,7 +10,14 @@ import { AppError } from "@back/src/shared/errors/AppError.js";
 
 export const createTransactionHandler = async (req: Request, res: Response) => {
   try {
-    const transaction = await createTransaction(req.body);
+    const sessionUser = req.session?.user;
+    if (!sessionUser) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+    const transaction = await createTransaction({
+      ...req.body,
+      createdById: sessionUser.id,
+    });
     res.status(201).json(transaction);
   } catch (error) {
     console.error("Error al intentar crear la transacción: ", error);

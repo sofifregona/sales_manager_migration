@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router";
-import { login as loginApi } from "~/feature/auth/authApi";
+import { login as loginApi } from "~/feature/auth/auth-api";
 
 export function LoginScreen() {
   const [username, setUsername] = useState("");
@@ -69,4 +69,3 @@ export function LoginScreen() {
     </main>
   );
 }
-

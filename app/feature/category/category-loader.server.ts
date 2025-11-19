@@ -6,6 +6,7 @@ import type { Flash } from "~/types/flash";
 import { jsonResponse } from "~/lib/http/jsonResponse";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import { validateRequiredId } from "~/utils/validation/validationHelpers";
+// Sorting local en la tabla; el loader solo maneja includeInactive
 
 export async function categoryLoader({
   request,
@@ -15,29 +16,9 @@ export async function categoryLoader({
     const flash: Flash = {} as Flash;
 
     const includeInactive = url.searchParams.get("includeInactive") === "1";
-    const rawField = url.searchParams.get("sortField");
-    if (rawField && !["name", "active"].includes(rawField)) {
-      parseAppError(
-        (flash.error = "(Error) Campo de ordenación inválido."),
-        (flash.source = "client")
-      );
-    }
-    const sortField = (rawField as "name" | "active") ?? "name";
-    const rawDirection = url.searchParams.get("sortDirection");
-    if (rawDirection && !["ASC", "DESC"].includes(rawDirection.toUpperCase())) {
-      parseAppError(
-        (flash.error = "(Error) Dirección de ordenación inválida."),
-        (flash.source = "client")
-      );
-    }
-    const sortDirection = (rawDirection as "ASC" | "DESC") ?? "ASC";
-
     let categories: CategoryDTO[] | null = null;
     try {
-      categories = await getAllCategories(includeInactive, {
-        sortField,
-        sortDirection,
-      });
+      categories = await getAllCategories(includeInactive);
     } catch (error) {
       const parsed = parseAppError(
         error,
@@ -76,3 +57,4 @@ export async function categoryLoader({
     return { categories, editingCategory, flash };
   });
 }
+

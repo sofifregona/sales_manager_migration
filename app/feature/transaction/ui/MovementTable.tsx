@@ -6,7 +6,7 @@ import {
   type UseQuerySortingConfig,
   useQuerySorting,
 } from "~/shared/hooks/useQuerySorting";
-import { SortToggle } from "~/shared/ui/SortToggle";
+import { SortToggle } from "~/shared/ui/form/SortToggle";
 import { formatDateTime } from "~/utils/formatters/formatDateTime";
 
 type Props = {

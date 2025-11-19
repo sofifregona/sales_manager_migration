@@ -1,29 +1,14 @@
-import React, { useMemo } from "react";
-import { Link, useFetcher, useSearchParams } from "react-router-dom";
+import React, { useMemo, useState } from "react";
+import { Link, useFetcher, useLocation, useSearchParams } from "react-router-dom";
 import type { ProductDTO } from "~/feature/product/product";
-import {
-  type UseQuerySortingConfig,
-  useQuerySorting,
-} from "~/shared/hooks/useQuerySorting";
-import { SortToggle } from "~/shared/ui/SortToggle";
+import { SortToggle } from "~/shared/ui/form/SortToggle";
 import { useBulkSelection } from "../hooks/useBulkSelection";
 import IncrementForm from "./IncrementPrices";
+import { ConfirmPrompt } from "~/shared/ui/prompts/ConfirmPrompt";
 
 type Props = {
   products: ProductDTO[];
   editingId?: number | null;
-};
-
-const PRODUCT_SORT_CONFIG: UseQuerySortingConfig<ProductDTO> = {
-  defaultKey: "name",
-  keys: [
-    { key: "name", getValue: (product) => product.name },
-    { key: "code", getValue: (product) => product.code },
-    { key: "price", getValue: (product) => product.price },
-    { key: "brand", getValue: (product) => product.brand?.name ?? "" },
-    { key: "category", getValue: (product) => product.category?.name ?? "" },
-    { key: "provider", getValue: (product) => product.provider?.name ?? "" },
-  ],
 };
 
 export function ProductTable({ products, editingId }: Props) {
@@ -34,41 +19,43 @@ export function ProductTable({ products, editingId }: Props) {
 
   const [params] = useSearchParams();
   const includeInactive = params.get("includeInactive") === "1";
+  const location = useLocation();
 
-  const {
-    sortedItems: sortedProducts,
-    sortBy,
-    sortDir,
-  } = useQuerySorting(products, PRODUCT_SORT_CONFIG);
+  const [pendingDeactivateId, setPendingDeactivateId] = useState<number | null>(null);
+  const [pendingReactivateId, setPendingReactivateId] = useState<number | null>(null);
+  const [lastDeactivateId, setLastDeactivateId] = useState<number | null>(null);
+
+  // Orden viene del server v√≠a sortField/sortDirection en la URL
+  const sp = new URLSearchParams(location.search);
+  const sortBy = sp.get("sortField") ?? "name";
+  const sortDir = sp.get("sortDirection")?.toUpperCase() === "DESC" ? "DESC" : "ASC";
+  const displayedProducts = products ?? [];
 
   const visibleIds = useMemo(
-    () => sortedProducts.map((p) => p.id),
-    [sortedProducts]
+    () => displayedProducts.map((p) => p.id),
+    [displayedProducts]
   );
 
-  const {
-    masterRef,
-    selectedIds,
-    allVisibleSelected,
-    toggleAllVisible,
-    toggleOne,
-  } = useBulkSelection(visibleIds, editingId ?? null);
+  const { masterRef, selectedIds, allVisibleSelected, toggleAllVisible, toggleOne } =
+    useBulkSelection(visibleIds, editingId ?? null);
 
   return (
     <>
       <h2>Lista de productos</h2>
-      <div
-        style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}
-      >
-        <Link
-          replace
-          to={`?includeInactive=${includeInactive ? "0" : "1"}`}
-          className="btn btn--secondary"
-        >
-          {includeInactive ? "Ocultar inactivas" : "Ver inactivas"}
-        </Link>
+      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+        {(() => {
+          const p = new URLSearchParams(location.search);
+          p.set("includeInactive", includeInactive ? "0" : "1");
+          const toggleIncludeHref = `?${p.toString()}`;
+          return (
+            <Link replace to={toggleIncludeHref} className="btn btn--secondary">
+              {includeInactive ? "Ocultar inactivos" : "Ver inactivos"}
+            </Link>
+          );
+        })()}
       </div>
-      {sortedProducts.length === 0 ? (
+
+      {displayedProducts.length === 0 ? (
         <p>No hay productos para mostrar.</p>
       ) : (
         <table>
@@ -83,61 +70,21 @@ export function ProductTable({ products, editingId }: Props) {
                 />
                 {" Seleccionar todo"}
               </th>
-              <SortToggle
-                currentSort={sortBy}
-                currentDir={sortDir}
-                name="name"
-                label="Nombre"
-              />
-              <SortToggle
-                currentSort={sortBy}
-                currentDir={sortDir}
-                name="code"
-                label="C√≥digo"
-              />
-              <SortToggle
-                currentSort={sortBy}
-                currentDir={sortDir}
-                name="price"
-                label="Precio"
-              />
-              <SortToggle
-                currentSort={sortBy}
-                currentDir={sortDir}
-                name="brand"
-                label="Marca"
-              />
-              <SortToggle
-                currentSort={sortBy}
-                currentDir={sortDir}
-                name="category"
-                label="Categor√≠a"
-              />
-              <SortToggle
-                currentSort={sortBy}
-                currentDir={sortDir}
-                name="provider"
-                label="Proveedor"
-              />
-              <th>Descripci√≥n</th>
-              {includeInactive && (
-                <SortToggle
-                  currentSort={sortBy}
-                  currentDir={sortDir}
-                  name="status"
-                  label="Estado"
-                />
-              )}
+              <SortToggle currentSort={sortBy} currentDir={sortDir} name="name" label="Nombre" />
+              <SortToggle currentSort={sortBy} currentDir={sortDir} name="code" label="CÛdigo" />
+              <SortToggle currentSort={sortBy} currentDir={sortDir} name="price" label="Precio" />
+              <SortToggle currentSort={sortBy} currentDir={sortDir} name="brand" label="Marca" />
+              <SortToggle currentSort={sortBy} currentDir={sortDir} name="category" label="CategorÌa" />
+              <SortToggle currentSort={sortBy} currentDir={sortDir} name="provider" label="Proveedor" />
+              {includeInactive && <th>Estado</th>}
               <th style={{ width: 220 }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {sortedProducts.map((product) => (
+            {displayedProducts.map((product) => (
               <tr
                 key={product.id}
-                className={
-                  editingId === product.id ? "row row--editing" : "row"
-                }
+                className={editingId === product.id ? "row row--editing" : "row"}
               >
                 <td>
                   <input
@@ -146,9 +93,7 @@ export function ProductTable({ products, editingId }: Props) {
                     name="ids"
                     value={String(product.id)}
                     checked={selectedIds.has(product.id)}
-                    onChange={(e) =>
-                      toggleOne(product.id, e.currentTarget.checked)
-                    }
+                    onChange={(e) => toggleOne(product.id, e.currentTarget.checked)}
                   />
                 </td>
                 <td>{product.name}</td>
@@ -157,57 +102,49 @@ export function ProductTable({ products, editingId }: Props) {
                 <td>{product.brand?.name}</td>
                 <td>{product.category?.name}</td>
                 <td>{product.provider?.name}</td>
-                {includeInactive && (
-                  <td>{product.active ? "Activo" : "Inactivo"}</td>
-                )}
+                {includeInactive && <td>{product.active ? "Activo" : "Inactivo"}</td>}
 
                 <td className="actions">
                   {product.active ? (
                     <>
-                      <Link to={`?id=${product.id}`}>
-                        <button type="button">Modificar</button>
-                      </Link>
-                      <deactivateFetcher.Form
-                        method="post"
-                        action="."
-                        onSubmit={(e) => {
-                          if (
-                            !confirm(
-                              "¬øSeguro que desea desactivar este producto?"
-                            )
-                          ) {
-                            e.preventDefault();
-                          }
-                        }}
+                      {(() => {
+                        const p = new URLSearchParams(location.search);
+                        p.set("id", String(product.id));
+                        const href = `?${p.toString()}`;
+                        return (
+                          <Link to={href}>
+                            <button type="button">Modificar</button>
+                          </Link>
+                        );
+                      })()}
+                      <button
+                        type="button"
                         style={{ display: "inline-block", marginLeft: 8 }}
+                        disabled={deactivating}
+                        onClick={() => setPendingDeactivateId(product.id)}
                       >
-                        <input type="hidden" name="id" value={product.id} />
-                        <input type="hidden" name="_action" value="delete" />
-                        <button type="submit" disabled={deactivating}>
-                          {deactivating ? "Desactivando..." : "Desactivar"}
-                        </button>
-                      </deactivateFetcher.Form>
-
-                      {deactivateFetcher.data?.error && (
-                        <div className="inline-error" role="alert">
-                          {String((deactivateFetcher.data as any).error)}
-                        </div>
-                      )}
+                        {deactivating ? "Desactivando..." : "Desactivar"}
+                      </button>
+                      {(() => {
+                        const data = deactivateFetcher.data as any;
+                        if (data && data.error && lastDeactivateId === product.id) {
+                          return (
+                            <div className="inline-error" role="alert">{String(data.error)}</div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </>
                   ) : (
                     <>
-                      <reactivateFetcher.Form method="post" action=".">
-                        <input type="hidden" name="id" value={product.id} />
-                        <input
-                          type="hidden"
-                          name="_action"
-                          value="reactivate"
-                        />
-                        <button type="submit" disabled={reactivating}>
-                          {reactivating ? "Reactivando..." : "Reactivar"}
-                        </button>
-                      </reactivateFetcher.Form>
-
+                      <button
+                        type="button"
+                        style={{ display: "inline-block", marginLeft: 8 }}
+                        disabled={reactivating}
+                        onClick={() => setPendingReactivateId(product.id)}
+                      >
+                        {reactivating ? "Reactivando..." : "Reactivar"}
+                      </button>
                       {reactivateFetcher.data?.error && (
                         <div className="inline-error" role="alert">
                           {String((reactivateFetcher.data as any).error)}
@@ -220,6 +157,39 @@ export function ProductTable({ products, editingId }: Props) {
             ))}
           </tbody>
         </table>
+      )}
+
+      {pendingDeactivateId != null && (
+        <ConfirmPrompt
+          message="øSeguro que desea desactivar este producto?"
+          busy={deactivating}
+          onCancel={() => setPendingDeactivateId(null)}
+          onConfirm={() => {
+            const id = pendingDeactivateId;
+            setPendingDeactivateId(null);
+            setLastDeactivateId(id);
+            deactivateFetcher.submit(
+              { id: String(id), _action: "deactivate" },
+              { method: "post", action: `.${location.search}` }
+            );
+          }}
+        />
+      )}
+
+      {pendingReactivateId != null && (
+        <ConfirmPrompt
+          message="øSeguro que desea reactivar este producto?"
+          busy={reactivating}
+          onCancel={() => setPendingReactivateId(null)}
+          onConfirm={() => {
+            const id = pendingReactivateId;
+            setPendingReactivateId(null);
+            reactivateFetcher.submit(
+              { id: String(id), _action: "reactivate" },
+              { method: "post", action: `.${location.search}` }
+            );
+          }}
+        />
       )}
 
       <IncrementForm selectedIds={selectedIds} />

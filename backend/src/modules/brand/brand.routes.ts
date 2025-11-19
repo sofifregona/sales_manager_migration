@@ -6,6 +6,7 @@ import {
   deactivateBrandHandler,
   updateBrandHandler,
   reactivateBrandHandler,
+  reactivateSwapBrandHandler,
 } from "./brand.controller.js";
 import { requireRole } from "../../shared/guards/auth.guard.js";
 
@@ -28,6 +29,11 @@ router.patch(
   "/brands/:id/reactivate",
   requireRole(["ADMIN", "MANAGER"]),
   reactivateBrandHandler
+);
+router.post(
+  "/brands/:inactiveId/reactivate-swap",
+  requireRole(["ADMIN", "MANAGER"]),
+  reactivateSwapBrandHandler
 );
 
 export default router;

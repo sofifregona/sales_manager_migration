@@ -11,6 +11,7 @@ import { Bartable } from "../bartable/bartable.entity.js";
 import { Payment } from "../payment/payment.entity.js";
 import { ProductSold } from "./product-sold.entity.js";
 import { Employee } from "../employee/employee.entity.js";
+import { User } from "../user/user.entity.js";
 
 @Entity()
 export class Sale {
@@ -20,6 +21,9 @@ export class Sale {
   @CreateDateColumn({ type: "datetime" })
   @Index()
   dateTime!: Date;
+
+  @ManyToOne(() => User, { nullable: false })
+  createdBy!: User;
 
   @Column("decimal", {
     precision: 10,
@@ -44,7 +48,7 @@ export class Sale {
   discount!: number | null;
 
   @ManyToOne(() => Payment, { nullable: true })
-  payment!: Payment;
+  payment!: Payment | null;
 
   @OneToMany(() => ProductSold, (productSold) => productSold.sale, {
     cascade: ["insert", "update"],

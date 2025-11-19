@@ -9,6 +9,8 @@ import {
   reactivateProductHandler,
 } from "./product.controller.js";
 import { requireRole } from "../../shared/guards/auth.guard.js";
+import multer from "multer";
+const upload = multer({ dest: "/tmp/uploads" });
 
 const router = Router();
 
@@ -22,11 +24,13 @@ router.patch(
 router.post(
   "/products",
   requireRole(["ADMIN", "MANAGER"]),
+  upload.single("image"),
   createProductHandler
 );
 router.patch(
   "/products/:id",
   requireRole(["ADMIN", "MANAGER"]),
+  upload.single("image"),
   updateProductHandler
 );
 router.patch(

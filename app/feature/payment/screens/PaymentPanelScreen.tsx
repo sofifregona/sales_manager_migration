@@ -1,23 +1,20 @@
-import {
-  useActionData,
-  useLoaderData,
-  useLocation,
-  useNavigation,
-} from "react-router-dom";
+import { useActionData, useLoaderData, useLocation } from "react-router-dom";
 import { useUrlSuccessFlash } from "~/shared/hooks/useUrlSuccessFlash";
 import { useUrlConflictFlash } from "~/shared/hooks/useUrlConflictFlash";
 import type { PaymentLoaderData } from "~/feature/payment/payment";
-import { FlashMessages } from "~/shared/ui/FlashMessages";
-import { SuccessBanner } from "~/shared/ui/SuccessBanner";
+import { FlashMessages } from "~/shared/ui/feedback/FlashMessages";
+import { SuccessBanner } from "~/shared/ui/feedback/SuccessBanner";
 import { useCrudSuccess } from "~/shared/hooks/useCrudSuccess";
 import { useReactivateFlow } from "~/shared/hooks/useReactivateFlow";
-import { ReactivatePromptBanner } from "~/shared/ui/ReactivatePromptBanner";
-import { CrudHeader } from "~/shared/ui/CrudHeader";
+import { ReactivatePromptBanner } from "~/shared/ui/prompts/ReactivatePromptBanner";
+import { CrudHeader } from "~/shared/ui/layout/CrudHeader";
 import { PaymentForm } from "../ui/PaymentForm";
 import { PaymentTable } from "../ui/PaymentTable";
 import { useCrudError } from "~/shared/hooks/useCrudError";
-import { ErrorBanner } from "~/shared/ui/ErrorBanner";
-import { useCallback } from "react";
+import { ErrorBanner } from "~/shared/ui/feedback/ErrorBanner";
+import { consumeConflictCookie } from "~/services/conflictCookie";
+import { makeReactivableConflictBuilder } from "~/shared/conflict/builders";
+import { renderPaymentAccountInactiveOverlay } from "~/feature/payment/conflict/renderPaymentAccountInactiveOverlay";
 
 export function PaymentPanelScreen() {
   const { payments, accounts, editingPayment, flash } =
@@ -31,50 +28,26 @@ export function PaymentPanelScreen() {
   const include = p.get("includeInactive");
   const isEditing = !!editingPayment;
 
-  // Ã‰xitos (?created|updated|deactivated|reactivated=1) â†’ client-flash y limpieza de URL
   useUrlSuccessFlash("payment");
-  // Conflictos (?conflict=...&code=...&elementId=...) â†’ client-flash y limpieza
-  const buildConflict = useCallback((p: URLSearchParams) => {
-    const conflict = p.get("conflict"); // "create" | "update" | null
-    if (conflict !== "create" && conflict !== "update") return null;
-
-    const kind = conflict === "create" ? "create-conflict" : "update-conflict";
-    const elementId = p.get("elementId");
-    const code = (p.get("code") || "").toUpperCase();
-
-    const payload = {
-      scope: "payment",
-      kind,
-      message: p.get("message") ?? undefined,
-      name: p.get("name") ?? undefined,
-      elementId: elementId != null ? Number(elementId) : undefined,
-      reactivable: code === "PAYMENT_EXISTS_INACTIVE",
-    };
-    const cleanupKeys = [
-      "conflict",
-      "message",
-      "name",
-      "code",
-      "description",
-      "elementId",
-    ];
-
-    return { payload, cleanupKeys };
-  }, []);
-  useUrlConflictFlash("payment", buildConflict);
+  useUrlConflictFlash(
+    "payment",
+    makeReactivableConflictBuilder("payment", ["PAYMENT_EXISTS_INACTIVE"])
+  );
 
   const { prompt, dismiss } = useReactivateFlow("payment");
   const { message } = useCrudSuccess("payment", {
-    "created-success": "MÃ©todo de pago creado con Ã©xito.",
-    "updated-success": "MÃ©todo de pago modificado con Ã©xito.",
-    "deactivated-success": "MÃ©todo de pago eliminado con Ã©xito.",
-    "reactivated-success": "MÃ©todo de pago reactivado con Ã©xito.",
+    "created-success": "Método de pago creado con éxito.",
+    "updated-success": "Método de pago modificado con éxito.",
+    "deactivated-success": "Método de pago eliminado con éxito.",
+    "reactivated-success": "Método de pago reactivado con éxito.",
   });
 
   const conflictActive = !!prompt;
-  const overrideName = conflictActive
-    ? prompt?.name ?? new URLSearchParams(location.search).get("name") ?? ""
-    : undefined;
+  const extras = conflictActive
+    ? consumeConflictCookie<{ name?: string; idAccount?: number }>() || {}
+    : {};
+  const overrideName = conflictActive ? extras.name ?? "" : undefined;
+  const overrideAccountId = conflictActive ? extras.idAccount : undefined;
 
   const { message: clientError } = useCrudError("payment", {
     includeReactivable: true,
@@ -82,10 +55,10 @@ export function PaymentPanelScreen() {
 
   return (
     <div>
-      <h1>MÃ©todos de pago</h1>
+      <h1>Métodos de pago</h1>
       <CrudHeader
         isEditing={isEditing}
-        entityLabel="mÃ©todo de pago"
+        entityLabel="método de pago"
         name={editingPayment?.name ?? null}
         cancelHref={`/payment${include ? `?includeInactive=${include}` : ""}`}
       />
@@ -101,16 +74,17 @@ export function PaymentPanelScreen() {
       {prompt && (
         <ReactivatePromptBanner
           overlay
+          renderConflictOverlay={renderPaymentAccountInactiveOverlay}
           messageForUpdate={
             prompt.message ??
-            `Se ha detectado un mÃ©todo de pago inactivo con este nombre.
-            Â¿Desea reactivarlo? Si reactiva el antiguo mÃ©todo de pago, el mÃ©todo de pago actual se desactivarÃ¡.
+            `Se ha detectado un método de pago inactivo con este nombre.
+            ¿Desea reactivarlo? Si reactiva el antiguo método de pago, el método de pago actual se desactivará.
             Si desea cambiar el nombre, haga clic en cancelar.`
           }
           messageForCreate={
             prompt.message ??
-            `Se ha detectado un mÃ©todo de pago inactivo con este nombre.
-            Â¿Desea reactivarlo? Si desea cambiar el nombre, haga clic en cancelar.`
+            `Se ha detectado un método de pago inactivo con este nombre.
+            ¿Desea reactivarlo? Si desea cambiar el nombre, haga clic en cancelar.`
           }
           label="nombre"
           inactiveId={prompt.elementId}
@@ -122,13 +96,14 @@ export function PaymentPanelScreen() {
 
       <PaymentForm
         key={
-          isEditing ? `update-${editingPayment.id}-payment` : "create-payment"
+          isEditing ? `update-${editingPayment?.id}-payment` : "create-payment"
         }
         isEditing={isEditing}
         editing={editingPayment}
         accounts={accounts}
         formAction={`.${location.search}`}
         overrideName={overrideName}
+        overrideAccountId={overrideAccountId}
       />
 
       <PaymentTable
@@ -140,7 +115,7 @@ export function PaymentPanelScreen() {
 }
 
 export function PaymentPanelErrorBoundary({ error }: { error: unknown }) {
-  let message = "OcurriÃ³ un error al cargar la lista de mÃ©todos de pago.";
+  let message = "Ocurrió un error al cargar la lista de métodos de pago.";
   if (error instanceof Error) {
     message = error.message;
   }

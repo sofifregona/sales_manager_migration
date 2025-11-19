@@ -42,7 +42,7 @@ export class Product {
   stockEnabled!: boolean;
 
   @Column({ type: "int", nullable: true })
-  quantity!: number;
+  quantity!: number | null;
 
   @Column({
     name: "negative_quantity_warning",
@@ -55,7 +55,7 @@ export class Product {
   minQuantityWarning!: boolean;
 
   @Column({ name: "min_quantity", type: "int", nullable: true })
-  minQuantity!: number;
+  minQuantity!: number | null;
 
   @ManyToOne(() => Category, { nullable: true })
   category!: Category | null;
@@ -65,6 +65,17 @@ export class Product {
 
   @ManyToOne(() => Brand, { nullable: true })
   brand!: Brand | null;
+
+  @Column({ name: "image_url", type: "varchar", length: 512, nullable: true })
+  imageUrl!: string | null;
+
+  @Column({
+    name: "image_public_id",
+    type: "varchar",
+    length: 255,
+    nullable: true,
+  })
+  imagePublicId!: string | null;
 
   @Column({ type: "boolean", default: true, nullable: false })
   active!: boolean;

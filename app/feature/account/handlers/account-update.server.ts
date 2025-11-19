@@ -3,9 +3,9 @@ import { updateAccount } from "~/feature/account/account-api.server";
 import type { UpdateAccountPayload } from "~/feature/account/account";
 import { jsonResponse } from "~/lib/http/jsonResponse";
 import { parseAppError } from "~/utils/errors/parseAppError";
+import { makeConflictCookie } from "~/services/conflictCookie";
 import {
   validateRequiredId,
-  validateNumberId,
   validateRequired,
   validateType,
   validateRangeLength,
@@ -39,13 +39,10 @@ export async function handleUpdateAccount({ url, formData }: Ctx) {
   try {
     await updateAccount(updatedData);
 
-    const out = new URLSearchParams();
-    out.set("updated", "1");
-
-    if (url.searchParams.get("includeInactive") === "1")
-      out.set("includeInactive", "1");
-
-    return redirect(`/account?${out.toString()}`);
+    const p = new URLSearchParams(url.search);
+    p.delete("id");
+    p.set("updated", "1");
+    return redirect(`/account?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,
@@ -60,14 +57,16 @@ export async function handleUpdateAccount({ url, formData }: Ctx) {
 
         if (parsed.code) p.set("code", String(parsed.code));
         p.set("conflict", "update");
-        p.set("message", parsed.message);
-        p.set("name", name);
-        if (desc != null) p.set("description", desc);
 
         const existingId = anyParsed?.details?.existingId as number | undefined;
-
         if (existingId != null) p.set("elementId", String(existingId));
-        return redirect(`/account?${p.toString()}`);
+
+        const headers = new Headers();
+        headers.append(
+          "Set-Cookie",
+          makeConflictCookie({ scope: "account", name, description: desc })
+        );
+        return redirect(`/account?${p.toString()}` as any, { headers } as any);
       } else {
         return jsonResponse(409, {
           error: parsed.message,

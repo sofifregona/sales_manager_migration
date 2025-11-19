@@ -1,10 +1,11 @@
+import type { Role } from "~/shared/constants/roles";
 import type { Flash } from "~/types/flash";
 
 export interface UserDTO {
   id: number;
   username: string;
   name: string;
-  role: "ADMIN" | "MANAGER" | "CASHIER";
+  role: Role;
   active: boolean;
 }
 
@@ -12,7 +13,7 @@ export interface CreateUserPayload {
   username: string;
   name: string;
   password: string;
-  role: "ADMIN" | "MANAGER" | "CASHIER";
+  role: Role;
 }
 
 export interface UpdateUserPayload extends Omit<CreateUserPayload, "password"> {

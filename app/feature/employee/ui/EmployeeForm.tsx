@@ -1,25 +1,23 @@
 import React, { useEffect, useState } from "react";
-import { Form } from "react-router-dom";
+import { Form, useLocation, useNavigation } from "react-router-dom";
 import type { EmployeeDTO } from "~/feature/employee/employee";
 
 type Props = {
   isEditing: boolean;
   editing?: EmployeeDTO | null;
-  isSubmitting: boolean;
-  formAction: string; // "." o `.${search}`
+  formAction: string;
 };
 
-export function EmployeeForm({
-  isEditing,
-  editing,
-  isSubmitting,
-  formAction,
-}: Props) {
+export function EmployeeForm({ isEditing, editing, formAction }: Props) {
   const [name, setName] = useState(editing?.name ?? "");
   const [dni, setDni] = useState(editing?.dni ?? "");
   const [telephone, setTelephone] = useState(editing?.telephone ?? "");
   const [email, setEmail] = useState(editing?.email ?? "");
   const [address, setAddress] = useState(editing?.address ?? "");
+
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+  const location = useLocation();
 
   useEffect(() => {
     if (isEditing) {
@@ -28,14 +26,22 @@ export function EmployeeForm({
       setTelephone(editing?.telephone ?? "");
       setEmail(editing?.email ?? "");
       setAddress(editing?.address ?? "");
-    } else {
+    }
+  }, [isEditing, editing]);
+
+  const p = new URLSearchParams(location.search);
+  const successFlags = ["created", "updated", "deactivated", "reactivated"];
+  const hasSuccess = successFlags.some((k) => p.get(k) === "1");
+
+  useEffect(() => {
+    if (hasSuccess) {
       setName("");
       setDni("");
       setTelephone("");
       setEmail("");
       setAddress("");
     }
-  }, [isEditing, editing]);
+  }, [location.search, isEditing]);
 
   return (
     <Form method="post" action={formAction} className="employee-form">
@@ -59,10 +65,9 @@ export function EmployeeForm({
         type="number"
         value={dni}
         onChange={(e) => setDni(e.target.value)}
-        maxLength={8}
       />
 
-      <label htmlFor="telephone">Telefono</label>
+      <label htmlFor="telephone">Teléfono</label>
       <input
         id="telephone"
         name="telephone"
@@ -79,7 +84,6 @@ export function EmployeeForm({
         type="email"
         value={email}
         onChange={(e) => setEmail(e.target.value)}
-        // pattern="^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
       />
 
       <label htmlFor="address">Domicilio</label>

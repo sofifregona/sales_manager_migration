@@ -1,39 +1,55 @@
 ﻿import { redirect } from "react-router-dom";
 import { reactivateBrandSwap } from "~/feature/brand/brand-api.server";
 import { jsonResponse } from "~/lib/http/jsonResponse";
-import { setFlash } from "~/services/flashSession";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import { validateRequiredId } from "~/utils/validation/validationHelpers";
 
-type Ctx = { formData: FormData };
+type Ctx = { url: URL; formData: FormData };
 
-export async function handleBrandReactivateSwap({ formData }: Ctx) {
+export async function handleBrandReactivateSwap({ url, formData }: Ctx) {
   const inactiveIdParam = formData.get("inactiveId");
   const currentIdParam = formData.get("currentId");
 
   const currentIdReqError = validateRequiredId(currentIdParam, "Marca actual");
-  if (currentIdReqError)
-    return jsonResponse(422, currentIdReqError);
+  if (currentIdReqError) return jsonResponse(422, currentIdReqError);
   const currentIdNum = Number(currentIdParam);
 
   const inactiveIdReqError = validateRequiredId(
     inactiveIdParam,
     "Marca inactiva"
   );
-  if (inactiveIdReqError)
-    return jsonResponse(422, inactiveIdReqError);
+  if (inactiveIdReqError) return jsonResponse(422, inactiveIdReqError);
   const inactiveIdNum = Number(inactiveIdParam);
 
+  const strategyParam = formData.get("strategy");
+  const strategy = strategyParam
+    ? (String(strategyParam) as
+        | "clear-products-brand"
+        | "cascade-deactivate-products"
+        | "cancel")
+    : undefined;
+
   try {
-    await reactivateBrandSwap(inactiveIdNum, currentIdNum);
-    setFlash({ scope: "brand", kind: "reactivated-success" });
-    return redirect("/brand?reactivated=1");
+    await reactivateBrandSwap(inactiveIdNum, currentIdNum, strategy);
+    const p = new URLSearchParams();
+    p.delete("id");
+    p.set("reactivated", "1");
+    return redirect(`/brand?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,
       "(Error) No se pudo reactivar la marca intercambiando los estados."
     );
-    return jsonResponse(parsed.status ?? 500, {
+    const status = parsed.status ?? 500;
+    if (status === 409) {
+      return jsonResponse(409, {
+        error: parsed.message,
+        source: parsed.source ?? "server",
+        code: (parsed as any).code,
+        details: (parsed as any).details,
+      });
+    }
+    return jsonResponse(status, {
       error: parsed.message,
       source: parsed.source ?? "server",
     });

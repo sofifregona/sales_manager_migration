@@ -1,11 +1,17 @@
-import React from "react";
-import { Link, useFetcher, useSearchParams } from "react-router-dom";
+import React, { useState } from "react";
+import {
+  Link,
+  useFetcher,
+  useLocation,
+  useSearchParams,
+} from "react-router-dom";
 import type { UserDTO } from "~/feature/user/user";
 import {
   type UseQuerySortingConfig,
   useQuerySorting,
 } from "~/shared/hooks/useQuerySorting";
-import { SortToggle } from "~/shared/ui/SortToggle";
+import { SortToggle } from "~/shared/ui/form/SortToggle";
+import { ConfirmPrompt } from "~/shared/ui/prompts/ConfirmPrompt";
 
 type Props = {
   users: UserDTO[];
@@ -13,9 +19,9 @@ type Props = {
 };
 
 const USER_SORT_CONFIG: UseQuerySortingConfig<UserDTO> = {
-  defaultKey: "name",
+  defaultKey: "username",
   keys: [
-    { key: "name", getValue: (user) => user.username },
+    { key: "username", getValue: (user) => user.username },
     { key: "active", getValue: (user) => user.active },
   ],
 };
@@ -25,9 +31,18 @@ export function UserTable({ users, editingId }: Props) {
   const deactivating = deactivateFetcher.state !== "idle";
   const reactivateFetcher = useFetcher();
   const reactivating = reactivateFetcher.state !== "idle";
+  const [pendingDeactivateId, setPendingDeactivateId] = useState<number | null>(
+    null
+  );
+  const [pendingReactivateId, setPendingReactivateId] = useState<number | null>(
+    null
+  );
+
+  const [lastDeactivateId, setLastDeactivateId] = useState<number | null>(null);
 
   const [params] = useSearchParams();
   const includeInactive = params.get("includeInactive") === "1";
+  const location = useLocation();
 
   const {
     sortedItems: sortedUsers,
@@ -67,8 +82,13 @@ export function UserTable({ users, editingId }: Props) {
                 name="name"
                 label="Nombre"
               />
-              <th>ROL</th>
-              <th style={{ width: 220 }}>Acciones</th>
+              <SortToggle
+                currentSort={sortBy}
+                currentDir={sortDir}
+                name="rol"
+                label="ROL"
+              />
+              <th style={{ width: 330 }}>Acciones</th>
             </tr>
           </thead>
           <tbody>
@@ -82,35 +102,70 @@ export function UserTable({ users, editingId }: Props) {
                 <td>{user.role}</td>
 
                 <td className="actions">
-                  <Link to={`?id=${user.id}`}>
-                    <button type="button">Modificar</button>
-                  </Link>
-                  <deactivateFetcher.Form
-                    method="post"
-                    action="."
-                    onSubmit={(e) => {
-                      if (
-                        !confirm("¿Seguro que desea eliminar este usuario?")
-                      ) {
-                        e.preventDefault();
-                      }
-                    }}
-                    style={{ display: "inline-block", marginLeft: 8 }}
-                  >
-                    <input type="hidden" name="id" value={user.id} />
-                    <input type="hidden" name="_action" value="deactivate" />
-                    <button type="submit" disabled={deactivating}>
-                      {deactivating ? "Desactivando..." : "Desactivar"}
-                    </button>
-                  </deactivateFetcher.Form>
-                  <Link to={`?id=${user.id}&reset=1`}>
-                    <button type="button" style={{ marginLeft: 8 }}>Reset</button>
-                  </Link>
+                  {user.active ? (
+                    <>
+                      <Link
+                        to={`?id=${user.id}&includeInactive=${
+                          includeInactive ? "1" : "0"
+                        }`}
+                      >
+                        <button type="button">Modificar</button>
+                      </Link>
+                      <Link
+                        to={`?id=${user.id}&reset-password=1&includeInactive=${
+                          includeInactive ? "1" : "0"
+                        }`}
+                      >
+                        <button type="button">Resetear contraseña</button>
+                      </Link>
+                      <button
+                        type="button"
+                        style={{ display: "inline-block", marginLeft: 8 }}
+                        disabled={deactivating}
+                        onClick={() => setPendingDeactivateId(user.id)}
+                      >
+                        {deactivating ? "Desactivando..." : "Desactivar"}
+                      </button>
 
-                  {deactivateFetcher.data?.error && (
-                    <div className="inline-error" role="alert">
-                      {String((deactivateFetcher.data as any).error)}
-                    </div>
+                      {(() => {
+                        const data = deactivateFetcher.data as any;
+                        if (
+                          data &&
+                          data.code === "ADMIN_PROTECT" &&
+                          lastDeactivateId === user.id
+                        ) {
+                          return (
+                            <div className="inline-error" role="alert">
+                              No se puede eliminar el usuario ADMIN.
+                            </div>
+                          );
+                        }
+                        if (
+                          data &&
+                          data.error &&
+                          !data.code &&
+                          lastDeactivateId === user.id
+                        ) {
+                          return (
+                            <div className="inline-error" role="alert">
+                              {String(data.error)}
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        style={{ display: "inline-block", marginLeft: 8 }}
+                        disabled={reactivating}
+                        onClick={() => setPendingReactivateId(user.id)}
+                      >
+                        {reactivating ? "Reactivando..." : "Reactivar"}
+                      </button>
+                    </>
                   )}
                 </td>
               </tr>
@@ -118,6 +173,45 @@ export function UserTable({ users, editingId }: Props) {
           </tbody>
         </table>
       )}
+
+      {pendingDeactivateId != null && (
+        <ConfirmPrompt
+          message="¿Seguro que desea desactivar este usuario?"
+          busy={deactivating}
+          onCancel={() => setPendingDeactivateId(null)}
+          onConfirm={() => {
+            const id = pendingDeactivateId;
+            setPendingDeactivateId(null);
+            setLastDeactivateId(id);
+            deactivateFetcher.submit(
+              { id: String(id), _action: "deactivate" },
+              { method: "post", action: `.${location.search}` }
+            );
+          }}
+        />
+      )}
+
+      {pendingReactivateId != null && (
+        <ConfirmPrompt
+          message="¿Seguro que desea reactivar este usuario?"
+          busy={reactivating}
+          onCancel={() => setPendingReactivateId(null)}
+          onConfirm={() => {
+            const id = pendingReactivateId;
+            setPendingReactivateId(null);
+            reactivateFetcher.submit(
+              { id: String(id), _action: "reactivate" },
+              { method: "post", action: `.${location.search}` }
+            );
+          }}
+        />
+      )}
     </>
   );
 }
+
+      {reactivateFetcher.data && (reactivateFetcher.data as any).error && (
+        <div className="inline-error" role="alert" style={{ marginTop: 8 }}>
+          {String((reactivateFetcher.data as any).error)}
+        </div>
+      )}

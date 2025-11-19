@@ -1,174 +1,138 @@
-﻿import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import {
   createProvider,
+  deactivateProvider,
   getAllProviders,
   getProviderById,
   reactivateProvider,
   updateProvider,
 } from "./provider.service.js";
-import { AppError } from "@back/src/shared/errors/AppError.js";
+import { makeProviderRepository } from "./provider.repo.typeorm.js";
+import { AppDataSource } from "@back/src/shared/database/data-source.js";
 
-export const createProviderHandler = async (req: Request, res: Response) => {
+const providerRepo = makeProviderRepository(AppDataSource);
+const parseId = (req: Request) => Number.parseInt(req.params.id, 10);
+
+export const createProviderHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const provider = await createProvider(req.body);
+    const sessionUser = req.session?.user;
+    if (!sessionUser) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+    const provider = await createProvider(providerRepo, {
+      actorId: sessionUser.id,
+      ...req.body,
+    });
     res.status(201).json(provider);
   } catch (error) {
-    console.error("Error al intentar crear el proveedor: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };
 
-export const updateProviderHandler = async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id, 10);
-
+export const updateProviderHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const id = parseId(req);
   try {
-    const updated = await updateProvider({ id, ...req.body });
+    const sessionUser = req.session?.user;
+    if (!sessionUser) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+    const updated = await updateProvider(providerRepo, {
+      actorId: sessionUser.id,
+      id,
+      ...req.body,
+    });
     res.status(200).json(updated);
   } catch (error) {
-    console.error("Error al intentar modificar el proveedor: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };
 
 export const deactivateProviderHandler = async (
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ) => {
-  const id = parseInt(req.params.id, 10);
-
+  const id = parseId(req);
   try {
-    const provider = await updateProvider({ id, active: false });
+    const sessionUser = req.session?.user;
+    if (!sessionUser) {
+      return res.status(401).json({ message: "No autenticado" });
+    }
+    const strategy = req.body?.strategy as
+      | "clear-products-provider"
+      | "cascade-deactivate-products"
+      | "cancel"
+      | undefined;
+    const provider = await deactivateProvider(
+      providerRepo,
+      {
+        actorId: sessionUser.id,
+        id,
+        strategy,
+      }
+    );
     res.status(200).json(provider);
   } catch (error) {
-    console.error("Error al intentar dar de baja el proveedor: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };
 
 export const reactivateProviderHandler = async (
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ) => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseId(req);
   try {
-    const brand = await reactivateProvider(id);
-    res.status(200).json(brand);
-  } catch (error) {
-    console.error("Error al intentar reactivar el proveedor: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
+    const sessionUser = req.session?.user;
+    if (!sessionUser) {
+      return res.status(401).json({ message: "No autenticado" });
     }
-    res.status(status).json(body);
+    const provider = await reactivateProvider(providerRepo, {
+      actorId: sessionUser.id,
+      id,
+    });
+    res.status(200).json(provider);
+  } catch (error) {
+    next(error);
   }
 };
 
-export const getAllProvidersHandler = async (req: Request, res: Response) => {
-  const { includeInactive, sortField, sortDirection } = req.query as {
-    includeInactive: string;
-    sortField: "name" | "active";
-    sortDirection: "ASC" | "DESC";
-  };
+export const getAllProvidersHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const includeInactive = req.query.includeInactive as string | undefined;
   try {
     const providers = await getAllProviders(
-      includeInactive === "1" || includeInactive === "true",
-      {
-        field: sortField ? sortField : "name",
-        direction:
-          (sortDirection ?? "ASC").toUpperCase() === "DESC" ? "DESC" : "ASC",
-      }
+      providerRepo,
+      includeInactive === "1" || includeInactive === "true"
     );
     res.status(200).json(providers);
   } catch (error) {
-    console.error(
-      "Error al intentar acceder a la lista de proveedores: ",
-      error
-    );
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };
 
-export const getProviderByIdHandler = async (req: Request, res: Response) => {
-  const id = parseInt(req.params.id, 10);
+export const getProviderByIdHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const id = parseId(req);
   try {
-    const provider = await getProviderById(id);
+    const provider = await getProviderById(providerRepo, id);
     res.status(200).json(provider);
   } catch (error) {
-    console.error("Error al intentar acceder al proveedor: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };

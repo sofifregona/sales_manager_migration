@@ -1,169 +1,125 @@
-﻿import type { Request, Response } from "express";
+﻿import type { NextFunction, Request, Response } from "express";
 import {
   createBartable,
   getAllBartables,
   getBartableById,
   updateBartable,
-  reactivateAccount,
-  softDeleteBartable,
+  reactivateBartable,
+  deactivateBartable,
+  reactivateBartableSwap,
 } from "./bartable.service.js";
 import { AppError } from "@back/src/shared/errors/AppError.js";
+import { makeBartableRepository } from "./bartable.repo.typeorm.js";
+import { AppDataSource } from "@back/src/shared/database/data-source.js";
 
-export const createBartableHandler = async (req: Request, res: Response) => {
+const bartableRepo = makeBartableRepository(AppDataSource);
+// const productRepo = makeProductRepository(AppDataSource);
+const parseId = (req: Request) => Number.parseInt(req.params.id, 10);
+
+export const createBartableHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
-    const bartable = await createBartable(req.body);
-    res.status(201).json(bartable);
+    const created = await createBartable(bartableRepo, {
+      number: req.body.number,
+    });
+    res.status(201).json(created);
   } catch (error) {
-    console.error("Error al intentar crear la mesa: ", error);
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };
 
-export const updateBartableHandler = async (req: Request, res: Response) => {
+export const updateBartableHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const id = parseInt(req.params.id, 10);
 
   try {
-    const updated = await updateBartable({ id, ...req.body });
+    const updated = await updateBartable(bartableRepo, {
+      id,
+      number: req.body.number,
+    });
     res.status(200).json(updated);
   } catch (error) {
-    console.error("Error al intentar modificar la mesa: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };
 
 export const deactivateBartableHandler = async (
   req: Request,
-  res: Response
+  res: Response,
+  next: NextFunction
 ) => {
   const id = parseInt(req.params.id, 10);
 
   try {
-    const bartable = await softDeleteBartable(id);
-    res.status(200).json(bartable);
+    const deactivated = await deactivateBartable(bartableRepo, id);
+    res.status(200).json(deactivated);
   } catch (error) {
-    console.error("Error al intentar eliminar la mesa: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };
 
-export const reactivateAccountHandler = async (req: Request, res: Response) => {
+export const reactivateBartableHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const id = parseInt(req.params.id, 10);
   try {
-    const account = await reactivateAccount(id);
+    const account = await reactivateBartable(bartableRepo, id);
     res.status(200).json(account);
   } catch (error) {
-    console.error("Error al intentar reactivar la mesa: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };
 
-export const getAllBartablesHandler = async (req: Request, res: Response) => {
-  const { includeInactive, sortField, sortDirection } = req.query as {
-    includeInactive: string;
-    sortField: "number" | "active";
-    sortDirection: "ASC" | "DESC";
-  };
-
+export const reactivateBartableSwapHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  const currentId = parseInt((req.body as any)?.currentId, 10);
+  const inactiveId = parseInt((req.body as any)?.inactiveId, 10);
   try {
-    const bartables = await getAllBartables(
-      includeInactive === "1" || includeInactive === "true",
-      {
-        field: sortField ? sortField : "number",
-        direction:
-          (sortDirection ?? "ASC").toUpperCase() === "DESC" ? "DESC" : "ASC",
-      }
-    );
+    const swapped = await reactivateBartableSwap(bartableRepo, {
+      inactiveId,
+      currentId,
+    });
+    res.status(200).json(swapped);
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getAllBartablesHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const includeInactive = ["1", "true"].includes(String(req.query.includeInactive));
+    const bartables = await getAllBartables(bartableRepo, includeInactive);
     res.status(200).json(bartables);
   } catch (error) {
-    console.error("Error al intentar acceder a la lista de mesas: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };
 
-export const getBartableByIdHandler = async (req: Request, res: Response) => {
+export const getBartableByIdHandler = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   const id = parseInt(req.params.id, 10);
   try {
-    const bartable = await getBartableById(id);
+    const bartable = await getBartableById(bartableRepo, id);
     res.status(200).json(bartable);
   } catch (error) {
-    console.error("Error al intentar acceder a la mesa: ", error);
-
-    const isAppError = error instanceof AppError && error.statusCode;
-    const status = isAppError ? error.statusCode : 500;
-    const body: any = {
-      message: isAppError
-        ? (error as AppError).message
-        : "Ocurrió un error inesperado",
-    };
-    if (isAppError) {
-      const e = error as AppError;
-      if (e.code) body.code = e.code;
-      if (e.details) body.details = e.details;
-    }
-    res.status(status).json(body);
+    next(error);
   }
 };

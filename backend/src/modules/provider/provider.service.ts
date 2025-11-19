@@ -1,4 +1,4 @@
-﻿import { providerRepo } from "./provider.repo.js";
+import type { ProviderRepository } from "./provider.repo.js";
 import { Provider } from "./provider.entity.js";
 import { AppError } from "@back/src/shared/errors/AppError.js";
 
@@ -8,22 +8,34 @@ import {
   validateEmailFormat,
   validateTelephone,
 } from "@back/src/shared/utils/validations/validationPerson.js";
+import {
+  validateNumberID,
+  validateRangeLength,
+} from "@back/src/shared/utils/validations/validationHelpers.js";
 
-import { validateNumberID, validateRangeLength } from "@back/src/shared/utils/validations/validationHelpers.js";
+import { createAuditLog } from "../auditLog/audit-log.service.js";
+import { makeAuditLogRepository } from "../auditLog/audit-log.repo.typeorm.js";
+import { AppDataSource } from "@back/src/shared/database/data-source.js";
 
-// SERVICE FOR CREATE A BARTABLE
-export const createProvider = async (data: {
-  name: string;
-  cuit: number | null;
-  telephone: number | null;
-  email: string | null;
-  address: string | null;
-}) => {
-  const { name, cuit, telephone, email, address } = data;
+const auditLogRepo = makeAuditLogRepository(AppDataSource);
+const PROVIDER_ENTITY = "Provider";
+
+export const createProvider = async (
+  repo: ProviderRepository,
+  data: {
+    actorId: number;
+    name: string;
+    cuit: number | null;
+    telephone: number | null;
+    email: string | null;
+    address: string | null;
+  }
+) => {
+  const { actorId, name, cuit, telephone, email, address } = data;
   const cleanedName = name.replace(/\s+/g, " ").trim();
   validateRangeLength(cleanedName, 8, 80, "Nombre");
   const normalizedName = normalizeText(cleanedName);
-  const duplicate = await providerRepo.findOneBy({ normalizedName });
+  const duplicate = await repo.findByNormalizedName(normalizedName);
 
   if (duplicate?.active) {
     throw new AppError(
@@ -34,9 +46,18 @@ export const createProvider = async (data: {
     );
   }
 
+  if (duplicate && !duplicate.active) {
+    throw new AppError(
+      "(Error) Se ha detectado un proveedor inactivo con este nombre.",
+      409,
+      "PROVIDER_EXISTS_INACTIVE",
+      { existingId: duplicate.id }
+    );
+  }
+
   if (cuit !== null) {
     validateCUI(cuit, 11, "CUIT");
-    const duplicatedByCuit = await providerRepo.findOneBy({ cuit });
+    const duplicatedByCuit = await repo.findByCuit(cuit);
     if (duplicatedByCuit?.active) {
       throw new AppError(
         "(Error) Ya existe un proveedor activo con este CUIT.",
@@ -55,49 +76,65 @@ export const createProvider = async (data: {
     validateEmailFormat(email);
   }
 
-  if (duplicate && !duplicate.active) {
-    throw new AppError(
-      "(Error) Se ha detectado un proveedor inactivo con este nombre.",
-      409,
-      "PROVIDER_EXISTS_INACTIVE",
-      { existingId: duplicate.id }
-    );
-  }
-
-  const newProvider = Object.assign(new Provider(), {
+  const entity = repo.create({
     name: cleanedName,
     normalizedName,
-    cuit: cuit ?? null,
-    telephone: telephone ?? null,
+    cuit,
+    telephone,
     email: email != null ? email.replace(/\s+/g, " ").trim() : null,
     address: address != null ? address.replace(/\s+/g, " ").trim() : null,
     active: true,
   });
 
-  return await providerRepo.save(newProvider);
+  const saved = await repo.save(entity as Provider);
+  await createAuditLog(auditLogRepo, {
+    userId: actorId,
+    entity: PROVIDER_ENTITY,
+    entityId: saved.id,
+    action: "PROVIDER_CREATE",
+    payload: {
+      new: {
+        name: saved.name,
+        cuit: saved.cuit,
+        telephone: saved.telephone,
+        email: saved.email,
+        address: saved.address,
+      },
+    },
+  });
+  return saved;
 };
 
-// SERVICE FOR UPDATE OR DEACTIVATE A BARTABLE
-export const updateProvider = async (updatedData: {
-  id: number;
-  name?: string;
-  cuit?: number | null;
-  telephone?: number | null;
-  email?: string | null;
-  address?: string | null;
-}) => {
-  const { id, name, cuit, telephone, email, address } = updatedData;
+type ProviderChanges = Record<
+  string,
+  { previous: string | number | null; current: string | number | null }
+>;
+
+export const updateProvider = async (
+  repo: ProviderRepository,
+  updatedData: {
+    actorId: number;
+    id: number;
+    name?: string;
+    cuit?: number | null;
+    telephone?: number | null;
+    email?: string | null;
+    address?: string | null;
+  }
+): Promise<Provider | null> => {
+  const { actorId, id, name, cuit, telephone, email, address } = updatedData;
   validateNumberID(id, "Proveedor");
-  const existing = await providerRepo.findOneBy({ id, active: true });
+  const existing = await repo.findActiveById(id);
   if (!existing) throw new AppError("(Error) Proveedor no encontrado", 404);
 
-  const data: Partial<Provider> = {};
+  const patch: Partial<Provider> = {};
+  const changes: ProviderChanges = {};
 
   if (name !== undefined) {
     const cleanedName = name.replace(/\s+/g, " ").trim();
     validateRangeLength(cleanedName, 8, 80, "Nombre");
     const normalizedName = normalizeText(cleanedName);
-    const duplicate = await providerRepo.findOneBy({ normalizedName });
+    const duplicate = await repo.findByNormalizedName(normalizedName);
     if (duplicate && duplicate.id !== id && duplicate.active) {
       throw new AppError(
         "(Error) Ya existe un proveedor activo con este nombre.",
@@ -107,23 +144,24 @@ export const updateProvider = async (updatedData: {
       );
     }
     if (duplicate && duplicate.id !== id && !duplicate.active) {
-      // No swap automático: informamos conflicto reactivable
       throw new AppError(
         "(Error) Ya existe un proveedor inactivo con este nombre.",
         409,
         "PROVIDER_EXISTS_INACTIVE",
         { existingId: duplicate.id }
       );
-    } else {
-      data.name = cleanedName;
-      data.normalizedName = normalizedName;
+    }
+    if (cleanedName !== existing.name) {
+      patch.name = cleanedName;
+      patch.normalizedName = normalizedName;
+      changes.name = { previous: existing.name, current: cleanedName };
     }
   }
 
   if (cuit !== undefined) {
     if (cuit !== null) {
       validateCUI(cuit, 11, "CUIT");
-      const duplicate = await providerRepo.findOneBy({ cuit });
+      const duplicate = await repo.findByCuit(cuit);
       if (duplicate && duplicate.id !== id && duplicate.active) {
         throw new AppError(
           "(Error) Ya existe un proveedor activo con este CUIT.",
@@ -133,34 +171,84 @@ export const updateProvider = async (updatedData: {
         );
       }
     }
-    data.cuit = cuit;
+    if (cuit !== existing.cuit) {
+      patch.cuit = cuit;
+      changes.cuit = {
+        previous: existing.cuit,
+        current: cuit ?? null,
+      };
+    }
   }
 
   if (telephone !== undefined) {
     if (telephone !== null) {
       validateTelephone(telephone, "Teléfono");
     }
-    data.telephone = telephone;
+    if (telephone !== existing.telephone) {
+      patch.telephone = telephone;
+      changes.telephone = {
+        previous: existing.telephone,
+        current: telephone ?? null,
+      };
+    }
   }
 
   if (email !== undefined) {
     if (email !== null) {
       validateEmailFormat(email);
     }
-    data.email = email != null ? email.replace(/\s+/g, " ").trim() : null;
+    const normalizedEmail =
+      email != null ? email.replace(/\s+/g, " ").trim() : null;
+    if (normalizedEmail !== existing.email) {
+      patch.email = normalizedEmail;
+      changes.email = {
+        previous: existing.email,
+        current: normalizedEmail,
+      };
+    }
   }
 
   if (address !== undefined) {
-    data.address = address != null ? address.replace(/\s+/g, " ").trim() : null;
+    const normalizedAddress =
+      address != null ? address.replace(/\s+/g, " ").trim() : null;
+    if (normalizedAddress !== existing.address) {
+      patch.address = normalizedAddress;
+      changes.address = {
+        previous: existing.address,
+        current: normalizedAddress,
+      };
+    }
   }
 
-  await providerRepo.update(id, data);
-  return await providerRepo.findOneBy({ id });
+  if (Object.keys(patch).length) {
+    await repo.updateFields(id, patch);
+  }
+
+  const provider = await repo.findById(id);
+  if (provider && Object.keys(changes).length) {
+    await createAuditLog(auditLogRepo, {
+      userId: actorId,
+      entity: PROVIDER_ENTITY,
+      entityId: provider.id,
+      action: "PROVIDER_UPDATE",
+      payload: { changes },
+    });
+  }
+  return provider;
 };
 
-export const reactivateProvider = async (id: number) => {
+type DeactivateProviderStrategy =
+  | "clear-products-provider"
+  | "cascade-deactivate-products"
+  | "cancel";
+
+export const reactivateProvider = async (
+  repo: ProviderRepository,
+  data: { actorId: number; id: number }
+) => {
+  const { actorId, id } = data;
   validateNumberID(id, "Proveedor");
-  const existing = await providerRepo.findOneBy({ id });
+  const existing = await repo.findById(id);
   if (!existing) throw new AppError("(Error) Proveedor no encontrado.", 404);
   if (existing.active) {
     throw new AppError(
@@ -170,35 +258,101 @@ export const reactivateProvider = async (id: number) => {
       { existingId: existing.id }
     );
   }
-  await providerRepo.update(id, { active: true });
-  return await providerRepo.findOneBy({ id });
+  await repo.reactivate(id);
+  const provider = await repo.findById(id);
+  if (provider) {
+    await createAuditLog(auditLogRepo, {
+      userId: actorId,
+      entity: PROVIDER_ENTITY,
+      entityId: provider.id,
+      action: "PROVIDER_REACTIVATE",
+    });
+  }
+  return provider;
 };
 
-export const softDeleteProvider = async (id: number) => {
+export const deactivateProvider = async (
+  repo: ProviderRepository,
+  data: {
+    actorId: number;
+    id: number;
+    strategy?: DeactivateProviderStrategy;
+  }
+) => {
+  const { actorId, id, strategy } = data;
   validateNumberID(id, "Proveedor");
 
-  const existing = await providerRepo.findOneBy({ id, active: true });
+  const existing = await repo.findActiveById(id);
   if (!existing) throw new AppError("(Error) Proveedor no encontrado.", 404);
-  await providerRepo.update(id, { active: false });
+
+  const count = await repo.countActiveProducts(id);
+  if (count > 0 && !strategy) {
+    throw new AppError(
+      `(Advertencia) El proveedor que desea eliminar está asociado a ${
+        count === 1 ? "un producto" : `${count} productos`
+      }.`,
+      409,
+      "PROVIDER_IN_USE",
+      {
+        count,
+        allowedStrategies: [
+          "clear-products-provider",
+          "cascade-deactivate-products",
+          "cancel",
+        ],
+      }
+    );
+  }
+
+  if (count === 0 || strategy === "cancel") {
+    if (strategy === "cancel") return existing;
+    await repo.deactivate(id);
+    const provider = await repo.findById(id);
+    if (provider) {
+      await createAuditLog(auditLogRepo, {
+        userId: actorId,
+        entity: PROVIDER_ENTITY,
+        entityId: provider.id,
+        action: "PROVIDER_DEACTIVATE",
+        payload: { strategy: strategy ?? "default" },
+      });
+    }
+    return provider;
+  }
+
+  if (strategy === "clear-products-provider") {
+    await repo.clearProviderFromActiveProducts(id);
+  }
+  if (strategy === "cascade-deactivate-products") {
+    await repo.deactivateActiveProducts(id);
+  }
+  await repo.deactivate(id);
+  const provider = await repo.findById(id);
+  if (provider) {
+    await createAuditLog(auditLogRepo, {
+      userId: actorId,
+      entity: PROVIDER_ENTITY,
+      entityId: provider.id,
+      action: "PROVIDER_DEACTIVATE",
+      payload: { strategy: strategy ?? "default" },
+    });
+  }
+  return provider;
 };
 
 export const getAllProviders = async (
-  includeInactive: boolean,
-  sort?: { field?: "name" | "active"; direction?: "ASC" | "DESC" }
+  repo: ProviderRepository,
+  includeInactive: boolean
 ) => {
-  const where = includeInactive ? {} : { active: true };
-  const order: Record<string, "ASC" | "DESC"> = {};
-  const field =
-    sort?.field === "name" ? "normalizedName" : sort?.field ?? "normalizedName";
-  const direction = sort?.direction ?? "ASC";
-  order[field] = direction;
-  return await providerRepo.find({ where, order });
+  return repo.getAll(includeInactive);
 };
 
-// SERVICE FOR GETTING A BARTABLE BY ID
-export const getProviderById = async (id: number) => {
+export const getProviderById = async (
+  repo: ProviderRepository,
+  id: number
+) => {
   validateNumberID(id, "Proveedor");
-  const existing = await providerRepo.findOneBy({ id, active: true });
+  const existing = await repo.findActiveById(id);
   if (!existing) throw new AppError("(Error) Proveedor no encontrada", 404);
   return existing;
 };

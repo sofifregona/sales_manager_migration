@@ -1,42 +1,42 @@
 ﻿// **IMPORTS**
-// Libraries
-import {
-  Form,
-  useLoaderData,
-  useActionData,
-  useFetcher,
-  Link,
-} from "react-router-dom";
-import { useMemo, useState } from "react";
-// Types
+import { useLoaderData, useFetcher, useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { ConfirmPrompt } from "~/shared/ui/prompts/ConfirmPrompt";
 import type { BartableDTO } from "~/feature/bartable/bartable";
 import type { EmployeeDTO } from "~/feature/employee/employee";
 import type { SaleLoaderData } from "~/feature/sale/types/sale";
-// loader & Action
-
-// Helpers
-import { normalizeText } from "~/utils/strings/normalizeText";
+import { SaleAddProductFilter } from "../ui/SaleAddProductFilter";
+import { SaleAddedProductsList } from "../ui/SaleAddedProductsList";
+import { SalePaymentForm } from "../ui/SalePaymentForm";
+import "./OpenSalePanelScreen.sass";
 
 export function OpenSalePanelScreen() {
-  const actionData = useActionData() as {
-    error?: string;
-    status?: number;
-    source?: "client" | "server";
-  };
   const { sale, products, categories, payments, prop, propType } =
     useLoaderData<SaleLoaderData>();
 
   const productFetcher = useFetcher();
   const deleteFetcher = useFetcher();
-  const payFetcher = useFetcher();
+  const closeFetcher = useFetcher();
+  const navigate = useNavigate();
 
   const [code, setCode] = useState("");
   const [idPayment, setIdPayment] = useState("");
   const [nameFilter, setNameFilter] = useState<string>("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>();
+  const [showBackPrompt, setShowBackPrompt] = useState(false);
+  const [showClosePrompt, setShowClosePrompt] = useState(false);
 
-  const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const digits = e.target.value.replace(/\D/g, "");
+  const handleBackClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    e.preventDefault();
+    if ((sale.products ?? []).length > 0) {
+      navigate("../../sale/order");
+      return;
+    }
+    setShowBackPrompt(true);
+  };
+
+  const handleCodeChange = (value: string) => {
+    const digits = value.replace(/\D/g, "");
     const result = digits.replace(/^0+(?=[1-9])/, "").slice(0, 3);
     if (!digits) {
       setCode("");
@@ -45,224 +45,108 @@ export function OpenSalePanelScreen() {
     }
   };
 
-  const nf = normalizeText(nameFilter);
-  const filteredProducts = useMemo(() => {
-    return products
-      .filter((p) =>
-        selectedCategoryId === undefined
-          ? true
-          : selectedCategoryId === null
-          ? p.category == null || p.category?.id == null
-          : p.category?.id === selectedCategoryId
-      )
-      .filter((p) => {
-        const words = p.normalizedName.split(/[\s-]+/);
-        return nf.trim() === ""
-          ? true
-          : words.some((w: string) => w.startsWith(nf));
-      })
-      .filter((p) => {
-        if (!code) return true;
-        return p.code.toString().startsWith(code.replace(/^0+/, ""));
-      });
-  }, [products, selectedCategoryId, nf, code]);
-
   return (
-    <div>
-      <h1>
+    <>
+      <div style={{ marginTop: 12, marginBottom: 12 }}>
+        <button type="button" className="btn" onClick={handleBackClick}>
+          Volver atrás
+        </button>
+      </div>
+      <div className="open-sale-panel">
+        {/* <h1>
         Venta abierta para{" "}
-        {propType === "bartable"
-          ? `mesa: ${(prop as BartableDTO).number}`
-          : `empleado: ${(prop as EmployeeDTO).name}`}
-      </h1>
-      <Form method="post">
-        <h2>Agregar producto</h2>
-        <div className="filterProducts">
-          <div className="field">
-            <label htmlFor="filterName">Nombre</label>
-            <input
-              id="filterName"
-              type="text"
-              value={nameFilter}
-              onChange={(e) => setNameFilter(e.target.value)}
-              placeholder="Buscar por nombreâ€¦"
-              autoComplete="off"
-            />
-          </div>
+        {propType === "bartable" ? "la mesa: " : "el empleado: "}
+      </h1> */}
+        <div className="added-products-panel">
+          <SaleAddedProductsList
+            items={sale.products ?? []}
+            total={sale.total}
+            productFetcher={productFetcher}
+          />
 
-          <div className="field">
-            <label htmlFor="filterCode">Código</label>
-            <input
-              id="filterCode"
-              type="text"
-              inputMode="numeric"
-              value={code}
-              onChange={handleCodeChange}
-              placeholder="000"
-              autoComplete="off"
-            />
-          </div>
+          <SalePaymentForm
+            payments={payments}
+            idPayment={idPayment}
+            onPaymentChange={setIdPayment}
+            onRequestClose={() => {
+              if (!idPayment) return;
+              setShowClosePrompt(true);
+            }}
+            disabled={closeFetcher.state !== "idle"}
+          />
         </div>
-        <div
-          style={{ display: "grid", gridTemplateColumns: "260px 1fr", gap: 16 }}
-        >
-          <div className="categoriesList">
-            <h3>Categorías</h3>
-            <ul>
-              <li
-                key={"all"}
-                onMouseDown={() => {
-                  setSelectedCategoryId(undefined);
-                }}
-                className={
-                  selectedCategoryId === undefined ? "is-selected" : ""
-                }
-              >
-                {"Todos"}
-              </li>
-              {categories.map((category) => (
-                <li
-                  key={category.id}
-                  onMouseDown={() => {
-                    setSelectedCategoryId(category.id);
-                  }}
-                  className={
-                    selectedCategoryId === category.id ? "is-selected" : ""
-                  }
+
+        <div className="search-product-panel">
+          <SaleAddProductFilter
+            products={products}
+            categories={categories}
+            nameFilter={nameFilter}
+            code={code}
+            selectedCategoryId={selectedCategoryId}
+            onNameFilterChange={setNameFilter}
+            onCodeChange={handleCodeChange}
+            onSelectCategory={setSelectedCategoryId}
+            productFetcher={productFetcher}
+          />
+        </div>
+
+        {showBackPrompt && (
+          <div className="overlay" role="dialog" aria-modal="true">
+            <div className="overlay__content">
+              <p>
+                No hay productos cargados en la venta. Si regresás al panel de
+                órdenes, la venta se eliminará. ¿Deseás continuar?
+              </p>
+              <div className="overlay__actions">
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  onClick={() => setShowBackPrompt(false)}
                 >
-                  {category.name}
-                </li>
-              ))}
-              <li
-                key={"other"}
-                onMouseDown={() => {
-                  setSelectedCategoryId(null);
-                }}
-                className={selectedCategoryId === null ? "is-selected" : ""}
-              >
-                {"Otros"}
-              </li>
-            </ul>
-            <input
-              name={"category"}
-              type="hidden"
-              value={selectedCategoryId ?? ""}
-            />
-          </div>
-          <div className="productList">
-            <h3>Productos</h3>
-            <ul>
-              {filteredProducts.map((p) => (
-                <li key={`li_filteredProduct_${p.id}`}>
-                  <productFetcher.Form method="post" action=".">
-                    <button
-                      type="submit"
-                      name="idProduct"
-                      value={String(p.id)}
-                      className="productBtn"
-                    >
-                      <span className="productName">{p.name}</span>{" "}
-                      <span className="productCode">
-                        ({String(p.code ?? "").padStart(3, "0")})
-                      </span>
-                      <input type="hidden" name="op" value="add" />
-                    </button>
-                  </productFetcher.Form>
-                </li>
-              ))}
-              {filteredProducts.length === 0 && (
-                <li className="empty">No hay productos que coincidan.</li>
-              )}
-            </ul>
-          </div>
-        </div>
-
-        <h2>Lista de productos agregados</h2>
-        {sale.products.length === 0 ? (
-          <p>No hay productos agregadps</p>
-        ) : (
-          <div className="addedProducts">
-            <table className="addedProductsList">
-              <thead>
-                <th style={{ width: 100 }}>Agregar</th>
-                <th style={{ width: 500 }}>Producto</th>
-                <th style={{ width: 100 }}>Disminuir</th>
-              </thead>
-              <tbody>
-                {(sale.products ?? []).map((ps) => (
-                  <tr key={`tr_product_${ps.id}`}>
-                    <td style={{ width: 100 }}>
-                      <productFetcher.Form method="post" action=".">
-                        <button type="submit" name="op" value="substract">
-                          <span>(-)</span>
-                          <input
-                            type="hidden"
-                            value={ps.product.id}
-                            name="idProduct"
-                          />
-                        </button>
-                      </productFetcher.Form>
-                    </td>
-                    <td style={{ width: 500 }}>
-                      {ps.product.name} {`Unidades: ${ps.quantity}`}{" "}
-                      {`Subtotal: ${ps.subtotal}`}
-                    </td>
-                    <td style={{ width: 100 }}>
-                      <productFetcher.Form method="post" action=".">
-                        <button type="submit" name="op" value="add">
-                          <span>(+)</span>
-                          <input
-                            type="hidden"
-                            value={ps.product.id}
-                            name="idProduct"
-                          />
-                        </button>
-                      </productFetcher.Form>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                  Cancelar
+                </button>
+                <button
+                  type="button"
+                  className="btn btn--danger"
+                  onClick={() => {
+                  deleteFetcher.submit(
+                    { id: String(sale.id), source: "open" },
+                    { method: "post", action: "/sale" }
+                  );
+                  }}
+                >
+                  Eliminar y volver
+                </button>
+              </div>
+            </div>
           </div>
         )}
-        <deleteFetcher.Form>
-          <Link to={"../../sale/order"}>Eliminar venta</Link>
-          <Link to={"../../sale/order"}>Volver atrás</Link>
-        </deleteFetcher.Form>
-        <h2>Total</h2>
-        <span>{sale.total}</span>
-        <h2>Cerrar venta</h2>
-        <payFetcher.Form method="post" action=".">
-          {payments.length === 0 && (
-            <span>No hay métodos de pago configurados.</span>
-          )}
 
-          <select
-            id="payments"
-            name="idPayment"
-            value={idPayment}
-            onChange={(e) => setIdPayment(e.target.value)}
-            required
-          >
-            <option value="" disabled>
-              — Selecciona un método de pago —
-            </option>
-            {payments.map((pym) => (
-              <option key={`opt_paymentId_${pym.id}`} value={pym.id}>
-                {pym.name}
-              </option>
-            ))}
-          </select>
-          <input id="open" type="hidden" name="open" value={"false"} />
-          <button type="submit">Pagar</button>
-        </payFetcher.Form>
-      </Form>
-    </div>
+        <ConfirmPrompt
+          open={showClosePrompt}
+          message="Se cerrará la venta y no podrás modificarla luego. ¿Deseás continuar?"
+          busy={closeFetcher.state !== "idle"}
+          onCancel={() => setShowClosePrompt(false)}
+          onConfirm={() => {
+            setShowClosePrompt(false);
+            closeFetcher.submit(
+              { idPayment, _action: "close" },
+              { method: "post", action: "." }
+            );
+          }}
+        />
+        {closeFetcher.data?.error && (
+          <div className="inline-error" role="alert">
+            {String(closeFetcher.data.error)}
+          </div>
+        )}
+      </div>
+    </>
   );
 }
 
 export function SaleEditErrorBoundary({ error }: { error: unknown }) {
-  let message = "Ocurrió un error al cargar el método de pago";
+  let message = "Ocurrió un error al cargar la venta";
   if (error instanceof Error) {
     message = error.message;
   }

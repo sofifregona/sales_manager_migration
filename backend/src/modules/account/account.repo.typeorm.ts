@@ -23,19 +23,9 @@ export function makeAccountRepository(ds: DataSource): AccountRepository {
     async findByNormalizedName(normalizedName) {
       return accountRepo.findOneBy({ normalizedName });
     },
-    async getAll({
-      includeInactive,
-      sortField = "normalizedName",
-      sortDirection = "ASC",
-    }) {
+    async getAll(includeInactive: boolean) {
       const where = includeInactive ? {} : { active: true };
-      const map: Record<string, string> = {
-        name: "normalizedName",
-        active: "active",
-        id: "id",
-      };
-      const col = map[sortField] ?? "normalizedName";
-      return accountRepo.find({ where, order: { [col]: sortDirection } });
+      return accountRepo.find({ where, order: { normalizedName: "ASC" } });
     },
 
     async updateFields(id, patch) {

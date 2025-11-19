@@ -1,4 +1,4 @@
-﻿import type { ActionFunctionArgs } from "react-router-dom";
+import type { ActionFunctionArgs } from "react-router-dom";
 import { runWithRequest } from "~/lib/http/requestContext.server";
 import { jsonResponse } from "~/lib/http/jsonResponse";
 import { parseCRUDIntent } from "~/utils/validation/intents";
@@ -17,15 +17,18 @@ export async function providerAction({ request }: ActionFunctionArgs) {
 
     switch (parsed.intent) {
       case "deactivate":
-        return await handleProviderDeactivate({ formData });
+        return await handleProviderDeactivate({ url, formData });
       case "reactivate":
-        return await handleProviderReactivate({ formData });
-      case "reactivate-swap":\n        return await (await import("./handlers/provider-reactivate-swap.server")).handleProviderReactivateSwap({ formData });\n      case "create":
-        return await handleProviderCreate({ formData });
+        return await handleProviderReactivate({ url, formData });
+      case "create":
+        return await handleProviderCreate({ url, formData });
       case "update":
         return await handleProviderUpdate({ url, formData });
       default:
-        return jsonResponse(400, { error: "(Error) Acción no soportada.", source: "client" });
+        return jsonResponse(400, {
+          error: "(Error) Acción no soportada.",
+          source: "client",
+        });
     }
   });
 }

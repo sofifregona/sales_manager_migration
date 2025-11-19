@@ -17,14 +17,13 @@ export async function userLoader({
 }: LoaderFunctionArgs): Promise<UserLoaderData> {
   return runWithRequest(request, async () => {
     const url = new URL(request.url);
-    const idParam = url.searchParams.get("id");
-    const created = url.searchParams.get("created") === "1";
-    const updated = url.searchParams.get("updated") === "1";
-    const deleted = url.searchParams.get("deleted") === "1";
+    const flash: Flash = {} as Flash;
+
+    const includeInactive = url.searchParams.get("includeInactive") === "1";
 
     let users: UserDTO[] | null = null;
     try {
-      users = await getAllUsers();
+      users = await getAllUsers(includeInactive);
     } catch (error) {
       const parsed = parseAppError(
         error,
@@ -36,8 +35,8 @@ export async function userLoader({
       });
     }
 
+    const idParam = url.searchParams.get("id");
     let editingUser: UserDTO | null = null;
-    const flash: Flash = { created, updated, deleted };
 
     if (idParam) {
       const idRequiredError = validateRequiredId(idParam, "Usuario");
@@ -48,13 +47,6 @@ export async function userLoader({
       }
 
       const id = parseInt(idParam as string, 10);
-      const idError = validateNumberId(id, "Usuario");
-      if (idError) {
-        flash.error = idError.error;
-        flash.source = idError.source;
-        return { users, editingUser, flash };
-      }
-
       try {
         editingUser = await getUserById(id);
       } catch (error) {

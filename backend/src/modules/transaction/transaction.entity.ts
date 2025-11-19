@@ -9,6 +9,7 @@
 } from "typeorm";
 import { Account } from "../account/account.entity.js";
 import { Sale } from "../sale/sale.entity.js";
+import { User } from "../user/user.entity.js";
 
 @Entity()
 export class Transaction {
@@ -18,6 +19,9 @@ export class Transaction {
   @CreateDateColumn({ type: "datetime" })
   @Index()
   dateTime!: Date;
+
+  @ManyToOne(() => User, { nullable: false })
+  createdBy!: User;
 
   @ManyToOne(() => Account, { nullable: false })
   account!: Account;

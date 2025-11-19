@@ -1,10 +1,12 @@
 ﻿import type { AccountDTO } from "~/feature/account/account";
 import type { SaleDTO } from "~/feature/sale/types/sale";
 import type { Flash } from "~/types/flash";
+import type { UserDTO } from "../user/user";
 
 export interface TransactionDTO {
   id: number;
   dateTime: Date;
+  createdBy: UserDTO;
   account: AccountDTO;
   type: "income" | "expense";
   origin: "sale" | "movement";

@@ -14,9 +14,11 @@ export async function providerLoader({
     const url = new URL(request.url);
     const flash: Flash = {} as Flash;
 
+    const includeInactive = url.searchParams.get("includeInactive") === "1";
+
     let providers: ProviderDTO[] | null = null;
     try {
-      providers = await getAllProviders();
+      providers = await getAllProviders(includeInactive);
     } catch (error) {
       const parsed = parseAppError(
         error,

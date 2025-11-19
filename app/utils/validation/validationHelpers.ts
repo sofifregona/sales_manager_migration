@@ -107,7 +107,7 @@ export function validateIsPositive(
   validateNumber(value, title);
   if (value < 0) {
     return {
-      error: `(Error) ${title}: El número debe ser mayor de o igual a 0.`,
+      error: `(Error) ${title}: El número debe ser mayor o igual a 0.`,
       source: "client",
     };
   }

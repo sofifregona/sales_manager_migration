@@ -9,6 +9,7 @@ import { AppDataSource } from "@back/src/shared/database/data-source.js";
 import { makeAccountRepository } from "../account/account.repo.typeorm.js";
 import { getAccountById } from "../account/account.service.js";
 import type { Payment } from "./payment.entity.js";
+import type { Account } from "../account/account.entity.js";
 
 const accountRepo = makeAccountRepository(AppDataSource);
 
@@ -43,8 +44,8 @@ export const createPayment = async (
   const account = await getAccountById(accountRepo, idAccount);
 
   const entity = repo.create({ name: cleanedName, normalizedName });
-  (entity as any).account = account;
-  return await repo.save(entity as any);
+  (entity as Payment).account = account;
+  return await repo.save(entity as Payment);
 };
 
 export const updatePayment = async (
@@ -118,10 +119,10 @@ export const reactivatePayment = async (
       "(Error) El método de pago ya está activo.",
       409,
       "PAYMENT_ALREADY_ACTIVE",
-      { existingId: (existing as any).id }
+      { existingId: (existing as Payment).id }
     );
   }
-  const account: any = (existing as any).account;
+  const account: Account = (existing as Payment).account;
   if (account && account.active === false) {
     if (!strategy) {
       throw new AppError(
@@ -135,7 +136,7 @@ export const reactivatePayment = async (
       );
     }
     if (strategy === "cancel") {
-      return existing as any;
+      return existing as Payment;
     }
     await accountRepo.reactivate(account.id);
   }
@@ -145,7 +146,11 @@ export const reactivatePayment = async (
 
 export const reactivatePaymentSwap = async (
   repo: PaymentRepository,
-  data: { inactiveId: number; currentId: number; strategy?: "reactivate-account" | "cancel" }
+  data: {
+    inactiveId: number;
+    currentId: number;
+    strategy?: "reactivate-account" | "cancel";
+  }
 ) => {
   const { inactiveId, currentId } = data;
 
@@ -178,7 +183,15 @@ export const reactivatePaymentSwap = async (
   const account: any = (inactiveExisting as any).account;
   if (account && account.active === false) {
     if (!data.strategy) {
-      throw new AppError("(Advertencia) La cuenta asociada al método de pago está inactiva.", 409, "ACCOUNT_INACTIVE", { accountId: account.id, allowedStrategies: ["reactivate-account", "cancel"] });
+      throw new AppError(
+        "(Advertencia) La cuenta asociada al método de pago está inactiva.",
+        409,
+        "ACCOUNT_INACTIVE",
+        {
+          accountId: account.id,
+          allowedStrategies: ["reactivate-account", "cancel"],
+        }
+      );
     }
     if (data.strategy === "cancel") {
       return inactiveExisting as any;
@@ -198,7 +211,7 @@ export const reactivatePaymentSwap = async (
   return await repo.findActiveById(inactiveId);
 };
 
-export const softDeletePayment = async (
+export const deactivatePayment = async (
   repo: PaymentRepository,
   id: number
 ) => {
@@ -206,7 +219,7 @@ export const softDeletePayment = async (
   const existing = await repo.findActiveById(id);
   if (!existing)
     throw new AppError("(Error) Método de pago no encontrado.", 404);
-  await repo.updateFields(id, { active: false });
+  await repo.softDeactivate(id);
 };
 
 export const getAllPayments = async (

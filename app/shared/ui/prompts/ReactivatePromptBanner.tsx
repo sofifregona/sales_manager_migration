@@ -1,5 +1,5 @@
 import React from "react";
-import { useFetcher, useLocation } from "react-router-dom";
+import { useFetcher } from "react-router-dom";
 import { ActionPrompt } from "./ActionPrompt";
 
 type Props = {
@@ -9,13 +9,11 @@ type Props = {
   cancelText?: string;
   inactiveId?: number; // id del elemento inactivo
   currentId?: number; // id del elemento actual (para swap en update)
-  kind?: "create-conflict" | "update-conflict";
   onDismiss: () => void;
   overlay?: boolean;
   // Optional: allow the caller to render a custom conflict overlay using the same fetcher
   renderConflictOverlay?: (args: {
     conflict: any;
-    isUpdate: boolean;
     inactiveId?: number;
     currentId?: number;
     busy: boolean;
@@ -29,17 +27,15 @@ export function ReactivatePromptBanner({
   messageForCreate,
   inactiveId,
   currentId,
-  kind,
   onDismiss,
   overlay = false,
   renderConflictOverlay,
 }: Props) {
   const fetcher = useFetcher();
   const canReactivate = typeof inactiveId === "number";
-  const isUpdate = kind === "update-conflict" && typeof currentId === "number";
+  const isUpdate = typeof currentId === "number";
   const msg = isUpdate ? messageForUpdate : messageForCreate;
   const busy = fetcher.state !== "idle";
-  const location = useLocation();
 
   // Construir action absoluto preservando filtros y limpiando claves efímeras
   // Para acciones de React Router, apuntar al action de la ruta actual es suficiente.
@@ -53,7 +49,6 @@ export function ReactivatePromptBanner({
     if (renderConflictOverlay) {
       const node = renderConflictOverlay({
         conflict,
-        isUpdate,
         inactiveId,
         currentId,
         busy,
@@ -67,49 +62,31 @@ export function ReactivatePromptBanner({
     // Default overlay behaviour
     const actions = [
       { label: "Cancelar", onClick: onDismiss },
-      ...(canReactivate
-        ? isUpdate
-          ? [
-              {
-                label: "Reactivar y desactivar actual",
-                onClick: () =>
-                  fetcher.submit(
-                    {
-                      _action: "reactivate-swap",
-                      inactiveId: String(inactiveId),
-                      currentId: String(currentId ?? ""),
-                    },
-                    { method: "post", action: cleanedActionUrl }
-                  ),
-                variant: "secondary" as const,
-              },
-            ]
-          : [
-              {
-                label: "Reactivar",
-                onClick: () =>
-                  fetcher.submit(
-                    { _action: "reactivate", id: String(inactiveId) },
-                    { method: "post", action: cleanedActionUrl }
-                  ),
-                variant: "secondary" as const,
-              },
-            ]
-        : [
-            {
-              label: "Reactivar",
-              onClick: () => {},
-              variant: "secondary" as const,
-              disabled: true,
-            },
-          ]),
+      {
+        label: "Reactivar",
+        onClick: () => {
+          if (!canReactivate) return;
+          const form = isUpdate
+            ? {
+                _action: "reactivate-swap",
+                inactiveId: String(inactiveId),
+                currentId: String(currentId ?? ""),
+              }
+            : { _action: "reactivate", id: String(inactiveId) };
+          fetcher.submit(form as any, {
+            method: "post",
+            action: cleanedActionUrl,
+          });
+        },
+        variant: "secondary" as const,
+        disabled: !canReactivate,
+      },
     ];
 
     return (
       <ActionPrompt
         open
         message={msg ?? ""}
-        onClose={onDismiss}
         actions={actions}
         busy={busy}
       />
@@ -129,32 +106,27 @@ export function ReactivatePromptBanner({
           Cancelar
         </button>
         {canReactivate ? (
-          isUpdate ? (
-            <fetcher.Form method="post" action={cleanedActionUrl}>
-              <input type="hidden" name="_action" value="reactivate-swap" />
-              <input type="hidden" name="inactiveId" value={inactiveId} />
-              <input type="hidden" name="currentId" value={currentId ?? ""} />
-              <button
-                type="submit"
-                className="btn btn--secondary"
-                disabled={busy}
-              >
-                Reactivar y desactivar actual
-              </button>
-            </fetcher.Form>
-          ) : (
-            <fetcher.Form method="post" action={cleanedActionUrl}>
-              <input type="hidden" name="_action" value="reactivate" />
-              <input type="hidden" name="id" value={inactiveId} />
-              <button
-                type="submit"
-                className="btn btn--secondary"
-                disabled={busy}
-              >
-                Reactivar
-              </button>
-            </fetcher.Form>
-          )
+          <fetcher.Form method="post" action={cleanedActionUrl}>
+            {isUpdate ? (
+              <>
+                <input type="hidden" name="_action" value="reactivate-swap" />
+                <input type="hidden" name="inactiveId" value={inactiveId} />
+                <input type="hidden" name="currentId" value={currentId ?? ""} />
+              </>
+            ) : (
+              <>
+                <input type="hidden" name="_action" value="reactivate" />
+                <input type="hidden" name="id" value={inactiveId} />
+              </>
+            )}
+            <button
+              type="submit"
+              className="btn btn--secondary"
+              disabled={busy}
+            >
+              Reactivar
+            </button>
+          </fetcher.Form>
         ) : (
           <button type="button" className="btn btn--secondary" disabled>
             Reactivar

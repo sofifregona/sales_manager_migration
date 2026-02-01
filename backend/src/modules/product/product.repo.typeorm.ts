@@ -162,20 +162,6 @@ export function makeProductRepository(ds: DataSource): ProductRepository {
     async deactivate(id) {
       await productRepo.update(id, { active: false });
     },
-    async countActiveByAccount(accountId) {
-      return productRepo.count({
-        where: { account: { id: accountId }, active: true } as any,
-      });
-    },
-    async deactivateActiveByAccount(accountId) {
-      await productRepo
-        .createQueryBuilder()
-        .update()
-        .set({ active: false })
-        .where("accountId = :id", { id: accountId })
-        .andWhere("active = :active", { active: true })
-        .execute();
-    },
     async incrementPrices(ids, percent) {
       return await productRepo
         .createQueryBuilder()

@@ -7,14 +7,16 @@ import { Bartable } from "@back/src/modules/bartable/bartable.entity.js";
 import { Brand } from "@back/src/modules/brand/brand.entity.js";
 import { Category } from "@back/src/modules/category/category.entity.js";
 import { Employee } from "@back/src/modules/employee/employee.entity.js";
-import { Payment } from "@back/src/modules/payment/payment.entity.js";
+import { PaymentMethod } from "@back/src/modules/paymentMethod/payment-method.entity.js";
 import { Product } from "@back/src/modules/product/product.entity.js";
 import { ProductSold } from "@back/src/modules/sale/product-sold.entity.js";
 import { Sale } from "@back/src/modules/sale/sale.entity.js";
 import { Provider } from "@back/src/modules/provider/provider.entity.js";
 import { Account } from "@back/src/modules/account/account.entity.js";
 import { Transaction } from "@back/src/modules/transaction/transaction.entity.js";
+import { AuditLog } from "@back/src/modules/auditLog/audit-log.entity.js";
 import { User } from "@back/src/modules/user/user.entity.js";
+import { Payment } from "@back/src/modules/sale/payment.entity.js";
 
 export const AppDataSource = new DataSource({
   type: "mysql",
@@ -33,11 +35,13 @@ export const AppDataSource = new DataSource({
     Category,
     Employee,
     Payment,
+    PaymentMethod,
     Product,
     ProductSold,
     Provider,
     Sale,
     Transaction,
+    AuditLog,
     User,
   ],
   migrations: [],

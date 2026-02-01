@@ -2,8 +2,7 @@ import { useActionData, useLoaderData, useLocation } from "react-router-dom";
 import type { StockEntryLoaderData } from "~/feature/stockEntry/stock-entry";
 import { FlashMessages } from "~/shared/ui/feedback/FlashMessages";
 import { SuccessBanner } from "~/shared/ui/feedback/SuccessBanner";
-import { useCrudSuccess } from "~/shared/hooks/useCrudSuccess";
-import { useUrlSuccessFlash } from "~/shared/hooks/useUrlSuccessFlash";
+import { useFloatingCrudSuccess } from "~/shared/hooks/useFloatingCrudSuccess";
 import { CrudHeader } from "~/shared/ui/layout/CrudHeader";
 import { StockEntryForm } from "../ui/StockEntryForm";
 import { StockEntryTable } from "../ui/StockEntryTable";
@@ -27,11 +26,12 @@ export function StockEntryPanelScreen() {
 
   const isEditing = !!editingStockEntry;
 
-  useUrlSuccessFlash("stock-entry");
-  const { message } = useCrudSuccess("stock-entry", {
-    "created-success": "Ingreso de stock creado con éxito.",
-    "updated-success": "Ingreso de stock modificado con éxito.",
-    "deleted-success": "Ingreso de stock eliminado con éxito.",
+  const { toastMessage: successMessage } = useFloatingCrudSuccess({
+    messageMap: {
+      "created-success": "Ingreso de stock creado con éxito.",
+      "updated-success": "Ingreso de stock modificado con éxito.",
+      "deleted-success": "Ingreso de stock eliminado con éxito.",
+    },
   });
 
   return (
@@ -56,7 +56,7 @@ export function StockEntryPanelScreen() {
         actionError={actionData}
       />
 
-      {message && <SuccessBanner message={message} />}
+      {successMessage && <SuccessBanner message={successMessage} />}
 
       <StockEntryForm
         key={

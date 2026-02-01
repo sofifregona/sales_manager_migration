@@ -1,7 +1,8 @@
 import { DataSource, Raw, Repository } from "typeorm";
 import { Sale } from "./sale.entity.js";
 import type { GroupKey, GroupedRow, SaleRepository } from "./sale.repo.js";
-import { Payment } from "../payment/payment.entity.js";
+import { PaymentMethod } from "../paymentMethod/payment-method.entity.js";
+import type { Payment } from "./payment.entity.js";
 
 export function makeSaleRepository(ds: DataSource): SaleRepository {
   const repo: Repository<Sale> = ds.getRepository(Sale);
@@ -36,9 +37,14 @@ export function makeSaleRepository(ds: DataSource): SaleRepository {
       });
     },
     async findOpenByBartableId(bartableId) {
-      return repo.findOne({
+      console.log("DENTRO DEL REPO DE BARTABLE");
+      console.log(bartableId);
+      const sale = await repo.findOne({
         where: { bartable: { id: bartableId }, open: true },
       });
+      console.log("VENTA:");
+      console.log(sale);
+      return sale;
     },
     async findOpenByEmployeeId(employeeId) {
       return repo.findOne({
@@ -53,10 +59,13 @@ export function makeSaleRepository(ds: DataSource): SaleRepository {
     },
     async getList(from, to) {
       const where = {
-        dateTime: Raw((alias) => `${alias} >= :start AND ${alias} < :end`, {
-          start: from,
-          end: to,
-        }),
+        createdDateTime: Raw(
+          (alias) => `${alias} >= :start AND ${alias} < :end`,
+          {
+            start: from,
+            end: to,
+          }
+        ),
       };
       return repo.find({
         where,
@@ -65,7 +74,7 @@ export function makeSaleRepository(ds: DataSource): SaleRepository {
           employee: true,
           products: { product: true },
         },
-        order: { dateTime: "DESC" },
+        order: { createdDateTime: "DESC" },
       });
     },
     async getGrouped(
@@ -74,10 +83,13 @@ export function makeSaleRepository(ds: DataSource): SaleRepository {
       groupBy: GroupKey
     ): Promise<GroupedRow[]> {
       const where = {
-        dateTime: Raw((alias) => `${alias} >= :start AND ${alias} < :end`, {
-          start: from,
-          end: to,
-        }),
+        createdDateTime: Raw(
+          (alias) => `${alias} >= :start AND ${alias} < :end`,
+          {
+            start: from,
+            end: to,
+          }
+        ),
       };
       if (groupBy === "product") {
         const rows = await repo
@@ -125,11 +137,8 @@ export function makeSaleRepository(ds: DataSource): SaleRepository {
     async updateTotal(id, total) {
       await repo.update(id, { total });
     },
-    async closeSale(id: number, paymentId: number) {
-      await repo.update(id, {
-        payment: { id: paymentId } as Payment,
-        open: false,
-      });
+    async closeSale(id: number) {
+      await repo.update(id, { open: false });
     },
     async delete(id) {
       await repo.delete(id);

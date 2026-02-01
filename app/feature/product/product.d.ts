@@ -26,8 +26,8 @@ export interface CreateProductPayload {
   code: number;
   name: string;
   price: number;
-  imageUrl?: string | null;
-  imagePublicId?: string | null;
+  imageUrl?: string | null; //TO DO: SACAR
+  imagePublicId?: string | null; //TO DO: SACAR
   idCategory?: number | null;
   idProvider?: number | null;
   idBrand?: number | null;

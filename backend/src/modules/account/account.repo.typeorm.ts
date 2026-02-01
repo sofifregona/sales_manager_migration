@@ -1,6 +1,5 @@
 import { DataSource, Repository } from "typeorm";
 import { Account } from "./account.entity.js";
-import { Payment } from "../payment/payment.entity.js";
 import type { AccountRepository } from "./account.repo.js";
 
 export function makeAccountRepository(ds: DataSource): AccountRepository {

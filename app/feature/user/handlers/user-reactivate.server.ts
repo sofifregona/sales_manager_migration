@@ -16,7 +16,7 @@ export async function handleUserReactivate({ url, formData }: Ctx) {
     const p = new URLSearchParams(url.search);
     p.delete("id");
     p.set("reactivated", "1");
-    return redirect(`/user?${p.toString()}`);
+    return redirect(`/settings/user?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

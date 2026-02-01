@@ -17,76 +17,136 @@ export function SaleAddedProductsList({ items, total, productFetcher }: Props) {
           <p>No hay productos agregados.</p>
         ) : (
           <>
-            <table className="added-products-table">
-              <thead>
-                <tr className="added-products-table__header-row">
-                  <th className="added-products-table__header added-products-table__header--left">
-                    Producto
-                  </th>
-                  <th className="added-products-table__header added-products-table__header--center">
-                    Und.
-                  </th>
-                  <th className="added-products-table__header added-products-table__header--right">
-                    Precio
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
+            <div className="added-products__list-wrapper">
+              <ul className="added-products__list-ul">
                 {items.map((ps) => (
-                  <tr
-                    key={`tr_product_${ps.id}`}
-                    className="added-products-table__row"
-                  >
-                    <td className="added-products-table__cell added-products-table__cell--left">
+                  <li className="added-products__list-item">
+                    <strong
+                      className="added-products__name"
+                      title={ps.product.name}
+                    >
                       {ps.product.name}
-                    </td>
-                    <td className="added-products-table__cell added-products-table__cell--center">
-                      <productFetcher.Form
-                        method="post"
-                        action="."
-                        className="added-products-fetcher"
+                    </strong>
+                    <p className="added-products__subtotal">$ {ps.subtotal}</p>
+                    <productFetcher.Form
+                      method="post"
+                      action="."
+                      className="added-products__form"
+                    >
+                      <input type="hidden" name="_action" value="update" />
+                      <button
+                        type="submit"
+                        name="op"
+                        value="subtract"
+                        className="added-products__btn added-products__btn--subtract"
                       >
-                        <input type="hidden" name="_action" value="update" />
-                        <button
-                          type="submit"
-                          name="op"
-                          value="subtract"
-                          className="added-btn added-btn--subtract"
-                        >
-                          <FaMinus className="added-btn__icon" />
-                        </button>
-                        <span className="order-table__quantity">
-                          {ps.quantity}
-                        </span>
-                        <button
-                          type="submit"
-                          name="op"
-                          value="add"
-                          className="added-btn added-btn--add"
-                        >
-                          <FaPlus className="added-btn__icon" />
-                        </button>
-                        <input
-                          type="hidden"
-                          value={ps.product.id}
-                          name="idProduct"
-                        />
-                      </productFetcher.Form>
-                    </td>
-                    <td className="added-products-table__cell added-products-table__cell--right">
-                      {ps.subtotal}
-                    </td>
-                  </tr>
+                        <FaMinus className="added-products__btn-icon" />
+                      </button>
+                      <span className="added-products__quantity">
+                        {ps.quantity}
+                      </span>
+                      <button
+                        type="submit"
+                        name="op"
+                        value="add"
+                        className="added-products__btn added-products__btn--add"
+                      >
+                        <FaPlus className="added-products__btn-icon" />
+                      </button>
+                      <input
+                        type="hidden"
+                        value={ps.product.id}
+                        name="idProduct"
+                      />
+                    </productFetcher.Form>
+                  </li>
                 ))}
-              </tbody>
-            </table>
-            <div className="added-products-total">
+              </ul>
+            </div>
+            <div className="added-products__total">
               <strong>Total:</strong>{" "}
-              <span className="added-products-total__span">
+              <span className="added-products__total-span">
                 $ {total.toFixed(2)}
               </span>
             </div>
           </>
+          // <>
+          //   <table className="added-products__table">
+          //     <thead className="added-products__thead">
+          //       <tr className="added-products__header-row">
+          //         <th className="added-products__header added-products__header--left">
+          //           Producto
+          //         </th>
+          //         <th className="added-products__header added-products__header--center">
+          //           Und.
+          //         </th>
+          //         <th className="added-products__header added-products__header--right">
+          //           Precio
+          //         </th>
+          //       </tr>
+          //     </thead>
+          //     <tbody className="added-products__tbody">
+          //       {items.map((ps) => (
+          //         <tr
+          //           key={`tr_product_${ps.id}`}
+          //           className="added-products__row"
+          //         >
+          //           <td
+          //             className="added-products__cell added-products__cell--left"
+          //             title={ps.product.name}
+          //           >
+          //             {ps.product.name}
+          //           </td>
+          //           <td
+          //             className="added-products__cell added-products__cell--center"
+          //             title={`Cantidad: ${ps.quantity}`}
+          //           >
+          //             <productFetcher.Form
+          //               method="post"
+          //               action="."
+          //               className="added-products__form"
+          //             >
+          //               <input type="hidden" name="_action" value="update" />
+          //               <button
+          //                 type="submit"
+          //                 name="op"
+          //                 value="subtract"
+          //                 className="added-products__btn added-products__btn--subtract"
+          //               >
+          //                 <FaMinus className="added-products__btn-icon" />
+          //               </button>
+          //               <span className="added-products__quantity">
+          //                 {ps.quantity}
+          //               </span>
+          //               <button
+          //                 type="submit"
+          //                 name="op"
+          //                 value="add"
+          //                 className="added-products__btn added-products__btn--add"
+          //               >
+          //                 <FaPlus className="added-products__btn-icon" />
+          //               </button>
+          //               <input
+          //                 type="hidden"
+          //                 value={ps.product.id}
+          //                 name="idProduct"
+          //               />
+          //             </productFetcher.Form>
+          //           </td>
+          //           <td className="added-products__cell added-products__cell--right">
+          //             <span title={`$ ${ps.subtotal}`}>$ {ps.subtotal}</span>
+          //           </td>
+          //         </tr>
+          //       ))}
+          //     </tbody>
+          //   </table>
+          //   <div className="added-products__total">
+          //     <strong>Total:</strong>{" "}
+          //     <span className="added-products__total-span">
+          //       $ {total.toFixed(2)}
+          //     </span>
+          //   </div>
+          // </>
         )}
       </div>
     </>

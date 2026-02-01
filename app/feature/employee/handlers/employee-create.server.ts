@@ -5,6 +5,7 @@ import { jsonResponse } from "~/lib/http/jsonResponse";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import {
   validateRequired,
+  validateRequiredAndType,
   validateType,
 } from "~/utils/validation/validationHelpers";
 import {
@@ -18,7 +19,7 @@ type Ctx = { url: URL; formData: FormData };
 
 export async function handleEmployeeCreate({ url, formData }: Ctx) {
   const nameParam = formData.get("name");
-  const nameParamError = validateRequired(nameParam, "string", "Nombre");
+  const nameParamError = validateRequiredAndType(nameParam, "string", "Nombre");
   if (nameParamError) return jsonResponse(422, nameParamError);
   const name = (nameParam as string).trim();
 
@@ -85,11 +86,11 @@ export async function handleEmployeeCreate({ url, formData }: Ctx) {
     await createEmployee(newData);
     const p = new URLSearchParams(url.search);
     p.set("created", "1");
-    return redirect(`/employee?${p.toString()}`);
+    return redirect(`/settings/employee?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,
-      "(Error) No se pudo crear el empleado."
+      "(Error) No se pudo crear el empleado.",
     );
     if (parsed.status === 409) {
       const code = String(parsed.code || "").toUpperCase();

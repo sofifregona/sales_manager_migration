@@ -3,7 +3,7 @@ import type { AccountDTO } from "~/feature/account/account";
 import type { BartableDTO } from "~/feature/bartable/bartable";
 import type { CategoryDTO } from "~/feature/category/category";
 import type { EmployeeDTO } from "~/feature/employee/employee";
-import type { PaymentDTO } from "~/feature/payment/payment";
+import type { PaymentMethodDTO } from "~/feature/paymentMethod/payment-method";
 import type { ProductDTO } from "~/feature/product/product";
 import type { GroupedProductSoldDTO, ProductSoldDTO } from "./productSold";
 
@@ -16,7 +16,7 @@ export interface SaleDTO {
   open: boolean;
   hasDiscount: boolean;
   discount: number;
-  payment: PaymentDTO | null;
+  payment: PaymentMethodDTO | null;
   products: ProductSoldDTO[] | [];
 }
 
@@ -56,9 +56,9 @@ export interface UpdateSalePayload extends Partial<CreateSalePayload> {
   product: { idProduct?: number; op?: string };
 }
 
-export interface CloseSalePayload {
+export interface PaySalePayload {
   id: number;
-  idPayment: number;
+  idPaymentMethod: number;
 }
 
 export interface SaleListLoaderData {
@@ -77,7 +77,7 @@ type SaleLoaderBase = {
   sale: SaleDTO;
   products: ProductDTO[];
   categories: CategoryDTO[];
-  payments: PaymentDTO[];
+  paymentMethods: PaymentMethodDTO[];
 };
 
 export type SaleLoaderData =

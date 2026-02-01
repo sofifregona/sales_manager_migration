@@ -23,7 +23,7 @@ export async function handleCategoryDeactivate({ url, formData }: Ctx) {
     const p = new URLSearchParams(url.search);
     p.delete("id");
     p.set("deactivated", "1");
-    return redirect(`/category?${p.toString()}`);
+    return redirect(`/settings/category?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

@@ -7,13 +7,14 @@ import { parseAppError } from "~/utils/errors/parseAppError";
 import {
   validateRangeLength,
   validateRequired,
+  validateRequiredAndType,
 } from "~/utils/validation/validationHelpers";
 
 type Ctx = { url: URL; formData: FormData };
 
 export async function handleBrandCreate({ url, formData }: Ctx) {
   const nameParam = formData.get("name");
-  const nameParamError = validateRequired(nameParam, "string", "Nombre");
+  const nameParamError = validateRequiredAndType(nameParam, "string", "Nombre");
   if (nameParamError) return jsonResponse(422, nameParamError);
 
   const name = (nameParam as string).replace(/\s+/g, " ").trim();
@@ -27,7 +28,7 @@ export async function handleBrandCreate({ url, formData }: Ctx) {
     const p = new URLSearchParams(url.search);
     p.delete("id");
     p.set("created", "1");
-    return redirect(`/brand?${p.toString()}`);
+    return redirect(`/settings/brand?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(error, "(Error) No se pudo crear la marca.");
     if (parsed.status === 409) {
@@ -47,7 +48,12 @@ export async function handleBrandCreate({ url, formData }: Ctx) {
           "Set-Cookie",
           makeConflictCookie({ scope: "brand", name })
         );
-        return redirect(`/brand?${p.toString()}` as any, { headers } as any);
+        return redirect(
+          `/settings/brand?${p.toString()}` as any,
+          {
+            headers,
+          } as any
+        );
       } else {
         return jsonResponse(409, {
           error: parsed.message,

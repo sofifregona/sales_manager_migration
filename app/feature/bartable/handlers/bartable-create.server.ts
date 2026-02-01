@@ -7,16 +7,18 @@ import { parseAppError } from "~/utils/errors/parseAppError";
 import {
   validateRequired,
   validatePositiveInteger,
+  validateRequiredAndType,
 } from "~/utils/validation/validationHelpers";
 
 type Ctx = { url: URL; formData: FormData };
 
 export async function handleBartableCreate({ url, formData }: Ctx) {
   const numParam = formData.get("number");
-  const numParamError = validateRequired(numParam, "number", "NÃºmero");
+  const numParamError = validateRequiredAndType(numParam, "number", "Número");
   if (numParamError) return jsonResponse(422, numParamError);
+
   const num = Number(numParam);
-  const numError = validatePositiveInteger(num, "NÃºmero");
+  const numError = validatePositiveInteger(num, "Número");
   if (numError) return jsonResponse(422, numError);
 
   const newData: CreateBartablePayload = { number: num };
@@ -27,7 +29,7 @@ export async function handleBartableCreate({ url, formData }: Ctx) {
     const p = new URLSearchParams(url.search);
     p.delete("id");
     p.set("created", "1");
-    return redirect(`/bartable?${p.toString()}`);
+    return redirect(`/settings/bartable?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(error, "(Error) No se pudo crear la mesa.");
     if (parsed.status === 409) {
@@ -38,7 +40,6 @@ export async function handleBartableCreate({ url, formData }: Ctx) {
 
         if (parsed.code) p.set("code", String(parsed.code));
         p.set("conflict", "create");
-        p.set("message", parsed.message);
 
         const existingId = anyParsed?.details?.existingId as number | undefined;
         if (existingId != null) p.set("elementId", String(existingId));
@@ -48,7 +49,13 @@ export async function handleBartableCreate({ url, formData }: Ctx) {
           "Set-Cookie",
           makeConflictCookie({ scope: "bartable", number: num })
         );
-        return redirect(`/bartable?${p.toString()}` as any, { headers } as any);
+
+        return redirect(
+          `/settings/bartable?${p.toString()}` as any,
+          {
+            headers,
+          } as any
+        );
       } else {
         return jsonResponse(409, {
           error: parsed.message,

@@ -5,7 +5,8 @@ import { jsonResponse } from "~/lib/http/jsonResponse";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import {
   validateRangeLength,
-  validateRequired
+  validateRequired,
+  validateRequiredAndType,
 } from "~/utils/validation/validationHelpers";
 import {
   validatePasswordFormat,
@@ -17,11 +18,12 @@ import type { Role } from "~/shared/constants/roles";
 type Ctx = { url: URL; formData: FormData };
 
 export async function handleUserCreate({ url, formData }: Ctx) {
+  console.log(url, formData);
   const usernameParam = formData.get("username");
-  const usernameParamError = validateRequired(
+  const usernameParamError = validateRequiredAndType(
     usernameParam,
     "string",
-    "Nombre de usuario"
+    "Nombre de usuario",
   );
   if (usernameParamError) return jsonResponse(422, usernameParamError);
   const username = (usernameParam as string).toLowerCase().replace(/\s+/g, "");
@@ -29,7 +31,7 @@ export async function handleUserCreate({ url, formData }: Ctx) {
     username,
     5,
     32,
-    "Nombre de usuario"
+    "Nombre de usuario",
   );
   if (usernameLengthError) return jsonResponse(422, usernameLengthError);
   const usernameFormatError = validateUsernameFormat(username);
@@ -38,17 +40,17 @@ export async function handleUserCreate({ url, formData }: Ctx) {
   }
 
   const nameParam = formData.get("name");
-  const nameParamError = validateRequired(nameParam, "string", "Nombre");
+  const nameParamError = validateRequiredAndType(nameParam, "string", "Nombre");
   if (nameParamError) return jsonResponse(422, nameParamError);
   const name = (nameParam as string).trim();
   const nameLengthError = validateRangeLength(name, 5, 80, "Nombre");
   if (nameLengthError) return jsonResponse(422, nameLengthError);
 
   const passwordParam = formData.get("password");
-  const passwordParamError = validateRequired(
+  const passwordParamError = validateRequiredAndType(
     passwordParam,
     "string",
-    "Contraseña"
+    "ContraseÃ±a",
   );
   if (passwordParamError) return jsonResponse(422, passwordParamError);
   const password = passwordParam as string;
@@ -56,33 +58,40 @@ export async function handleUserCreate({ url, formData }: Ctx) {
     password,
     8,
     80,
-    "Contraseña"
+    "ContraseÃ±a",
   );
   if (passwordLengthError) return jsonResponse(422, passwordLengthError);
   const passwordFormatError = validatePasswordFormat(password);
+  console.log(passwordFormatError);
   if (passwordFormatError) {
     return jsonResponse(422, passwordFormatError);
   }
 
   const repetedPassword = formData.get("repetedPassword");
+  console.log(repetedPassword);
+  console.log(password);
   if (repetedPassword !== password) {
     return jsonResponse(422, {
-      error: "(Error) Las contraseñas deben coincidir.",
+      error: "(Error) Las contraseÃ±as deben coincidir.",
       source: "client",
     });
   }
 
   const roleParam = formData.get("role");
-  const roleParamError = validateRequired(roleParam, "string", "Rol");
+  const roleParamError = validateRequiredAndType(roleParam, "string", "Rol");
+  console.log(roleParamError);
   if (roleParamError) {
     return jsonResponse(422, roleParamError);
   }
 
   const role = (roleParam as string).replace(/\s+/g, " ").trim().toUpperCase();
   const roleError = parseUserRole(role);
-  if (roleError) {
+  console.log(roleError);
+  if (!roleError.ok) {
     return jsonResponse(422, roleError);
   }
+
+  console.log(username, name, password, role as Role);
 
   const newData: CreateUserPayload = {
     username,
@@ -91,11 +100,14 @@ export async function handleUserCreate({ url, formData }: Ctx) {
     role: role as Role,
   };
 
+  console.log(newData);
+
   try {
+    console.log("EN EL TRY");
     await createUser(newData);
     const p = new URLSearchParams(url.search);
     p.set("created", "1");
-    return redirect(`/user?${p.toString()}`);
+    return redirect(`/settings/user?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(error, "(Error) No se pudo crear el usuario.");
     if (parsed.status === 409) {
@@ -103,7 +115,7 @@ export async function handleUserCreate({ url, formData }: Ctx) {
       if (code === "USER_EXISTS_INACTIVE") {
         return jsonResponse(409, {
           error:
-            "Ya existe un usuario inactivo con este nombre de usuario. Para reactivarlo búsquelo en la tabla (click en 'Ver inactivos').",
+            "Ya existe un usuario inactivo con este nombre de usuario. Para reactivarlo bÃºsquelo en la tabla (click en 'Ver inactivos').",
           source: parsed.source ?? "server",
           code: parsed.code,
         });
@@ -119,4 +131,3 @@ export async function handleUserCreate({ url, formData }: Ctx) {
     });
   }
 }
-

@@ -1,4 +1,4 @@
-﻿import type { Express, NextFunction, Request, Response } from "express";
+﻿import type { NextFunction, Request, Response } from "express";
 import {
   createProduct,
   getListOfProducts,
@@ -10,89 +10,14 @@ import {
 } from "./product.service.js";
 import { AppDataSource } from "@back/src/shared/database/data-source.js";
 import { makeProductRepository } from "./product.repo.typeorm.js";
-import { uploadProductImage } from "@back/src/shared/cloudary.js";
-import { unlink } from "node:fs/promises";
+import {
+  buildProductPayload,
+  cleanupUploadedFile,
+  type MulterRequest,
+} from "./product.controller.helpers.js";
 
 const productRepo = makeProductRepository(AppDataSource);
 const parseId = (req: Request) => Number.parseInt(req.params.id, 10);
-
-type ProductImagePayload = {
-  imageUrl: string;
-  imagePublicId: string | null;
-};
-
-type MulterRequest = Request & {
-  file?: Express.Multer.File | undefined;
-};
-
-const cleanupUploadedFile = async (file?: Express.Multer.File | null) => {
-  if (!file?.path) {
-    return;
-  }
-  try {
-    await unlink(file.path);
-  } catch {
-    // ignore cleanup errors
-  }
-};
-
-const resolveProductImage = async (
-  req: Request
-): Promise<ProductImagePayload | null> => {
-  const selectedSample =
-    typeof req.body?.selectedSampleImage === "string"
-      ? req.body.selectedSampleImage.trim()
-      : "";
-  const file = (req as MulterRequest).file;
-
-  console.log("[product] selectedSampleImage:", selectedSample || "<empty>");
-  if (file?.originalname) {
-    console.log("[product] upload received file:", file.originalname);
-  }
-
-  if (selectedSample) {
-    await cleanupUploadedFile(file);
-    console.log("[product] using sample image url:", selectedSample);
-    return { imageUrl: selectedSample, imagePublicId: null };
-  }
-
-  if (file?.path) {
-    try {
-      const uploadResult = await uploadProductImage(file.path);
-      return {
-        imageUrl: uploadResult.secure_url ?? uploadResult.url,
-        imagePublicId: uploadResult.public_id ?? null,
-      };
-    } finally {
-      await cleanupUploadedFile(file);
-    }
-  }
-
-  await cleanupUploadedFile(file);
-  return null;
-};
-
-const buildProductPayload = async (
-  req: Request
-): Promise<any> => {
-  const basePayload: Record<string, any> = { ...req.body };
-  const imagePayload = await resolveProductImage(req);
-
-  if (imagePayload) {
-    basePayload.imageUrl = imagePayload.imageUrl;
-    basePayload.imagePublicId = imagePayload.imagePublicId;
-  }
-
-  delete basePayload.selectedSampleImage;
-
-  console.log("[product] payload ready", {
-    imageUrl: basePayload.imageUrl ?? null,
-    imagePublicId: basePayload.imagePublicId ?? null,
-  });
-
-  return basePayload;
-};
-
 
 export const createProductHandler = async (
   req: Request,
@@ -117,6 +42,8 @@ export const updateProductHandler = async (
   const id = parseInt(req.params.id, 10);
   try {
     const payload = await buildProductPayload(req);
+    console.log("EN EL UPDATE");
+    console.log(payload);
     const updated = await updateProduct(productRepo, { id, ...payload });
     res.status(200).json(updated);
   } catch (error) {
@@ -263,4 +190,3 @@ export const getProductByIdHandler = async (
     next(error);
   }
 };
-

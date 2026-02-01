@@ -11,24 +11,26 @@ export function makeReactivableConflictBuilder(
   return function build(p: URLSearchParams): BuildResult<{
     scope: string;
     kind: ConflictKind;
-    message?: string;
     elementId?: number;
     reactivable?: boolean;
   }> {
     const conflict = p.get("conflict");
     if (conflict !== "create" && conflict !== "update") return null;
 
-    const kind: ConflictKind = conflict === "create" ? "create-conflict" : "update-conflict";
+    const kind: ConflictKind =
+      conflict === "create" ? "create-conflict" : "update-conflict";
     const code = (p.get("code") || "").toUpperCase();
     const reactivable = reactivableCodes.includes(code);
 
     const elementIdParam = p.get("elementId");
-    const elementId = reactivable && elementIdParam != null ? Number(elementIdParam) : undefined;
+    const elementId =
+      reactivable && elementIdParam != null
+        ? Number(elementIdParam)
+        : undefined;
 
     const payload = {
       scope,
       kind,
-      message: p.get("message") ?? undefined,
       elementId,
       reactivable,
     };

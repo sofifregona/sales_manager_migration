@@ -2,80 +2,161 @@ import { Form, useSubmit, useSearchParams } from "react-router";
 import type { BrandDTO } from "~/feature/brand/brand";
 import type { CategoryDTO } from "~/feature/category/category";
 import type { ProviderDTO } from "~/feature/provider/provider";
+import sortAlphabetically from "~/utils/sorting/sortAlphabetically";
 
 export default function ListFilter({
   brands,
   categories,
   providers,
+  openFilter,
 }: {
   brands: BrandDTO[];
   categories: CategoryDTO[];
   providers: ProviderDTO[];
+  openFilter: boolean;
 }) {
   const submit = useSubmit();
   const [sp] = useSearchParams();
+  const includeInactive = sp.get("includeInactive") ?? "";
   return (
-    <Form
-      method="get"
-      onChange={(e) => submit(e.currentTarget, { replace: true })}
-      id="filters"
-    >
-      <label>Filtrar por nombre</label>
-      <input name="name" defaultValue={sp.get("name") ?? ""} />
+    <>
+      <Form
+        method="get"
+        onChange={(e) => submit(e.currentTarget, { replace: true })}
+        id="filters"
+        className="form-filter"
+      >
+        {includeInactive && (
+          <input type="hidden" name="includeInactive" value={includeInactive} />
+        )}
+        <input
+          name="name"
+          className={
+            openFilter
+              ? "form-pill__input form-pill__input--active filter-input-name"
+              : "form-pill__input filter-input-name"
+          }
+          defaultValue={sp.get("name") ?? ""}
+          placeholder="Nombre..."
+        />
 
-      <label>Filtrar por código</label>
-      <input name="code" defaultValue={sp.get("code") ?? ""} />
+        <input
+          name="code"
+          className={
+            openFilter
+              ? "form-pill__input form-pill__input--active filter-input-code"
+              : "form-pill__input filter-input-code"
+          }
+          defaultValue={sp.get("code") ?? ""}
+          placeholder="Código..."
+        />
 
-      <label>Precio mínimo</label>
-      <input
-        name="minPrice"
-        type="number"
-        step="0.01"
-        min="0"
-        defaultValue={sp.get("minPrice") ?? ""}
-      />
+        <input
+          name="minPrice"
+          className={
+            openFilter
+              ? "form-pill__input form-pill__input--active filter-input-minPrice"
+              : "form-pill__input filter-input-minPrice"
+          }
+          type="number"
+          step="0.01"
+          min="0"
+          defaultValue={sp.get("minPrice") ?? ""}
+          placeholder="Precio mín..."
+        />
 
-      <label>Precio máximo</label>
-      <input
-        name="maxPrice"
-        type="number"
-        step="0.01"
-        min="0"
-        defaultValue={sp.get("maxPrice") ?? ""}
-      />
+        <input
+          name="maxPrice"
+          className={
+            openFilter
+              ? "form-pill__input form-pill__input--active filter-input-maxPrice"
+              : "form-pill__input filter-input-maxPrice"
+          }
+          type="number"
+          step="0.01"
+          min="0"
+          defaultValue={sp.get("maxPrice") ?? ""}
+          placeholder="Precio máx..."
+        />
 
-      <label>Seleccionar proveedor</label>
-      <select name="idProvider" defaultValue={sp.get("idProvider") ?? ""}>
-        <option value="">Todos los proveedores</option>
-        <option value="null">— Sin proveedor —</option>
-        {providers.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
+        <select
+          name="idProvider"
+          className={
+            openFilter
+              ? "form-pill__input form-pill__input--active form-pill__select filter-input__idProvider"
+              : "form-pill__input form-pill__select filter-input__idProvider"
+          }
+          defaultValue={sp.get("idProvider") ?? ""}
+        >
+          <option className="form-filter__option all-option" value="">
+            Todos los proveedores
           </option>
-        ))}
-      </select>
-
-      <label>Seleccionar marca</label>
-      <select name="idBrand" defaultValue={sp.get("idBrand") ?? ""}>
-        <option value="">Todas las marcas</option>
-        <option value="null">– Sin marca –</option>
-        {brands.map((b) => (
-          <option key={b.id} value={b.id}>
-            {b.name}
+          <option className="form-filter__option empty-option" value="null">
+            — Sin proveedor —
           </option>
-        ))}
-      </select>
+          {sortAlphabetically(providers).map((p) => (
+            <option
+              className="form-filter__option provider-option"
+              key={p.id}
+              value={p.id}
+            >
+              {p.name}
+            </option>
+          ))}
+        </select>
 
-      <label>Seleccionar categoría</label>
-      <select name="idCategory" defaultValue={sp.get("idCategory") ?? ""}>
-        <option value="">Todas las categor�as</option>
-        <option value="null">– Sin categoría –</option>
-        {categories.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
+        <select
+          name="idBrand"
+          className={
+            openFilter
+              ? "form-pill__input form-pill__input--active form-pill__select filter-input__idBrand"
+              : "form-pill__input form-pill__select filter-input__idBrand"
+          }
+          defaultValue={sp.get("idBrand") ?? ""}
+        >
+          <option className="form-filter__option all-option" value="">
+            Todas las marcas
           </option>
-        ))}
-      </select>
-    </Form>
+          <option className="form-filter__option empty-option" value="null">
+            — Sin marca —
+          </option>
+          {sortAlphabetically(brands).map((b) => (
+            <option
+              className="form-filter__option brand-option"
+              key={b.id}
+              value={b.id}
+            >
+              {b.name}
+            </option>
+          ))}
+        </select>
+
+        <select
+          className={
+            openFilter
+              ? "form-pill__input form-pill__input--active form-pill__select filter-input__idCategory"
+              : "form-pill__input form-pill__select filter-input__idCategory"
+          }
+          name="idCategory"
+          defaultValue={sp.get("idCategory") ?? ""}
+        >
+          <option className="form-filter__option all-option" value="">
+            Todas las categorías
+          </option>
+          <option className="form-filter__option empty-option" value="null">
+            — Sin categoría —
+          </option>
+          {sortAlphabetically(categories).map((c) => (
+            <option
+              className="form-filter__option category-option"
+              key={c.id}
+              value={c.id}
+            >
+              {c.name}
+            </option>
+          ))}
+        </select>
+      </Form>
+    </>
   );
 }

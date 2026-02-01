@@ -2,7 +2,13 @@ import type { Transaction } from "./transaction.entity.js";
 
 export type TransactionCreateData = Pick<
   Transaction,
-  "account" | "type" | "origin" | "amount" | "description" | "sale" | "createdBy"
+  | "account"
+  | "type"
+  | "origin"
+  | "amount"
+  | "description"
+  | "payment"
+  | "createdBy"
 >;
 export type TransactionUpdateFields = Partial<
   Pick<Transaction, "account" | "type" | "origin" | "amount" | "description">

@@ -6,7 +6,7 @@ import { parseAppError } from "~/utils/errors/parseAppError";
 import { makeConflictCookie } from "~/services/conflictCookie";
 import {
   validateRangeLength,
-  validateRequired,
+  validateRequiredAndType,
   validateType,
 } from "~/utils/validation/validationHelpers";
 
@@ -14,7 +14,7 @@ type Ctx = { url: URL; formData: FormData };
 
 export async function handleCreateAccount({ url, formData }: Ctx) {
   const nameParam = formData.get("name");
-  const nameParamError = validateRequired(nameParam, "string", "Nombre");
+  const nameParamError = validateRequiredAndType(nameParam, "string", "Nombre");
   if (nameParamError) return jsonResponse(422, nameParamError);
 
   const name = (nameParam as string).replace(/\s+/g, " ").trim();
@@ -37,18 +37,19 @@ export async function handleCreateAccount({ url, formData }: Ctx) {
     const p = new URLSearchParams(url.search);
     p.delete("id");
     p.set("created", "1");
-    return redirect(`/account?${p.toString()}`);
+    return redirect(`/settings/account?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(error, "(Error) No se pudo crear la cuenta.");
     if (parsed.status === 409) {
       const code = String(parsed.code || "").toUpperCase();
       if (code === "ACCOUNT_EXISTS_INACTIVE") {
         const anyParsed: any = parsed as any;
-        const existingId = anyParsed?.details?.existingId as number | undefined;
-
         const p = new URLSearchParams(url.search);
+
         if (parsed.code) p.set("code", String(parsed.code));
         p.set("conflict", "create");
+
+        const existingId = anyParsed?.details?.existingId as number | undefined;
         if (existingId != null) p.set("elementId", String(existingId));
 
         const headers = new Headers();
@@ -56,7 +57,13 @@ export async function handleCreateAccount({ url, formData }: Ctx) {
           "Set-Cookie",
           makeConflictCookie({ scope: "account", name, description: desc })
         );
-        return redirect(`/account?${p.toString()}` as any, { headers } as any);
+
+        return redirect(
+          `/settings/account?${p.toString()}` as any,
+          {
+            headers,
+          } as any
+        );
       } else {
         return jsonResponse(409, {
           error: parsed.message,

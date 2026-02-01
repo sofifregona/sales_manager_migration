@@ -1,0 +1,52 @@
+@use "../../../styles/tokens" as *
+
+.app-footer
+  background-color: $color-dark-primary
+  padding: 1rem 1.25rem
+  display: flex
+  flex-wrap: wrap
+  gap: 0.75rem
+  align-items: center
+  justify-content: space-between
+  border-top: 1px solid $color-dark-tertiary
+
+.app-footer__brand
+  display: flex
+  gap: 0.4rem
+  align-items: baseline
+  font-weight: 700
+
+.app-footer__title
+  font-family: $font-display
+  font-size: 1rem
+
+.app-footer__version
+  font-size: 0.9rem
+  opacity: 0.7
+
+.app-footer__meta
+  display: flex
+  gap: 0.75rem
+  flex-wrap: wrap
+  font-size: 0.9rem
+  opacity: 0.9
+
+.app-footer__meta-item
+  white-space: nowrap
+
+.app-footer__links
+  display: flex
+  gap: 0.75rem
+  align-items: center
+  flex-wrap: wrap
+  font-size: 0.9rem
+
+.app-footer__link
+  color: $color-primary
+  text-decoration: none
+  font-weight: 600
+  &:hover
+    text-decoration: underline
+
+.app-footer__support
+  opacity: 0.85

@@ -2,6 +2,7 @@ import { Link, useFetcher } from "react-router-dom";
 import type { SaleListLoaderData } from "~/feature/sale/types/sale";
 import { FaUtensils } from "react-icons/fa6";
 import { MdOutlineTableRestaurant } from "react-icons/md";
+import { IoFastFood } from "react-icons/io5";
 
 type Props = {
   sales: SaleListLoaderData["sales"];
@@ -31,7 +32,8 @@ export function BartableList({ sales, bartables }: Props) {
                     to={`/sale/${sale.id}/edit`}
                   >
                     <div className="btn__icon--open">
-                      <FaUtensils className="table-icon table-icon--open" />
+                      {/* <FaUtensils className="table-icon table-icon--open" /> */}
+                      <IoFastFood className="table-icon table-icon--open" />
                     </div>
                     <div className="btn__inner">Mesa {bartable.number}</div>
                   </Link>
@@ -48,7 +50,8 @@ export function BartableList({ sales, bartables }: Props) {
                       className="table-btn table-btn--close"
                     >
                       <div className="btn__icon--open">
-                        <MdOutlineTableRestaurant className="table-icon" />
+                        <FaUtensils className="table-icon table-icon--open" />
+                        {/* <MdOutlineTableRestaurant className="table-icon" /> */}
                       </div>
                       <div className="btn__inner">Mesa {bartable.number}</div>
                     </button>

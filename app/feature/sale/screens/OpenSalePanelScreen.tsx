@@ -7,24 +7,25 @@ import type { EmployeeDTO } from "~/feature/employee/employee";
 import type { SaleLoaderData } from "~/feature/sale/types/sale";
 import { SaleAddProductFilter } from "../ui/SaleAddProductFilter";
 import { SaleAddedProductsList } from "../ui/SaleAddedProductsList";
-import { SalePaymentForm } from "../ui/SalePaymentForm";
+import { SalePaymentMethodForm } from "../ui/SalePaymentMethodForm";
 import "./OpenSalePanelScreen.sass";
 
 export function OpenSalePanelScreen() {
-  const { sale, products, categories, payments, prop, propType } =
+  const { sale, products, categories, paymentMethods, prop, propType } =
     useLoaderData<SaleLoaderData>();
 
   const productFetcher = useFetcher();
   const deleteFetcher = useFetcher();
-  const closeFetcher = useFetcher();
+  const payFetcher = useFetcher();
   const navigate = useNavigate();
 
   const [code, setCode] = useState("");
-  const [idPayment, setIdPayment] = useState("");
+  const [idPaymentMethod, setIdPaymentMethod] = useState("");
   const [nameFilter, setNameFilter] = useState<string>("");
   const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>();
   const [showBackPrompt, setShowBackPrompt] = useState(false);
-  const [showClosePrompt, setShowClosePrompt] = useState(false);
+  const [showPayPrompt, setShowPayPrompt] = useState(false);
+  const [showPaymentOverlay, setShowPaymentOverlay] = useState(false);
 
   const handleBackClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
@@ -47,36 +48,32 @@ export function OpenSalePanelScreen() {
 
   return (
     <>
-      <div style={{ marginTop: 12, marginBottom: 12 }}>
+      {/* <div style={{ marginTop: 12, marginBottom: 12 }}>
         <button type="button" className="btn" onClick={handleBackClick}>
           Volver atrás
         </button>
-      </div>
-      <div className="open-sale-panel">
+      </div> */}
+      <div className="open-sale">
         {/* <h1>
         Venta abierta para{" "}
         {propType === "bartable" ? "la mesa: " : "el empleado: "}
       </h1> */}
-        <div className="added-products-panel">
+        <div className="open-sale__added">
           <SaleAddedProductsList
             items={sale.products ?? []}
             total={sale.total}
             productFetcher={productFetcher}
           />
-
-          <SalePaymentForm
-            payments={payments}
-            idPayment={idPayment}
-            onPaymentChange={setIdPayment}
-            onRequestClose={() => {
-              if (!idPayment) return;
-              setShowClosePrompt(true);
-            }}
-            disabled={closeFetcher.state !== "idle"}
-          />
+          <button
+            type="button"
+            className="btn"
+            onClick={() => setShowPaymentOverlay(true)}
+          >
+            Pagar
+          </button>
         </div>
 
-        <div className="search-product-panel">
+        <div className="open-sale__search">
           <SaleAddProductFilter
             products={products}
             categories={categories}
@@ -109,10 +106,10 @@ export function OpenSalePanelScreen() {
                   type="button"
                   className="btn btn--danger"
                   onClick={() => {
-                  deleteFetcher.submit(
-                    { id: String(sale.id), source: "open" },
-                    { method: "post", action: "/sale" }
-                  );
+                    deleteFetcher.submit(
+                      { id: String(sale.id), source: "open" },
+                      { method: "post", action: "/sale" }
+                    );
                   }}
                 >
                   Eliminar y volver
@@ -122,22 +119,52 @@ export function OpenSalePanelScreen() {
           </div>
         )}
 
-        <ConfirmPrompt
-          open={showClosePrompt}
-          message="Se cerrará la venta y no podrás modificarla luego. ¿Deseás continuar?"
-          busy={closeFetcher.state !== "idle"}
-          onCancel={() => setShowClosePrompt(false)}
-          onConfirm={() => {
-            setShowClosePrompt(false);
-            closeFetcher.submit(
-              { idPayment, _action: "close" },
-              { method: "post", action: "." }
-            );
-          }}
-        />
-        {closeFetcher.data?.error && (
-          <div className="inline-error" role="alert">
-            {String(closeFetcher.data.error)}
+        {showPaymentOverlay && (
+          <div className="overlay" role="dialog" aria-modal="true">
+            <div
+              className="overlay__content"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="overlay__header">
+                <h3>Pago</h3>
+                <button
+                  type="button"
+                  className="btn btn--secondary"
+                  onClick={() => setShowPaymentOverlay(false)}
+                >
+                  Cerrar
+                </button>
+              </div>
+              <SalePaymentMethodForm
+                paymentMethods={paymentMethods}
+                idPaymentMethod={idPaymentMethod}
+                onPaymentMethodChange={setIdPaymentMethod}
+                onRequestClose={() => {
+                  if (!idPaymentMethod) return;
+                  setShowPayPrompt(true);
+                }}
+                disabled={payFetcher.state !== "idle"}
+              />
+              {payFetcher.data?.error && (
+                <div className="inline-error" role="alert">
+                  {String(payFetcher.data.error)}
+                </div>
+              )}
+            </div>
+            <ConfirmPrompt
+              open={showPayPrompt}
+              message="Se cerrará la venta y no podrás modificarla luego. ¿Deseás continuar?"
+              busy={payFetcher.state !== "idle"}
+              onCancel={() => setShowPayPrompt(false)}
+              onConfirm={() => {
+                setShowPayPrompt(false);
+                setShowPaymentOverlay(false);
+                payFetcher.submit(
+                  { idPaymentMethod, _action: "pay" },
+                  { method: "post", action: "." }
+                );
+              }}
+            />
           </div>
         )}
       </div>

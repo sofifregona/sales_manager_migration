@@ -1,5 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import "./SettingsList.sass";
 
 type Props = {
   isEditing: boolean;
@@ -15,16 +16,10 @@ export function CrudHeader({
   cancelHref,
 }: Props) {
   return (
-    <>
-      <h2>{isEditing ? `Editar ${entityLabel}` : `Crear ${entityLabel}`}</h2>
-      {isEditing && (
-        <p className="muted">
-          Editando: <strong>{name ?? "-"}</strong>{" "}
-          <Link to={cancelHref} replace className="btn">
-            Cancelar edición
-          </Link>
-        </p>
-      )}
-    </>
+    <div className="settings__crud">
+      <h4 className="settings__subtitle">
+        {isEditing ? `Editando - ${name}` : `Crear ${entityLabel}`}
+      </h4>
+    </div>
   );
 }

@@ -8,16 +8,17 @@ import {
   validateRequired,
   validatePositiveInteger,
   validateRequiredId,
+  validateRequiredAndType,
 } from "~/utils/validation/validationHelpers";
 
 type Ctx = { url: URL; formData: FormData };
 
 export async function handleBartableUpdate({ url, formData }: Ctx) {
   const numParam = formData.get("number");
-  const numParamError = validateRequired(numParam, "string", "NÃºmero");
+  const numParamError = validateRequiredAndType(numParam, "number", "Número");
   if (numParamError) return jsonResponse(422, numParamError);
   const num = Number(numParam);
-  const numError = validatePositiveInteger(num, "NÃºmero");
+  const numError = validatePositiveInteger(num, "Número");
   if (numError) return jsonResponse(422, numError);
 
   const idParam = url.searchParams.get("id");
@@ -32,7 +33,7 @@ export async function handleBartableUpdate({ url, formData }: Ctx) {
     const p = new URLSearchParams(url.search);
     p.delete("id");
     p.set("updated", "1");
-    return redirect(`/bartable?${p.toString()}`);
+    return redirect(`/settings/bartable?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,
@@ -47,10 +48,8 @@ export async function handleBartableUpdate({ url, formData }: Ctx) {
 
         if (parsed.code) p.set("code", String(parsed.code));
         p.set("conflict", "update");
-        p.set("message", parsed.message);
 
         const existingId = anyParsed?.details?.existingId as number | undefined;
-
         if (existingId != null) p.set("elementId", String(existingId));
 
         const headers = new Headers();
@@ -58,7 +57,12 @@ export async function handleBartableUpdate({ url, formData }: Ctx) {
           "Set-Cookie",
           makeConflictCookie({ scope: "bartable", number: num })
         );
-        return redirect(`/bartable?${p.toString()}` as any, { headers } as any);
+        return redirect(
+          `/settings/bartable?${p.toString()}` as any,
+          {
+            headers,
+          } as any
+        );
       } else {
         return jsonResponse(409, {
           error: parsed.message,

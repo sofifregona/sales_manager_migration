@@ -26,7 +26,7 @@
     display: flex
 
 .table-btn
-    width: 140px
+    width: 120px
     aspect-ratio: 1 / 1
     border-radius: 0.75rem
     display: flex
@@ -34,7 +34,7 @@
     align-items: center
     justify-content: center
     background-color: $color-dark-tertiary
-    border: 2px dashed #71717a
+    border: 1.5px dashed #71717a
     cursor: pointer
     transition: background-color 150ms ease, color 150ms ease
     text-decoration: none
@@ -56,3 +56,42 @@
     height: auto
     width: 35px
     padding: .3rem
+
+.order-panel__employee-list
+    background-color: $color-dark-secondary
+    padding: 1rem 1.5rem
+    border-radius: $radius-containers
+    .order-panel__title
+        padding: 0rem
+
+.order-panel__employee-ul
+    text-align: left
+    margin-top: 1rem
+
+.employee-btn
+    display: flex
+    align-items: center
+    width: 100%
+    justify-content: space-between
+    padding: 0.25rem .75rem // py-3 px-4
+    border-radius: 0.5rem // rounded-lg
+    text-decoration: none
+    transition: background-color 150ms ease-in-out
+    &:hover
+        background-color: $color-dark-primary
+    &:visited
+        text-decoration: none
+
+.employee-item
+    width: 0.75rem // w-3
+    height: 0.75rem // h-3
+    width: 10px
+    color: $color-dark-tertiary
+    &--active
+        color: $color-primary
+
+.employee-name
+    color: #71717a
+    font-size: .9rem
+    font-family: $font-display
+    font-weight: 500

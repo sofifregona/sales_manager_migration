@@ -9,22 +9,24 @@ export function useCrudSuccess(
 ) {
   const [message, setMessage] = useState<string | null>(null);
   const [kind, setKind] = useState<SuccessKind | null>(null);
+  const [version, setVersion] = useState(0);
   const { read, clear } = useClientFlash(scope);
   const location = useLocation();
 
   useEffect(() => {
-    const f = read() as ClientFlash | undefined;
-    if (!f || f.scope !== scope) return;
-    switch (f.kind) {
+    const flash = read() as ClientFlash | undefined;
+    if (!flash || flash.scope !== scope) return;
+    switch (flash.kind) {
       case "created-success":
       case "updated-success":
       case "deactivated-success":
       case "deleted-success":
-      case "incremented-succes":
+      case "incremented-success":
       case "reactivated-success": {
-        const k = f.kind as SuccessKind;
+        const k = flash.kind as SuccessKind;
         setKind(k);
-        setMessage(f.message || map?.[k] || defaultMsg(k));
+        setMessage(flash.message || map?.[k] || defaultMsg(k));
+        setVersion((prev) => prev + 1);
         // consume only when it's a success to avoid interfering with other consumers
         clear();
         break;
@@ -36,7 +38,8 @@ export function useCrudSuccess(
   }, [scope, read, clear, map, location.key]);
 
   const isSuccess = !!kind;
-  return { message, kind, isSuccess };
+  const fallbackMessage = message ?? (kind ? defaultMsg(kind) : null);
+  return { message: fallbackMessage, kind, isSuccess, version };
 }
 
 function defaultMsg(kind: SuccessKind): string {

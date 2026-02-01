@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Link,
   useFetcher,
@@ -12,6 +12,7 @@ import {
 } from "~/shared/hooks/useQuerySorting";
 import { SortToggle } from "~/shared/ui/form/SortToggle";
 import { ConfirmPrompt } from "~/shared/ui/prompts/ConfirmPrompt";
+import { FaSpinner } from "react-icons/fa";
 
 type Props = {
   bartables: BartableDTO[];
@@ -28,8 +29,8 @@ const BARTABLE_SORT_CONFIG: UseQuerySortingConfig<BartableDTO> = {
 
 export function BartableTable({ bartables, editingId }: Props) {
   const deactivateFetcher = useFetcher();
-  const deactivating = deactivateFetcher.state !== "idle";
   const reactivateFetcher = useFetcher();
+  const deactivating = deactivateFetcher.state !== "idle";
   const reactivating = reactivateFetcher.state !== "idle";
 
   const [pendingDeactivateId, setPendingDeactivateId] = useState<number | null>(
@@ -45,6 +46,12 @@ export function BartableTable({ bartables, editingId }: Props) {
   const includeInactive = params.get("includeInactive") === "1";
   const location = useLocation();
 
+  const toggleIncludeHref = (() => {
+    const p = new URLSearchParams(location.search);
+    p.set("includeInactive", includeInactive ? "0" : "1");
+    return `?${p.toString()}`;
+  })();
+
   const {
     sortedItems: sortedBartables,
     sortBy,
@@ -53,109 +60,130 @@ export function BartableTable({ bartables, editingId }: Props) {
 
   return (
     <>
-      <h2>Lista de mesas</h2>
-      <div
-        style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}
-      >
-        {(() => {
-          const p = new URLSearchParams(location.search);
-          p.set("includeInactive", includeInactive ? "0" : "1");
-          const toggleIncludeHref = `?${p.toString()}`;
-          return (
-            <Link replace to={toggleIncludeHref} className="btn btn--secondary">
-              {includeInactive ? "Ocultar inactivas" : "Ver inactivas"}
-            </Link>
-          );
-        })()}
-      </div>
-      {sortedBartables.length === 0 ? (
-        <p>No hay mesas para mostrar.</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <SortToggle
-                currentSort={sortBy}
-                currentDir={sortDir}
-                name="number"
-                label="Número"
-              />
-              {includeInactive && (
-                <SortToggle
-                  currentSort={sortBy}
-                  currentDir={sortDir}
-                  name="active"
-                  label="Estado"
-                />
-              )}
-              <th style={{ width: 220 }}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedBartables.map((bartable) => (
-              <tr
-                key={bartable.id}
-                className={
-                  editingId === bartable.id ? "row row--editing" : "row"
-                }
-              >
-                <td>{bartable.number}</td>
-                {includeInactive && (
-                  <td>{bartable.active ? "Activa" : "Inactiva"}</td>
-                )}
-                <td className="actions">
-                  {bartable.active ? (
-                    <>
-                      <Link
-                        to={`?id=${bartable.id}&includeInactive=${
-                          includeInactive ? "1" : "0"
-                        }`}
-                      >
-                        <button type="button">Modificar</button>
-                      </Link>
-                      <button
-                        type="button"
-                        style={{ display: "inline-block", marginLeft: 8 }}
-                        disabled={deactivating}
-                        onClick={() => setPendingDeactivateId(bartable.id)}
-                      >
-                        {deactivating ? "Desactivando..." : "Desactivar"}
-                      </button>
+      <div className="table-section">
+        <h2 className="settings-panel__subtitle">Lista de mesas</h2>
+        <Link
+          replace
+          to={toggleIncludeHref}
+          className={
+            includeInactive
+              ? "inactive-btn inactive-btn--active"
+              : "inactive-btn"
+          }
+        >
+          {includeInactive ? "Ocultar inactivas" : "Ver inactivas"}
+        </Link>
 
-                      {(() => {
-                        const data = deactivateFetcher.data as any;
-                        if (
-                          data &&
-                          data.error &&
-                          lastDeactivateId === bartable.id
-                        ) {
-                          return (
-                            <div className="inline-error" role="alert">
-                              {String(data.error)}
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        style={{ display: "inline-block", marginLeft: 8 }}
-                        disabled={reactivating}
-                        onClick={() => setPendingReactivateId(bartable.id)}
-                      >
-                        {reactivating ? "Reactivando..." : "Reactivar"}
-                      </button>
-                    </>
+        {sortedBartables.length === 0 ? (
+          <p className="table__empty-msg">No hay mesas para mostrar.</p>
+        ) : (
+          <div className="table-wrapper">
+            <table className="table">
+              <thead className="table__head">
+                <tr className="table__head-tr">
+                  <SortToggle
+                    currentSort={sortBy}
+                    currentDir={sortDir}
+                    name="number"
+                    label="Número"
+                  />
+                  {includeInactive && (
+                    <SortToggle
+                      currentSort={sortBy}
+                      currentDir={sortDir}
+                      name="active"
+                      label="Estado"
+                    />
                   )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+                  <th className="table__head-th action-th">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="table__body">
+                {sortedBartables.map((bartable) => (
+                  <tr
+                    key={bartable.id}
+                    className={
+                      editingId === bartable.id
+                        ? "table__item-tr table__item-tr--editing"
+                        : "table__item-tr"
+                    }
+                  >
+                    <td className="table__item-td bartable-number-td">
+                      {bartable.number}
+                    </td>
+                    {includeInactive && (
+                      <td className="table__item-td active-td bartable-active-td">
+                        {bartable.active ? "Activa" : "Inactiva"}
+                      </td>
+                    )}
+                    <td className="table__item-td action-td bartable-action-td">
+                      {bartable.active ? (
+                        <>
+                          <Link
+                            to={`?id=${bartable.id}&includeInactive=${
+                              includeInactive ? "1" : "0"
+                            }`}
+                            className="modify-link"
+                          >
+                            <button
+                              type="button"
+                              className="modify-btn action-btn"
+                            >
+                              Editar
+                            </button>
+                          </Link>
+
+                          <button
+                            type="button"
+                            disabled={deactivating}
+                            onClick={() => setPendingDeactivateId(bartable.id)}
+                            className="delete-btn action-btn"
+                          >
+                            {deactivating ? (
+                              <FaSpinner className="action-icon spinner" />
+                            ) : (
+                              "Desactivar"
+                            )}
+                          </button>
+
+                          {(() => {
+                            const data = deactivateFetcher.data as any;
+                            if (
+                              data &&
+                              data.error &&
+                              lastDeactivateId === bartable.id
+                            ) {
+                              return (
+                                <div className="inline-error" role="alert">
+                                  {String(data.error)}
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="reactivate-btn action-btn"
+                          disabled={reactivating}
+                          onClick={() => setPendingReactivateId(bartable.id)}
+                        >
+                          {reactivating ? (
+                            <FaSpinner className="action-icon spinner" />
+                          ) : (
+                            "Reactivar"
+                          )}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {pendingDeactivateId != null && (
         <ConfirmPrompt
@@ -188,6 +216,12 @@ export function BartableTable({ bartables, editingId }: Props) {
             );
           }}
         />
+      )}
+
+      {reactivateFetcher.data && (reactivateFetcher.data as any).error && (
+        <div className="inline-error" role="alert" style={{ marginTop: 8 }}>
+          {String((reactivateFetcher.data as any).error)}
+        </div>
       )}
     </>
   );

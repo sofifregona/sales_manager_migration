@@ -5,7 +5,7 @@ export const ENDPOINTS = {
   category: "categories",
   employee: "employees",
   notification: "notifications",
-  payment: "payments",
+  paymentMethod: "paymentMethods",
   product: "products",
   productSold: "productsSold",
   provider: "providers",

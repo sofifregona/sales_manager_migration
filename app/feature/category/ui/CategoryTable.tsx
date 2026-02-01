@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Link,
   useFetcher,
@@ -13,6 +13,7 @@ import {
 import { SortToggle } from "~/shared/ui/form/SortToggle";
 import { ConfirmCascadeDeactivatePrompt } from "~/shared/ui/prompts/ConfirmCascadeDeactivatePrompt";
 import { ConfirmPrompt } from "~/shared/ui/prompts/ConfirmPrompt";
+import { FaSpinner } from "react-icons/fa";
 
 type Props = {
   categories: CategoryDTO[];
@@ -29,8 +30,8 @@ const CATEGORY_SORT_CONFIG: UseQuerySortingConfig<CategoryDTO> = {
 
 export function CategoryTable({ categories, editingId }: Props) {
   const deactivateFetcher = useFetcher();
-  const deactivating = deactivateFetcher.state !== "idle";
   const reactivateFetcher = useFetcher();
+  const deactivating = deactivateFetcher.state !== "idle";
   const reactivating = reactivateFetcher.state !== "idle";
   const [pendingDeactivateId, setPendingDeactivateId] = useState<number | null>(
     null
@@ -38,17 +39,41 @@ export function CategoryTable({ categories, editingId }: Props) {
   const [pendingReactivateId, setPendingReactivateId] = useState<number | null>(
     null
   );
-
-  const [lastDeactivateId, setLastDeactivateId] = useState<number | null>(null);
+  const [cascadeCategoryId, setCascadeCategoryId] = useState<number | null>(
+    null
+  );
+  const [lastAttemptedDeactivateId, setLastAttemptedDeactivateId] = useState<
+    number | null
+  >(null);
 
   const [params] = useSearchParams();
   const includeInactive = params.get("includeInactive") === "1";
   const location = useLocation();
+
   const toggleIncludeHref = (() => {
     const p = new URLSearchParams(location.search);
     p.set("includeInactive", includeInactive ? "0" : "1");
     return `?${p.toString()}`;
   })();
+
+  useEffect(() => {
+    if (deactivateFetcher.state !== "idle") return;
+    const data = deactivateFetcher.data as any;
+    if (
+      data &&
+      data.code === "CATEGORY_IN_USE" &&
+      lastAttemptedDeactivateId != null
+    ) {
+      setCascadeCategoryId(lastAttemptedDeactivateId);
+    } else {
+      setCascadeCategoryId(null);
+      setLastAttemptedDeactivateId(null);
+    }
+  }, [
+    deactivateFetcher.data,
+    deactivateFetcher.state,
+    lastAttemptedDeactivateId,
+  ]);
 
   const {
     sortedItems: sortedCategories,
@@ -58,122 +83,152 @@ export function CategoryTable({ categories, editingId }: Props) {
 
   return (
     <>
-      <h2>Lista de categorías</h2>
-      <div
-        style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}
-      >
-        <Link replace to={toggleIncludeHref} className="btn btn--secondary">
+      <div className="table-section">
+        <h2 className="settings-panel__subtitle">Lista de categorías</h2>
+        <Link
+          replace
+          to={toggleIncludeHref}
+          className={
+            includeInactive
+              ? "inactive-btn inactive-btn--active"
+              : "inactive-btn"
+          }
+        >
           {includeInactive ? "Ocultar inactivas" : "Ver inactivas"}
         </Link>
-      </div>
-      {sortedCategories.length === 0 ? (
-        <p>No hay categorías para mostrar.</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <SortToggle
-                currentSort={sortBy}
-                currentDir={sortDir}
-                name="normalizedName"
-                label="Nombre"
-              />
-              {includeInactive && (
-                <SortToggle
-                  currentSort={sortBy}
-                  currentDir={sortDir}
-                  name="active"
-                  label="Estado"
-                />
-              )}
-              <th style={{ width: 220 }}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedCategories.map((category) => (
-              <tr
-                key={category.id}
-                className={editingId === category.id ? "row row--editing" : "row"}
-              >
-                <td>{category.name}</td>
-                {includeInactive && (
-                  <td>{category.active ? "Activa" : "Inactiva"}</td>
-                )}
-                <td className="actions">
-                  {category.active ? (
-                    <>
-                      <Link
-                        to={`?id=${category.id}&includeInactive=${
-                          includeInactive ? "1" : "0"
-                        }`}
-                      >
-                        <button type="button">Modificar</button>
-                      </Link>
 
-                      <button
-                        type="button"
-                        style={{ display: "inline-block", marginLeft: 8 }}
-                        disabled={deactivating}
-                        onClick={() => setPendingDeactivateId(category.id)}
-                      >
-                        {deactivating ? "Desactivando..." : "Desactivar"}
-                      </button>
-
-                      {(() => {
-                        const data = deactivateFetcher.data as any;
-                        if (
-                          data &&
-                          data.code === "CATEGORY_IN_USE" &&
-                          data.details?.count != null &&
-                          lastDeactivateId === category.id
-                        ) {
-                          return (
-                            <ConfirmCascadeDeactivatePrompt
-                              entityId={category.id}
-                              entityLabel="Categoría"
-                              dependentLabel="Producto"
-                              count={Number(data.details.count) || 0}
-                              strategyProceed="cascade-deactivate-products"
-                              onCancel={() => {
-                                setLastDeactivateId(null);
-                              }}
-                              proceedLabel="Aceptar"
-                            />
-                          );
-                        }
-                        if (
-                          data &&
-                          data.error &&
-                          !data.code &&
-                          lastDeactivateId === category.id
-                        ) {
-                          return (
-                            <div className="inline-error" role="alert">
-                              {String(data.error)}
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        style={{ display: "inline-block", marginLeft: 8 }}
-                        disabled={reactivating}
-                        onClick={() => setPendingReactivateId(category.id)}
-                      >
-                        {reactivating ? "Reactivando..." : "Reactivar"}
-                      </button>
-                    </>
+        {sortedCategories.length === 0 ? (
+          <p className="table__empty-msg">No hay categorías para mostrar.</p>
+        ) : (
+          <div className="table-wrapper">
+            <table className="table">
+              <thead className="table__head">
+                <tr className="table__head-tr">
+                  <SortToggle
+                    currentSort={sortBy}
+                    currentDir={sortDir}
+                    name="normalizedName"
+                    label="Nombre"
+                  />
+                  {includeInactive && (
+                    <SortToggle
+                      currentSort={sortBy}
+                      currentDir={sortDir}
+                      name="active"
+                      label="Estado"
+                    />
                   )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+                  <th className="table__head-th action-th">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="table__body">
+                {sortedCategories.map((category) => (
+                  <tr
+                    key={category.id}
+                    className={
+                      editingId === category.id
+                        ? "table__item-tr table__item-tr--editing"
+                        : "table__item-tr"
+                    }
+                  >
+                    <td className="table__item-td category-name-td">
+                      {category.name}
+                    </td>
+                    {includeInactive && (
+                      <td className="table__item-td active-td category-active-td">
+                        {category.active ? "Activa" : "Inactiva"}
+                      </td>
+                    )}
+                    <td className="table__item-td action-td category-action-td">
+                      {category.active ? (
+                        <>
+                          <Link
+                            to={`?id=${category.id}&includeInactive=${
+                              includeInactive ? "1" : "0"
+                            }`}
+                            className="modify-link"
+                          >
+                            <button
+                              type="button"
+                              className="modify-btn action-btn"
+                            >
+                              Editar
+                            </button>
+                          </Link>
+
+                          <button
+                            type="button"
+                            disabled={deactivating}
+                            onClick={() => setPendingDeactivateId(category.id)}
+                            className="delete-btn action-btn"
+                          >
+                            {deactivating ? (
+                              <FaSpinner className="action-icon spinner" />
+                            ) : (
+                              "Desactivar"
+                            )}
+                          </button>
+
+                          {(() => {
+                            const data = deactivateFetcher.data as any;
+                            if (
+                              cascadeCategoryId === category.id &&
+                              data &&
+                              data.code === "CATEGORY_IN_USE" &&
+                              data.details?.count != null
+                            ) {
+                              return (
+                                <ConfirmCascadeDeactivatePrompt
+                                  entityId={category.id}
+                                  entityLabel="categoría"
+                                  dependentLabel="Producto"
+                                  count={Number(data.details.count) || 0}
+                                  strategyProceed="cascade-deactivate-products"
+                                  onCancel={() => {
+                                    setCascadeCategoryId(null);
+                                    setLastAttemptedDeactivateId(null);
+                                  }}
+                                  proceedLabel="Aceptar"
+                                />
+                              );
+                            }
+                            if (
+                              cascadeCategoryId === category.id &&
+                              data &&
+                              data.error &&
+                              !data.code
+                            ) {
+                              return (
+                                <div className="inline-error" role="alert">
+                                  {String(data.error)}
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          className="reactivate-btn action-btn"
+                          disabled={reactivating}
+                          onClick={() => setPendingReactivateId(category.id)}
+                        >
+                          {reactivating ? (
+                            <FaSpinner className="action-icon spinner" />
+                          ) : (
+                            "Reactivar"
+                          )}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {pendingDeactivateId != null && (
         <ConfirmPrompt
@@ -183,7 +238,7 @@ export function CategoryTable({ categories, editingId }: Props) {
           onConfirm={() => {
             const id = pendingDeactivateId;
             setPendingDeactivateId(null);
-            setLastDeactivateId(id);
+            setLastAttemptedDeactivateId(id);
             deactivateFetcher.submit(
               { id: String(id), _action: "deactivate" },
               { method: "post", action: `.${location.search}` }
@@ -216,4 +271,3 @@ export function CategoryTable({ categories, editingId }: Props) {
     </>
   );
 }
-

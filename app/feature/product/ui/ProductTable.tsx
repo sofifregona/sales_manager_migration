@@ -1,10 +1,17 @@
 import React, { useMemo, useState } from "react";
-import { Link, useFetcher, useLocation, useSearchParams } from "react-router-dom";
+import {
+  Link,
+  useFetcher,
+  useLocation,
+  useSearchParams,
+} from "react-router-dom";
 import type { ProductDTO } from "~/feature/product/product";
 import { SortToggle } from "~/shared/ui/form/SortToggle";
 import { useBulkSelection } from "../hooks/useBulkSelection";
 import IncrementForm from "./IncrementPrices";
 import { ConfirmPrompt } from "~/shared/ui/prompts/ConfirmPrompt";
+import { FaEdit, FaTrashRestore } from "react-icons/fa";
+import { FaTrash, FaSpinner } from "react-icons/fa";
 
 type Props = {
   products: ProductDTO[];
@@ -21,14 +28,19 @@ export function ProductTable({ products, editingId }: Props) {
   const includeInactive = params.get("includeInactive") === "1";
   const location = useLocation();
 
-  const [pendingDeactivateId, setPendingDeactivateId] = useState<number | null>(null);
-  const [pendingReactivateId, setPendingReactivateId] = useState<number | null>(null);
+  const [pendingDeactivateId, setPendingDeactivateId] = useState<number | null>(
+    null
+  );
+  const [pendingReactivateId, setPendingReactivateId] = useState<number | null>(
+    null
+  );
   const [lastDeactivateId, setLastDeactivateId] = useState<number | null>(null);
 
   // Orden viene del server v√≠a sortField/sortDirection en la URL
   const sp = new URLSearchParams(location.search);
   const sortBy = sp.get("sortField") ?? "name";
-  const sortDir = sp.get("sortDirection")?.toUpperCase() === "DESC" ? "DESC" : "ASC";
+  const sortDir =
+    sp.get("sortDirection")?.toUpperCase() === "DESC" ? "DESC" : "ASC";
   const displayedProducts = products ?? [];
 
   const visibleIds = useMemo(
@@ -36,19 +48,34 @@ export function ProductTable({ products, editingId }: Props) {
     [displayedProducts]
   );
 
-  const { masterRef, selectedIds, allVisibleSelected, toggleAllVisible, toggleOne } =
-    useBulkSelection(visibleIds, editingId ?? null);
+  const {
+    masterRef,
+    selectedIds,
+    allVisibleSelected,
+    toggleAllVisible,
+    toggleOne,
+  } = useBulkSelection(visibleIds, editingId ?? null);
+
+  const [incrementForm, setIncrementForm] = useState(false);
 
   return (
     <>
-      <h2>Lista de productos</h2>
-      <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}>
+      <div className="table-section">
+        <h2 className="settings-panel__subtitle">Lista de productos</h2>
         {(() => {
           const p = new URLSearchParams(location.search);
           p.set("includeInactive", includeInactive ? "0" : "1");
           const toggleIncludeHref = `?${p.toString()}`;
           return (
-            <Link replace to={toggleIncludeHref} className="btn btn--secondary">
+            <Link
+              replace
+              to={toggleIncludeHref}
+              className={
+                includeInactive
+                  ? "inactive-btn inactive-btn--active"
+                  : "inactive-btn"
+              }
+            >
               {includeInactive ? "Ocultar inactivos" : "Ver inactivos"}
             </Link>
           );
@@ -56,112 +83,198 @@ export function ProductTable({ products, editingId }: Props) {
       </div>
 
       {displayedProducts.length === 0 ? (
-        <p>No hay productos para mostrar.</p>
+        <p className="table__empty-msg">No hay productos para mostrar.</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>
-                <input
-                  type="checkbox"
-                  ref={masterRef}
-                  checked={allVisibleSelected}
-                  onChange={(e) => toggleAllVisible(e.currentTarget.checked)}
+        <div className="table-wrapper">
+          <table className="table">
+            <thead className="table__head">
+              <tr className="table__head-tr">
+                <SortToggle
+                  currentSort={sortBy}
+                  currentDir={sortDir}
+                  name="name"
+                  label="Nombre"
                 />
-                {" Seleccionar todo"}
-              </th>
-              <SortToggle currentSort={sortBy} currentDir={sortDir} name="name" label="Nombre" />
-              <SortToggle currentSort={sortBy} currentDir={sortDir} name="code" label="CÛdigo" />
-              <SortToggle currentSort={sortBy} currentDir={sortDir} name="price" label="Precio" />
-              <SortToggle currentSort={sortBy} currentDir={sortDir} name="brand" label="Marca" />
-              <SortToggle currentSort={sortBy} currentDir={sortDir} name="category" label="CategorÌa" />
-              <SortToggle currentSort={sortBy} currentDir={sortDir} name="provider" label="Proveedor" />
-              {includeInactive && <th>Estado</th>}
-              <th style={{ width: 220 }}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayedProducts.map((product) => (
-              <tr
-                key={product.id}
-                className={editingId === product.id ? "row row--editing" : "row"}
-              >
-                <td>
-                  <input
-                    type="checkbox"
-                    form="incrementForm"
-                    name="ids"
-                    value={String(product.id)}
-                    checked={selectedIds.has(product.id)}
-                    onChange={(e) => toggleOne(product.id, e.currentTarget.checked)}
+                <SortToggle
+                  currentSort={sortBy}
+                  currentDir={sortDir}
+                  name="code"
+                  label="C√≥digo"
+                />
+                <SortToggle
+                  currentSort={sortBy}
+                  currentDir={sortDir}
+                  name="price"
+                  label="Precio"
+                />
+                <SortToggle
+                  currentSort={sortBy}
+                  currentDir={sortDir}
+                  name="brand"
+                  label="Marca"
+                />
+                <SortToggle
+                  currentSort={sortBy}
+                  currentDir={sortDir}
+                  name="category"
+                  label="Categor√≠a"
+                />
+                <SortToggle
+                  currentSort={sortBy}
+                  currentDir={sortDir}
+                  name="provider"
+                  label="Proveedor"
+                />
+                {includeInactive && (
+                  <SortToggle
+                    currentSort={sortBy}
+                    currentDir={sortDir}
+                    name="active"
+                    label="Estado"
                   />
-                </td>
-                <td>{product.name}</td>
-                <td>{product.code.toString().padStart(3, "0")}</td>
-                <td>{product.price}</td>
-                <td>{product.brand?.name}</td>
-                <td>{product.category?.name}</td>
-                <td>{product.provider?.name}</td>
-                {includeInactive && <td>{product.active ? "Activo" : "Inactivo"}</td>}
-
-                <td className="actions">
-                  {product.active ? (
-                    <>
-                      {(() => {
-                        const p = new URLSearchParams(location.search);
-                        p.set("id", String(product.id));
-                        const href = `?${p.toString()}`;
-                        return (
-                          <Link to={href}>
-                            <button type="button">Modificar</button>
-                          </Link>
-                        );
-                      })()}
-                      <button
-                        type="button"
-                        style={{ display: "inline-block", marginLeft: 8 }}
-                        disabled={deactivating}
-                        onClick={() => setPendingDeactivateId(product.id)}
-                      >
-                        {deactivating ? "Desactivando..." : "Desactivar"}
-                      </button>
-                      {(() => {
-                        const data = deactivateFetcher.data as any;
-                        if (data && data.error && lastDeactivateId === product.id) {
-                          return (
-                            <div className="inline-error" role="alert">{String(data.error)}</div>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        style={{ display: "inline-block", marginLeft: 8 }}
-                        disabled={reactivating}
-                        onClick={() => setPendingReactivateId(product.id)}
-                      >
-                        {reactivating ? "Reactivando..." : "Reactivar"}
-                      </button>
-                      {reactivateFetcher.data?.error && (
-                        <div className="inline-error" role="alert">
-                          {String((reactivateFetcher.data as any).error)}
-                        </div>
-                      )}
-                    </>
-                  )}
-                </td>
+                )}
+                {incrementForm ? (
+                  <th className="table__head-th check-th">
+                    <input
+                      type="checkbox"
+                      ref={masterRef}
+                      checked={allVisibleSelected}
+                      onChange={(e) => toggleAllVisible(e.currentTarget.checked)}
+                      className="check-th check__all"
+                    />
+                    {" Seleccionar todo"}
+                  </th>
+                ) : (
+                  <th className="table__head-th action-th">Acciones</th>
+                )}
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody className="table__body">
+              {displayedProducts.map((product) => (
+                <tr
+                  key={product.id}
+                  className={
+                    editingId === product.id
+                      ? "table__item-tr table__item-tr--editing"
+                      : "table__item-tr"
+                  }
+                >
+                  <td className="table__item-td product-name-td">
+                    {product.name}
+                  </td>
+                  <td className="table__item-td product-code-td">
+                    {product.code.toString().padStart(3, "0")}
+                  </td>
+                  <td className="table__item-td product-price-td">
+                    {product.price}
+                  </td>
+                  <td className="table__item-td product-brand-td">
+                    {product.brand?.name}
+                  </td>
+                  <td className="table__item-td product-category-td">
+                    {product.category?.name}
+                  </td>
+                  <td className="table__item-td product-provider-td">
+                    {product.provider?.name}
+                  </td>
+                  {includeInactive && (
+                    <td className="table__item-td active-td product-active-td">
+                      {product.active ? "Activo" : "Inactivo"}
+                    </td>
+                  )}
+
+                  <td className="table__item-td action-td product-action-td">
+                    {incrementForm ? (
+                      <td className="table__item-td product-check-td">
+                        <input
+                          type="checkbox"
+                          form="incrementForm"
+                          name="ids"
+                          className="check-td check"
+                          value={String(product.id)}
+                          checked={selectedIds.has(product.id)}
+                          onChange={(e) =>
+                            toggleOne(product.id, e.currentTarget.checked)
+                          }
+                        />
+                      </td>
+                    ) : product.active ? (
+                      <>
+                        {(() => {
+                          const p = new URLSearchParams(location.search);
+                          p.set("id", String(product.id));
+                          const href = `?${p.toString()}`;
+                          return (
+                            <Link to={href}>
+                              <button
+                                className="modify-btn action-btn"
+                                type="button"
+                              >
+                                Editar
+                              </button>
+                            </Link>
+                          );
+                        })()}
+                        <button
+                          type="button"
+                          disabled={deactivating}
+                          onClick={() => setPendingDeactivateId(product.id)}
+                          className="delete-btn action-btn"
+                        >
+                          {deactivating ? (
+                            <FaSpinner className="action-icon spinner" />
+                          ) : (
+                            "Desactivar"
+                          )}
+                        </button>
+                        {(() => {
+                          const data = deactivateFetcher.data as any;
+                          if (
+                            data &&
+                            data.error &&
+                            lastDeactivateId === product.id
+                          ) {
+                            return (
+                              <div className="inline-error" role="alert">
+                                {String(data.error)}
+                              </div>
+                            );
+                          }
+                          return null;
+                        })()}
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          type="button"
+                          className="reactivate-btn action-btn"
+                          disabled={reactivating}
+                          onClick={() => setPendingReactivateId(product.id)}
+                        >
+                          {reactivating ? (
+                            <FaSpinner className="action-icon spinner" />
+                          ) : (
+                            "Reactivar"
+                          )}
+                        </button>
+                        {reactivateFetcher.data?.error && (
+                          <div className="inline-error" role="alert">
+                            {String((reactivateFetcher.data as any).error)}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       )}
 
       {pendingDeactivateId != null && (
         <ConfirmPrompt
-          message="øSeguro que desea desactivar este producto?"
+          message="¬øSeguro que desea desactivar este producto?"
           busy={deactivating}
           onCancel={() => setPendingDeactivateId(null)}
           onConfirm={() => {
@@ -178,7 +291,7 @@ export function ProductTable({ products, editingId }: Props) {
 
       {pendingReactivateId != null && (
         <ConfirmPrompt
-          message="øSeguro que desea reactivar este producto?"
+          message="¬øSeguro que desea reactivar este producto?"
           busy={reactivating}
           onCancel={() => setPendingReactivateId(null)}
           onConfirm={() => {
@@ -192,7 +305,10 @@ export function ProductTable({ products, editingId }: Props) {
         />
       )}
 
-      <IncrementForm selectedIds={selectedIds} />
+      <button type="button" onClick={() => setIncrementForm((prev) => !prev)}>
+        Incrementar precios por grupo
+      </button>
+      {incrementForm && <IncrementForm selectedIds={selectedIds} />}
     </>
   );
 }

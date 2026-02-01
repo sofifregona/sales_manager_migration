@@ -1,0 +1,481 @@
+@use "sass:color"
+@use "../../../styles/tokens" as *
+
+.settings-panel__section.settings-panel__product
+    width: 100%
+    overflow: hidden
+    .action-prompt
+        max-width: 680px
+
+.product-form
+    display: flex
+    justify-content: space-between
+    flex-wrap: wrap
+    .form-input__div
+        width: 430px
+        padding: 0
+        height: min-content
+        display: flex
+        justify-content: space-between
+        flex-wrap: wrap
+        .form-btns
+            padding: 0
+            &__div
+                padding: 0
+
+.pill-name-product, .th-normalizedName-product
+    width: 50%
+
+.pill-code-product
+    width: 15%
+
+.pill-price-product
+    width: 28%
+
+.filterable-inputs
+    display: flex
+    flex-wrap: wrap
+    justify-content: space-between
+    width: 100%
+
+.filterable-input
+    position: relative
+    width: 100%
+    margin: .25rem 0rem
+
+.form-pill-select
+    &__label
+        font-size: .9rem
+    &__ul
+        display: block
+        position: absolute
+        top: 4rem
+        z-index: 10
+        background-color: $color-dark-tertiary
+        width: 100%
+        padding: .5rem .5rem
+        border-radius: 15px
+        color: #71717a
+
+    &__li
+        color: #71717a
+        padding: .25rem .5rem
+        cursor: pointer
+        border-radius: 10px
+        font-size: .9rem
+
+        &--active
+            background-color: color.mix($color-primary, $color-dark-tertiary, 10%)
+            width: 100%
+            font-weight: 600
+            color: $color-light
+            border: 1px solid $color-primary
+
+    //
+.form-pill
+    margin: 0
+    &__stock
+        width: 100%
+        display: flex
+        flex-wrap: wrap
+        justify-content: space-between
+        align-items: baseline
+        border: 1px solid #252525
+        padding: .5rem 1rem
+        border-radius: $radius-containers
+        margin-top: .75rem
+        &-subtitle
+            width: 160px
+            margin-bottom: .5rem
+
+    &__stock-checkbox
+        width: 200px
+        display: flex
+        flex-wrap: wrap
+        justify-content: space-between
+        align-items: center
+
+    &__stock-qtys
+        display: flex
+        flex-wrap: wrap
+        width: 200px
+        justify-content: space-between
+        gap: 2%
+
+.pill-stock-check, .pill-negative-qty-check, .pill-min-qty-check
+    width: 100%
+    margin-top: .5rem
+    align-items: center
+    white-space: nowrap
+    justify-content: space-between
+    .form-pill__stock-checkbox-label
+        display: flex
+        align-items: inherit
+        width: 70%
+        min-width: 165px
+        max-width: 175px
+        font-size: .9rem
+    .form-pill__stock-checkbox-input
+        width: min-content
+
+.pill-qty, .pill-min-qty
+    width: 46%
+    display: flex
+    align-items: baseline
+    .form-pill__stock-qtys-label
+        width: 100%
+        font-size: .9rem
+    .form-pill__stock-qtys-input
+        width: 100%
+        margin-top: .35rem
+        padding: .5rem 1rem
+        background-color: $color-dark-tertiary
+        border: 1px solid $color-dark-primary
+        border-radius: $radius-full
+        &.input--no-av
+            border: 1px solid $color-dark-primary
+            background-color: #151515
+            cursor: not-allowed
+
+.label--no-av
+    color: #71717a
+    font-style: italic
+
+.form-pill-img
+    padding: .5rem
+    height: min-content
+    border: 1px solid #252525
+    border-radius: $radius-base
+    width: fit-content
+
+    // IMÁGEN
+    &__image-field
+        // border: 1px dashed $color-dark-tertiary
+        border-radius: $radius-base
+        // padding: .5rem
+        display: flex
+        gap: 0.75rem
+
+    &__file-input
+        display: none
+
+    &__image-actions
+        width: 160px
+        display: flex
+        flex-direction: column
+        align-items: center
+        justify-content: space-between
+        padding: .35rem
+
+        .btn, .secondary-btn
+            width: 100%
+
+    &__image-trigger
+        border: 1px solid $color-primary
+        border-radius: $radius-base
+        padding: 0.25rem .5rem
+        background-color: color.mix($color-primary, $color-dark-tertiary, 10%)
+        color: $color-light
+        text-align: center
+        transition: background-color 0.2s ease, border-color 0.2s ease
+        font-size: .9rem
+
+    &__ghost-button
+        border: 1px solid $color-dark-tertiary
+        border-radius: $radius-base
+        padding: 0.25rem .5rem
+        color: $color-light
+        background-color: transparent
+        text-align: center
+        transition: border-color 0.2s ease, color 0.2s ease
+
+    &__image-trigger:hover,
+    &__ghost-button:hover
+        border-color: $color-primary
+        color: $color-light
+
+    &__image-preview img
+        width: 160px
+        object-fit: cover
+        border-radius: $radius-base
+        border: 1px solid $color-dark-tertiary
+
+    &__clear-image
+        border: 1px solid $color-dark-tertiary
+        border-radius: $radius-base
+        padding: 0.4rem 0.8rem
+        margin: .25rem 0rem .75rem 0rem
+        font-size: .8rem
+        background-color: transparent
+        color: $color-light
+        width: 100%
+
+    &__image-hint
+        border-radius: $radius-containers
+        margin: 0
+        color: color.adjust($color-light, $lightness: -30%)
+        &-text
+            height: min-content
+            width: 100%
+            font-size: .9rem
+
+    &__image-overlay
+        position: fixed
+        inset: 0
+        background-color: rgba(0, 0, 0, 0.75)
+        display: flex
+        align-items: center
+        justify-content: center
+        padding: 2rem
+        z-index: 50
+
+    &__image-overlay-content
+        background-color: $color-dark-primary
+        border-radius: $radius-containers
+        width: min(720px, 90vw)
+        max-height: 90vh
+        overflow: auto
+        padding: 1.5rem
+        display: flex
+        flex-direction: column
+        gap: 1rem
+
+    &__image-overlay-header
+        display: flex
+        align-items: center
+        justify-content: space-between
+        gap: 1rem
+
+    &__image-grid
+        display: grid
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr))
+        gap: 1rem
+
+    &__image-option
+        position: relative
+        border: 2px solid $color-dark-primary
+        border-radius: $radius-base
+        background-color: $color-dark-primary
+        display: flex
+        flex-direction: column
+        padding: 0
+        gap: 0.5rem
+        color: $color-light
+        transition: all 0.2s ease
+        &:hover
+            border: 2px solid $color-light
+            .sample-label
+                font-weight: 500
+                padding: .1rem .5rem .25rem 1rem
+                letter-spacing: 0.1rem
+        .sample-label
+            background-color: $color-dark-primary
+            color: $color-light
+            position: absolute
+            right: 0px
+            bottom: -10px
+            padding: .1rem .25rem .25rem .5rem
+            font-size: .9rem
+            border-radius: 5px 0px 0px 5px
+            transition: all 0.2s ease
+
+    &__image-option img
+        width: 100%
+        height: 150px
+        object-fit: cover
+        border-radius: $radius-base
+
+    &__image-overlay-footer
+        display: flex
+        justify-content: flex-end
+
+.select-img-btn
+    font-size: .8rem
+    width: 100%
+    height: min-content
+
+.input-img
+    display: flex
+    flex-wrap: wrap
+    flex-direction: column
+    justify-content: start
+
+.table-section
+    &-product
+        width: 100%
+    &__filter
+        width: 100%
+        display: flex
+        flex-wrap: wrap
+        justify-content: space-between
+        align-items: center
+        .settings-panel__subtitle
+            white-space: nowrap
+
+.table-wrapper
+    display: block
+    width: 100%
+    padding: 0
+    // max-height: 30vh
+    overflow: auto
+    // margin: 1rem 0rem
+
+.form-filter
+    display: flex
+    flex-wrap: wrap
+    justify-content: space-between
+    align-items: center
+.filter-dropdown
+    position: relative
+    display: inline-block
+
+    &__panel
+        position: absolute
+        top: calc(100% + 8px)
+        right: 0
+        left: auto
+        background: $color-dark-primary
+        border: 1px solid $color-dark-tertiary
+        border-radius: $radius-base
+        min-width: 320px
+        max-width: 640px
+        width: max(320px, 20vw)
+        padding: .5rem 1rem
+        box-shadow: 0 12px 30px rgba(0,0,0,0.35)
+        z-index: 20
+
+    &__panel--above
+        right: 8px
+        text-align: right
+
+    &__header
+        display: flex
+        justify-content: space-between
+        align-items: center
+        margin-bottom: .25rem
+        h3
+            font-size: 1rem
+
+    .form-pill__input
+        font-size: .8rem
+        padding: .25rem .5rem
+
+    .clear-btn
+        margin: .5rem 0rem
+        padding: .25rem 1rem
+
+.filter-input-name
+    width: 100%
+
+.filter-input-code
+    width: 22%
+
+.filter-input-minPrice, .filter-input-maxPrice
+    width: 35%
+
+.filter-input__idProvider, .filter-input__idBrand, .filter-input__idCategory
+    width: 100%
+    padding-left: .25rem
+
+.table-section__control
+    width: 50%
+    display: flex
+    flex-wrap: wrap
+    justify-content: end
+    gap: 4%
+    align-items: center
+    .action-btn
+        border: 2px solid $color-dark-tertiary
+        &:hover
+            border-color: $color-primary
+
+.btn-filter
+    border-radius: $radius-full
+    display: flex
+    align-items: center
+    padding: .5rem
+    &:hover
+        background-color: color.mix($color-primary, $color-dark-tertiary, 10%)
+        border: 1px solid $color-primary
+        .filter-icon
+            fill: color.mix($color-primary, $color-dark-tertiary, 10%)
+            color: $color-light
+
+.product-table
+    .table__item-td
+        max-width: 180px
+        white-space: nowrap
+        overflow: hidden
+        text-overflow: ellipsis
+
+    .th-img-product
+        text-align: left
+        padding: 0.75rem 0rem .75rem 1.5rem
+
+    .th-name-product, .td-name-product
+        width: auto
+        min-width: 180px
+        text-align: left
+        padding: 0.75rem 0rem
+
+    .th-stock-product, .td-stock-product
+        text-align: center
+
+    .td-stock__icons
+        display: flex
+        gap: .5rem
+        color: $color-dark-tertiary
+
+    .stock-icon
+        font-size: 1.25rem
+        &--active
+            color: #3bad44
+
+    .th-code-product, .td-code-product
+        width: 90px
+        text-align: center
+        white-space: nowrap
+        padding: 0.75rem 0rem
+
+    .th-code-product button
+        margin: auto
+
+    .th-price-product, .td-price-product
+
+        text-align: left
+        padding: 0.75rem 0rem
+
+    .th-action-product, .th-check, .td-action-product
+        display: table-cell
+        width: 180px
+        height: auto
+        white-space: nowrap
+        text-align: center
+        align-items: center
+        text-overflow: inherit
+        padding: 0.75rem 1.5rem .75rem 0rem
+
+    .action-btn
+        display: inline-block
+        margin: 0rem .25rem
+
+    .th-brand-product, .td-brand-product, .th-category-product, .td-category-product, .th-provider-product, .td-provider-product
+        text-align: left
+        white-space: nowrap
+        padding: 0.75rem 0rem
+        width: 80px
+
+    .td-brand-product, .td-category-product, .td-provider-product
+        max-width: 80px
+        white-space: nowrap
+        overflow: hidden
+        text-overflow: ellipsis
+
+    .th-active-product, .td-active-product
+        white-space: nowrap
+        padding: 0.75rem 0rem
+        width: 50px
+        text-align: center
+
+    .table-img-prev
+        width: 35px

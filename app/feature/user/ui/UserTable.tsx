@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Link,
   useFetcher,
@@ -12,6 +12,7 @@ import {
 } from "~/shared/hooks/useQuerySorting";
 import { SortToggle } from "~/shared/ui/form/SortToggle";
 import { ConfirmPrompt } from "~/shared/ui/prompts/ConfirmPrompt";
+import { FaSpinner } from "react-icons/fa";
 
 type Props = {
   users: UserDTO[];
@@ -37,7 +38,6 @@ export function UserTable({ users, editingId }: Props) {
   const [pendingReactivateId, setPendingReactivateId] = useState<number | null>(
     null
   );
-
   const [lastDeactivateId, setLastDeactivateId] = useState<number | null>(null);
 
   const [params] = useSearchParams();
@@ -52,127 +52,163 @@ export function UserTable({ users, editingId }: Props) {
 
   return (
     <>
-      <h2>Lista de usuarios</h2>
-      <div
-        style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}
-      >
-        <Link
-          replace
-          to={`?includeInactive=${includeInactive ? "0" : "1"}`}
-          className="btn btn--secondary"
-        >
-          {includeInactive ? "Ocultar inactivas" : "Ver inactivas"}
-        </Link>
-      </div>
-      {sortedUsers.length === 0 ? (
-        <p>No hay usuarios para mostrar.</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <SortToggle
-                currentSort={sortBy}
-                currentDir={sortDir}
-                name="username"
-                label="Usuario"
-              />
-              <SortToggle
-                currentSort={sortBy}
-                currentDir={sortDir}
-                name="name"
-                label="Nombre"
-              />
-              <SortToggle
-                currentSort={sortBy}
-                currentDir={sortDir}
-                name="rol"
-                label="ROL"
-              />
-              <th style={{ width: 330 }}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedUsers.map((user) => (
-              <tr
-                key={user.id}
-                className={editingId === user.id ? "row row--editing" : "row"}
-              >
-                <td>{user.username}</td>
-                <td>{user.name}</td>
-                <td>{user.role}</td>
-
-                <td className="actions">
-                  {user.active ? (
-                    <>
-                      <Link
-                        to={`?id=${user.id}&includeInactive=${
-                          includeInactive ? "1" : "0"
-                        }`}
-                      >
-                        <button type="button">Modificar</button>
-                      </Link>
-                      <Link
-                        to={`?id=${user.id}&reset-password=1&includeInactive=${
-                          includeInactive ? "1" : "0"
-                        }`}
-                      >
-                        <button type="button">Resetear contraseña</button>
-                      </Link>
-                      <button
-                        type="button"
-                        style={{ display: "inline-block", marginLeft: 8 }}
-                        disabled={deactivating}
-                        onClick={() => setPendingDeactivateId(user.id)}
-                      >
-                        {deactivating ? "Desactivando..." : "Desactivar"}
-                      </button>
-
-                      {(() => {
-                        const data = deactivateFetcher.data as any;
-                        if (
-                          data &&
-                          data.code === "ADMIN_PROTECT" &&
-                          lastDeactivateId === user.id
-                        ) {
-                          return (
-                            <div className="inline-error" role="alert">
-                              No se puede eliminar el usuario ADMIN.
-                            </div>
-                          );
-                        }
-                        if (
-                          data &&
-                          data.error &&
-                          !data.code &&
-                          lastDeactivateId === user.id
-                        ) {
-                          return (
-                            <div className="inline-error" role="alert">
-                              {String(data.error)}
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        style={{ display: "inline-block", marginLeft: 8 }}
-                        disabled={reactivating}
-                        onClick={() => setPendingReactivateId(user.id)}
-                      >
-                        {reactivating ? "Reactivando..." : "Reactivar"}
-                      </button>
-                    </>
+      <div className="table-section table-section-user">
+        {sortedUsers.length === 0 ? (
+          <p className="table__empty-msg">No hay usuarios para mostrar.</p>
+        ) : (
+          <div className="table-wrapper">
+            <table className="table table-user">
+              <thead className="table__head">
+                <tr className="table__head-tr">
+                  <SortToggle
+                    currentSort={sortBy}
+                    currentDir={sortDir}
+                    name="username"
+                    className="username-user"
+                    label="Usuario"
+                  />
+                  <SortToggle
+                    currentSort={sortBy}
+                    currentDir={sortDir}
+                    name="name"
+                    className="name-user"
+                    label="Nombre"
+                  />
+                  <SortToggle
+                    currentSort={sortBy}
+                    currentDir={sortDir}
+                    name="rol"
+                    className="role-user"
+                    label="Rol"
+                  />
+                  {includeInactive && (
+                    <SortToggle
+                      currentSort={sortBy}
+                      currentDir={sortDir}
+                      name="active"
+                      className="active-user"
+                      label="Estado"
+                    />
                   )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+                  <th className="table__head-th th-action th-action-user">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="table__body">
+                {sortedUsers.map((user) => (
+                  <tr
+                    key={user.id}
+                    className={
+                      editingId === user.id
+                        ? "table__item-tr table__item-tr--editing"
+                        : "table__item-tr"
+                    }
+                  >
+                    <td className="table__item-td td-username-user">
+                      {user.username}
+                    </td>
+                    <td className="table__item-td td-name-user">{user.name}</td>
+                    <td className="table__item-td td-role-user">{user.role}</td>
+                    {includeInactive && (
+                      <td className="table__item-td td-active-user">
+                        {user.active ? (
+                          <p className="status status--active">Activo</p>
+                        ) : (
+                          <p className="status status--inactive">Inactivo</p>
+                        )}
+                      </td>
+                    )}
+                    <td className="table__item-td td-action td-action-user">
+                      {user.active ? (
+                        <>
+                          <Link
+                            to={`?id=${user.id}&includeInactive=${
+                              includeInactive ? "1" : "0"
+                            }`}
+                            className="modify-link"
+                          >
+                            <button
+                              type="button"
+                              className="modify-btn action-btn"
+                            >
+                              Editar
+                            </button>
+                          </Link>
+                          <Link
+                            to={`?id=${user.id}&reset-password=1&includeInactive=${
+                              includeInactive ? "1" : "0"
+                            }`}
+                            className="modify-link"
+                          >
+                            <button
+                              type="button"
+                              className="modify-btn action-btn"
+                            >
+                              Resetear contraseña
+                            </button>
+                          </Link>
+                          <button
+                            type="button"
+                            disabled={deactivating}
+                            onClick={() => setPendingDeactivateId(user.id)}
+                            className="delete-btn action-btn"
+                          >
+                            {deactivating ? (
+                              <FaSpinner className="action-icon spinner" />
+                            ) : (
+                              "Desactivar"
+                            )}
+                          </button>
+
+                          {(() => {
+                            const data = deactivateFetcher.data as any;
+                            if (
+                              data &&
+                              data.code === "ADMIN_PROTECT" &&
+                              lastDeactivateId === user.id
+                            ) {
+                              return (
+                                <div className="inline-error" role="alert">
+                                  No se puede eliminar el usuario ADMIN.
+                                </div>
+                              );
+                            }
+                            if (
+                              data &&
+                              data.error &&
+                              !data.code &&
+                              lastDeactivateId === user.id
+                            ) {
+                              return (
+                                <div className="inline-error" role="alert">
+                                  {String(data.error)}
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={reactivating}
+                          onClick={() => setPendingReactivateId(user.id)}
+                          className="reactivate-btn action-btn"
+                        >
+                          {reactivating ? (
+                            <FaSpinner className="action-icon spinner" />
+                          ) : (
+                            "Reactivar"
+                          )}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {pendingDeactivateId != null && (
         <ConfirmPrompt
@@ -206,12 +242,11 @@ export function UserTable({ users, editingId }: Props) {
           }}
         />
       )}
-    </>
-  );
-}
-
       {reactivateFetcher.data && (reactivateFetcher.data as any).error && (
         <div className="inline-error" role="alert" style={{ marginTop: 8 }}>
           {String((reactivateFetcher.data as any).error)}
         </div>
       )}
+    </>
+  );
+}

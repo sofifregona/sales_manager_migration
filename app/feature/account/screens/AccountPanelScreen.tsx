@@ -1,21 +1,32 @@
-import { useActionData, useLoaderData, useLocation } from "react-router-dom";
+import {
+  Link,
+  useActionData,
+  useLoaderData,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
 import { makeReactivableConflictBuilder } from "~/shared/conflict/builders";
 import { renderAccountSwapOverlay } from "~/feature/account/conflict/renderAccountInUseOverlay";
 import type { AccountLoaderData } from "~/feature/account/account";
 import { FlashMessages } from "~/shared/ui/feedback/FlashMessages";
-import { SuccessBanner } from "~/shared/ui/feedback/SuccessBanner";
 import { ErrorBanner } from "~/shared/ui/feedback/ErrorBanner";
-import { useCrudSuccess } from "~/shared/hooks/useCrudSuccess";
+import { useFloatingCrudSuccess } from "~/shared/hooks/useFloatingCrudSuccess";
 import { useCrudError } from "~/shared/hooks/useCrudError";
 import { useReactivateFlow } from "~/shared/hooks/useReactivateFlow";
 import { ReactivatePromptBanner } from "~/shared/ui/prompts/ReactivatePromptBanner";
 import { CrudHeader } from "~/shared/ui/layout/CrudHeader";
 import { AccountForm } from "../ui/AccountForm";
 import { AccountTable } from "../ui/AccountTable";
-import { useUrlSuccessFlash } from "~/shared/hooks/useUrlSuccessFlash";
 import { useUrlConflictFlash } from "~/shared/hooks/useUrlConflictFlash";
 import { consumeConflictCookie } from "~/services/conflictCookie";
-import SettingsScreen from "~/routes/settings";
+import { SettingsList } from "~/shared/ui/layout/SettingsList";
+import { FaPlusCircle } from "react-icons/fa";
+import { FaEye } from "react-icons/fa";
+import { FaEyeSlash } from "react-icons/fa";
+
+import "./AccountPanelScreen.sass";
 
 export function AccountPanelScreen() {
   const { accounts, editingAccount, flash } =
@@ -23,56 +34,141 @@ export function AccountPanelScreen() {
   const actionData = useActionData() as
     | { error?: string; source?: "client" | "server" }
     | undefined;
+  const formError = actionData?.error;
 
   const location = useLocation();
-  const p = new URLSearchParams(location.search);
-  const include = p.get("includeInactive");
-  const isEditing = !!editingAccount;
+  const navigate = useNavigate();
+  const searchParams = useMemo(
+    () => new URLSearchParams(location.search),
+    [location.search]
+  );
+  const include = searchParams.get("includeInactive");
+  const includeInactive = include === "1";
+  const editingIdParam = searchParams.get("id");
+  const editingTargetId = editingIdParam ? Number(editingIdParam) : null;
+  const cancelHref = `/settings/account${
+    include ? `?includeInactive=${include}` : ""
+  }`;
 
-  useUrlSuccessFlash("account");
   useUrlConflictFlash(
     "account",
     makeReactivableConflictBuilder("account", ["ACCOUNT_EXISTS_INACTIVE"])
   );
 
   const { prompt, dismiss } = useReactivateFlow("account");
-
-  const { message } = useCrudSuccess("account", {
-    "created-success": "Cuenta creada con éxito.",
-    "updated-success": "Cuenta modificada con éxito.",
-    "deactivated-success": "Cuenta eliminada con éxito.",
-    "reactivated-success": "Cuenta reactivada con éxito.",
+  const { toastMessage, visible: showSuccess } = useFloatingCrudSuccess({
+    messageMap: {
+      "created-success": "Cuenta creada con éxito.",
+      "updated-success": "Cuenta modificada con éxito.",
+      "deactivated-success": "Cuenta eliminada con éxito.",
+      "reactivated-success": "Cuenta reactivada con éxito.",
+    },
   });
 
+  const currentEditingAccount =
+    editingTargetId != null && editingAccount?.id === editingTargetId
+      ? editingAccount
+      : null;
+  const isEditing = !!currentEditingAccount;
+
+  const [showForm, setShowForm] = useState(false);
+  const [formMode, setFormMode] = useState<"create" | "edit">("create");
+
   const conflictActive = !!prompt;
-  const overrideName = (() => {
+  const overrideName = useMemo(() => {
     if (!conflictActive) return undefined;
     const extras = consumeConflictCookie<{ name?: string }>() || {};
     return extras.name ?? "";
-  })();
+  }, [conflictActive]);
 
   const { message: clientError } = useCrudError("account", {
     includeReactivable: true,
   });
 
+  const [params] = useSearchParams();
+
+  useEffect(() => {
+    if (editingTargetId != null) {
+      setShowForm(true);
+      setFormMode("edit");
+    } else {
+      setFormMode("create");
+    }
+  }, [editingTargetId]);
+
+  useEffect(() => {
+    if (formError) {
+      setShowForm(true);
+    }
+  }, [formError]);
+
+  const openCreate = () => {
+    setFormMode("create");
+    setShowForm(true);
+    navigate(cancelHref, { replace: true });
+  };
+
+  const closeForm = () => {
+    setShowForm(false);
+    if (location.search.includes("id=")) {
+      navigate(cancelHref, { replace: true });
+    }
+  };
+
   return (
-    <div>
-      <SettingsScreen />
-      <section className="settings__section">
-        <h1>Cuentas</h1>
-        <CrudHeader
-          isEditing={isEditing}
-          entityLabel="cuenta"
-          name={editingAccount?.name ?? null}
-          cancelHref={`/account${include ? `?includeInactive=${include}` : ""}`}
-        />
+    <div className="settings-panel">
+      <SettingsList actual="account" />
+      <section className="settings-panel__section settings-panel__account">
+        <div className="settings-panel__header">
+          <h2 className="settings-panel__subtitle table-section__subtitle">
+            Lista de cuentas
+          </h2>
+          <div className="form-action-btns">
+            <button
+              type="button"
+              className="btn btn--icon-gap"
+              onClick={openCreate}
+            >
+              <FaPlusCircle className="action-icon" />
+              {" Crear cuenta"}
+            </button>
+            {(() => {
+              const p = new URLSearchParams(location.search);
+              p.set("includeInactive", includeInactive ? "0" : "1");
+              const toggleIncludeHref = `?${p.toString()}`;
+              return (
+                <Link
+                  replace
+                  to={toggleIncludeHref}
+                  className={
+                    includeInactive
+                      ? "btn inactive-btn--active btn--icon-gap"
+                      : "btn btn--icon-gap"
+                  }
+                >
+                  {includeInactive ? (
+                    <>
+                      <FaEyeSlash className="action-icon" />
+                      {" Ocultar inactivas"}
+                    </>
+                  ) : (
+                    <>
+                      <FaEye className="action-icon" />
+                      {" Ver inactivas"}
+                    </>
+                  )}
+                </Link>
+              );
+            })()}
+            {toastMessage && showSuccess && (
+              <div className="toast-success-float" role="status">
+                {toastMessage}
+              </div>
+            )}
+          </div>
+        </div>
 
-        <FlashMessages
-          flash={{ error: flash?.error, source: flash?.source }}
-          actionError={actionData}
-        />
-
-        {message && <SuccessBanner message={message} />}
+        <FlashMessages flash={{ error: flash?.error, source: flash?.source }} />
         {!prompt && clientError && <ErrorBanner message={clientError} />}
 
         {prompt && (
@@ -88,30 +184,59 @@ export function AccountPanelScreen() {
             messageForCreate={
               prompt.message ??
               `Se ha detectado una cuenta inactiva con este nombre.
-            �Desea reactivarla? Si desea cambiar el nombre, haga clic en cancelar.`
+            ¿Desea reactivarla? Si desea cambiar el nombre, haga clic en cancelar.`
             }
             label="nombre"
             inactiveId={prompt.elementId}
-            currentId={editingAccount?.id}
-            kind={isEditing ? "update-conflict" : "create-conflict"}
+            currentId={currentEditingAccount?.id ?? undefined}
             onDismiss={dismiss}
           />
         )}
 
-        <AccountForm
-          key={
-            isEditing ? `update-${editingAccount.id}-account` : "create-account"
-          }
-          isEditing={isEditing}
-          editing={editingAccount}
-          formAction={`.${location.search}`}
-          overrideName={overrideName}
-        />
+        {showForm && (
+          <div
+            className="action-prompt-overlay"
+            role="dialog"
+            aria-modal="true"
+            onClick={closeForm}
+          >
+            <div
+              className="action-prompt form-modal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="form-modal__header">
+                <h3 className="settings-panel__subtitle">
+                  {formMode === "edit" && currentEditingAccount ? (
+                    <>
+                      Editando:{" "}
+                      <strong className="settings-panel__subtitle--editing">
+                        [ {currentEditingAccount.name} ]
+                      </strong>
+                    </>
+                  ) : (
+                    "Crear cuenta"
+                  )}
+                </h3>
+              </div>
+              <AccountForm
+                key={
+                  currentEditingAccount
+                    ? `update-${currentEditingAccount.id}-account`
+                    : "create-account"
+                }
+                isEditing={isEditing}
+                editing={currentEditingAccount}
+                formAction={`.${location.search}`}
+                overrideName={overrideName}
+                cancelHref={cancelHref}
+                onCancel={closeForm}
+                actionError={formError}
+              />
+            </div>
+          </div>
+        )}
 
-        <AccountTable
-          accounts={accounts}
-          editingId={editingAccount?.id ?? null}
-        />
+        <AccountTable accounts={accounts} editingId={editingTargetId} />
       </section>
     </div>
   );
@@ -123,7 +248,7 @@ export function AccountPanelErrorBoundary({ error }: { error: unknown }) {
     message = error.message;
   }
   return (
-    <div>
+    <div className="panel-error">
       <h2 style={{ color: "red" }}>Error</h2>
       <p>{message}</p>
     </div>

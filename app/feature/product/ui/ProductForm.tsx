@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Form, useLocation, useNavigation } from "react-router-dom";
 import type { BrandDTO } from "~/feature/brand/brand";
 import type { CategoryDTO } from "~/feature/category/category";
@@ -6,30 +6,9 @@ import type { ProductDTO } from "~/feature/product/product";
 import type { ProviderDTO } from "~/feature/provider/provider";
 import { FilterableSelect } from "../../../shared/ui/form/FilterableSelect";
 import sortAlphabetically from "~/utils/sorting/sortAlphabetically";
-
-const sampleImages = [
-  {
-    id: "coffee",
-    label: "Bebidas",
-    url: "https://placehold.co/280x200/1a1a1a/d08d00?text=Bebidas",
-  },
-  {
-    id: "burger",
-    label: "Comida",
-    url: "https://placehold.co/280x200/2f2f2f/f4f3ee?text=Comida",
-  },
-  {
-    id: "dessert",
-    label: "Postres",
-    url: "https://placehold.co/280x200/383838/d08d00?text=Postre",
-  },
-];
-
-const clearPreviewUrl = (url: string | null) => {
-  if (url && url.startsWith("blob:")) {
-    URL.revokeObjectURL(url);
-  }
-};
+import { ProductImageInput } from "./ProductImageInput";
+import { MdInfoOutline } from "react-icons/md";
+import { FaSpinner } from "react-icons/fa";
 
 type Props = {
   isEditing: boolean;
@@ -38,6 +17,9 @@ type Props = {
   brands: BrandDTO[];
   providers: ProviderDTO[];
   formAction: string; // "." o `.${search}`
+  cancelHref: string;
+  onCancel?: () => void;
+  actionError?: string;
 };
 
 export function ProductForm({
@@ -47,6 +29,9 @@ export function ProductForm({
   brands,
   providers,
   formAction,
+  cancelHref,
+  onCancel,
+  actionError,
 }: Props) {
   const [name, setName] = useState<string | undefined>(editing?.name ?? "");
   const [code, setCode] = useState<string | undefined>(
@@ -78,14 +63,13 @@ export function ProductForm({
     editing?.minQuantity ?? ""
   );
 
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
-  const [selectedSample, setSelectedSample] = useState<string | null>(null);
-  const [isImageOverlayOpen, setImageOverlayOpen] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const formRef = useRef<HTMLFormElement | null>(null);
+  const [imageResetKey, setImageResetKey] = useState(0);
   const navigation = useNavigation();
   const isSubmitting = navigation.state === "submitting";
   const location = useLocation();
+  const resetImageInput = useCallback(() => {
+    setImageResetKey((prev) => prev + 1);
+  }, []);
 
   const handleCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const digits = e.target.value.replace(/\D/g, "");
@@ -97,58 +81,6 @@ export function ProductForm({
       setCode(result.padStart(3, "0"));
     }
   };
-
-  const setNewImagePreview = useCallback((next: string | null) => {
-    setImagePreview((current) => {
-      if (current && current !== next) {
-        clearPreviewUrl(current);
-      }
-      return next;
-    });
-  }, []);
-
-  const openImageOverlay = () => setImageOverlayOpen(true);
-  const closeImageOverlay = () => setImageOverlayOpen(false);
-
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.currentTarget.files?.[0];
-    if (!file) {
-      handleClearImage();
-      return;
-    }
-    const previewUrl = URL.createObjectURL(file);
-    setNewImagePreview(previewUrl);
-    setSelectedSample(null);
-    closeImageOverlay();
-  };
-
-  const handleSampleSelect = (url: string) => {
-    setNewImagePreview(url);
-    setSelectedSample(url);
-    closeImageOverlay();
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleManualImageSelection = () => {
-    closeImageOverlay();
-    fileInputRef.current?.click();
-  };
-
-  const handleClearImage = useCallback(() => {
-    setNewImagePreview(null);
-    setSelectedSample(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      clearPreviewUrl(imagePreview);
-    };
-  }, [imagePreview]);
 
   useEffect(() => {
     if (isEditing) {
@@ -175,9 +107,9 @@ export function ProductForm({
       setNegativeQtyWarning(true);
       setMinQtyWarning(false);
       setMinQty("");
-      handleClearImage();
+      resetImageInput();
     }
-  }, [isEditing, editing, handleClearImage]);
+  }, [isEditing, editing, resetImageInput]);
 
   const p = new URLSearchParams(location.search);
   const successFlags = [
@@ -203,239 +135,276 @@ export function ProductForm({
       setNegativeQtyWarning(true);
       setMinQtyWarning(false);
       setMinQty("");
-      handleClearImage();
+      resetImageInput();
     }
-  }, [location.search, hasSuccess, isEditing, handleClearImage]);
+  }, [location.search, hasSuccess, isEditing, resetImageInput]);
 
   return (
-    <>
-      <Form
-        method="post"
-        action={formAction}
-        className="product-form"
-        encType="multipart/form-data"
-        ref={formRef}
-      >
-        <label htmlFor="name">Nombre *</label>
-        <input
-          id="name"
-          name="name"
-          type="text"
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onBlur={(e) =>
-            setName((e.target.value ?? "").replace(/\s+/g, " ").trim())
-          }
-          maxLength={80}
-          minLength={3}
-          required
-        />
-        <label htmlFor="code">Código *</label>
-        <input
-          id="code"
-          name="code"
-          value={code}
-          inputMode="numeric"
-          onChange={handleCodeChange}
-          required
-        />
-        <label htmlFor="price">Precio</label>
-        <input
-          id="price"
-          name="price"
-          type="number"
-          value={price}
-          onChange={(e) => setPrice(e.target.value)}
-          step="0.01"
-          min="0"
-          required
-        />
-        <label htmlFor="image">Imagen</label>
-        <div className="product-form__image-field">
+    <Form
+      method="post"
+      action={formAction}
+      className="form product-form"
+      encType="multipart/form-data"
+    >
+      <ProductImageInput key={imageResetKey} url={editing?.imageUrl} />
+      <div className="form-input__div">
+        <div className="form-pill pill-name-product">
+          <label htmlFor="name" className="form-pill__label label-name-product">
+            Nombre *
+          </label>
           <input
-            ref={fileInputRef}
-            id="image"
-            name="image"
-            type="file"
-            accept="image/*"
-            className="product-form__file-input"
-            onChange={handleFileChange}
+            id="name"
+            name="name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={(e) =>
+              setName((e.target.value ?? "").replace(/\s+/g, " ").trim())
+            }
+            maxLength={80}
+            minLength={3}
+            required
+            className="form-pill__input input-name-product"
           />
-          <div className="product-form__image-actions">
-            <button
-              type="button"
-              className="product-form__image-trigger"
-              onClick={openImageOverlay}
-            >
-              Abrir galería
-            </button>
-            <button
-              type="button"
-              className="product-form__ghost-button"
-              onClick={handleManualImageSelection}
-            >
-              Subir imagen
-            </button>
-          </div>
-          {imagePreview ? (
-            <div className="product-form__image-preview">
-              <img
-                src={imagePreview}
-                alt="Previsualización de la imagen del producto"
-              />
-              <button
-                type="button"
-                className="product-form__clear-image"
-                onClick={handleClearImage}
-              >
-                Quitar
-              </button>
-            </div>
-          ) : (
-            <p className="product-form__image-hint">
-              Todavía no seleccionaste una imagen.
-            </p>
-          )}
         </div>
-        <input
-          type="hidden"
-          name="selectedSampleImage"
-          value={selectedSample ?? ""}
-        />
 
-        <FilterableSelect
-          name="idBrand"
-          label={["Marca", "marcas"]}
-          url="brand"
-          options={sortAlphabetically(brands)}
-          initialId={idBrand}
-          editing={editing?.id}
-        />
+        <div className="form-pill pill-code-product">
+          <label htmlFor="code" className="form-pill__label label-code-product">
+            Código *
+          </label>
+          <input
+            id="code"
+            name="code"
+            value={code}
+            inputMode="numeric"
+            onChange={handleCodeChange}
+            required
+            className="form-pill__input input-code-product"
+          />
+        </div>
 
-        <FilterableSelect
-          name="idCategory"
-          label={["Categoría", "categorías"]}
-          url="category"
-          options={sortAlphabetically(categories)}
-          initialId={idCategory}
-          editing={editing?.id}
-        />
+        <div className="form-pill pill-price-product">
+          <label
+            htmlFor="price"
+            className="form-pill__label label-price-product"
+          >
+            Precio
+          </label>
+          <input
+            id="price"
+            name="price"
+            type="number"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            step="0.01"
+            min="0"
+            required
+            className="form-pill__input input-price-product"
+          />
+        </div>
 
-        <FilterableSelect
-          name="idProvider"
-          label={["Proveedor", "proveedores"]}
-          url="provider"
-          options={sortAlphabetically(providers)}
-          initialId={idProvider}
-          editing={editing?.id}
-        />
+        <div className="filterable-inputs">
+          <FilterableSelect
+            name="idBrand"
+            label={["Marca", "marcas"]}
+            url="brand"
+            options={sortAlphabetically(brands)}
+            initialId={idBrand}
+            editing={editing?.id}
+          />
 
-        <label htmlFor="stockEnabled">
-          Habilitar registros de stock para este producto
-        </label>
-        <input
-          type="checkbox"
-          name="stockEnabled"
-          checked={stockEnabled}
-          onChange={(e) => setStockEnabled(e.currentTarget.checked)}
-        />
+          <FilterableSelect
+            name="idCategory"
+            label={["Categoría", "categorías"]}
+            url="category"
+            options={sortAlphabetically(categories)}
+            initialId={idCategory}
+            editing={editing?.id}
+          />
 
-        <label htmlFor="quantity">Cantidad inicial</label>
-        <input
-          id="quantity"
-          type="number"
-          name="quantity"
-          value={quantity}
-          step={1}
-          min={0}
-          disabled={!stockEnabled}
-          onChange={(e) => setQuantity(e.currentTarget.value)}
-        />
+          <FilterableSelect
+            name="idProvider"
+            label={["Proveedor", "proveedores"]}
+            url="provider"
+            options={sortAlphabetically(providers)}
+            initialId={idProvider}
+            editing={editing?.id}
+          />
+        </div>
+      </div>
 
-        <label htmlFor="negativeQtyWarning">
-          Habilitar avisos de stock negativo
-        </label>
-        <input
-          type="checkbox"
-          name="negativeQtyWarning"
-          checked={negativeQtyWarning}
-          disabled={!stockEnabled}
-          onChange={(e) => setNegativeQtyWarning(e.currentTarget.checked)}
-        />
-
-        <label htmlFor="minQtyWarning">Habilitar avisos de stock mínimo</label>
-        <input
-          type="checkbox"
-          name="minQtyWarning"
-          checked={minQtyWarning}
-          disabled={!stockEnabled}
-          onChange={(e) => setMinQtyWarning(e.currentTarget.checked)}
-        />
-
-        <label htmlFor="minQuantity">
-          Cantidad mínima antes de mostrar un aviso
-        </label>
-        <input
-          id="minQuantity"
-          type="number"
-          name="minQuantity"
-          value={minQty}
-          step={1}
-          min={0}
-          disabled={!minQtyWarning}
-          onChange={(e) => setMinQty(e.currentTarget.value)}
-        />
-
-        <input
-          type="hidden"
-          name="_action"
-          value={isEditing ? "update" : "create"}
-        />
-        <button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? "Guardando..." : "Guardar"}
-        </button>
-        <p className="hint">(*) Campos obligatorios.</p>
-      </Form>
-
-      {isImageOverlayOpen && (
-        <div
-          className="product-form__image-overlay"
-          role="dialog"
-          aria-modal="true"
-        >
-          <div className="product-form__image-overlay-content">
-            <header className="product-form__image-overlay-header">
-              <h3>Galer�a de im�genes</h3>
-              <button
-                type="button"
-                className="product-form__ghost-button"
-                onClick={closeImageOverlay}
-                aria-label="Cerrar galer�a"
-              >
-                Cerrar
-              </button>
-            </header>
-            <div className="product-form__image-grid">
-              {sampleImages.map((sample) => (
-                <button
-                  type="button"
-                  key={sample.id}
-                  className="product-form__image-option"
-                  onClick={() => handleSampleSelect(sample.url)}
-                >
-                  <img src={sample.url} alt={`Ejemplo ${sample.label}`} />
-                  <span>{sample.label}</span>
-                </button>
-              ))}
-            </div>
-            <div className="product-form__image-overlay-footer">
-              <button type="button" onClick={handleManualImageSelection}>
-                Subir imagen propia
-              </button>
-            </div>
+      <div className="form-pill__stock">
+        <h3 className="form-pill__stock-subtitle">Configurar stock</h3>
+        <div className="form-pill__stock-checkbox">
+          <div className="form-pill pill-stock-check">
+            <label
+              htmlFor="stockEnabled"
+              className="form-pill__stock-checkbox-label label-stock-product"
+            >
+              Registrar stock
+            </label>
+            <input
+              type="checkbox"
+              name="stockEnabled"
+              checked={stockEnabled}
+              onChange={(e) => setStockEnabled(e.currentTarget.checked)}
+              className="form-pill__stock-checkbox-input input-stock-ptoduct"
+            />
           </div>
+          <div className="form-pill pill-negative-qty-check">
+            <label
+              htmlFor="negativeQtyWarning"
+              className={
+                !stockEnabled
+                  ? "form-pill__stock-checkbox-label label--no-av label-negative-qty-product"
+                  : "form-pill__stock-checkbox-label label-negative-qty-product"
+              }
+            >
+              Aviso de stock negativo
+              <span
+                className="help-icon"
+                title={`Si activa esta opción, el sistema le avisará\n cuando se realice una venta de un producto que no registra unidades disponibles.`}
+              >
+                <MdInfoOutline />
+              </span>
+            </label>
+            <input
+              type="checkbox"
+              name="negativeQtyWarning"
+              checked={negativeQtyWarning}
+              disabled={!stockEnabled}
+              onChange={(e) => setNegativeQtyWarning(e.currentTarget.checked)}
+              className={
+                !stockEnabled
+                  ? "form-pill__stock-checkbox-input input-negative-qty-product check--no-av"
+                  : "form-pill__stock-checkbox-input input-negative-qty-product"
+              }
+            />
+          </div>
+          <div className="form-pill pill-min-qty-check">
+            <label
+              htmlFor="minQtyWarning"
+              className={
+                !stockEnabled
+                  ? "form-pill__stock-checkbox-label label--no-av label-min-qty-product"
+                  : "form-pill__stock-checkbox-label label-min-qty-product"
+              }
+            >
+              Aviso de stock mínimo
+              <span
+                className="help-icon"
+                title={`Si activa esta opción, el sistema le avisará cuando las unidades de un producto\n lleguen a un valor mínimo definido.`}
+              >
+                <MdInfoOutline />
+              </span>
+            </label>
+            <input
+              type="checkbox"
+              name="minQtyWarning"
+              checked={minQtyWarning}
+              disabled={!stockEnabled}
+              onChange={(e) => setMinQtyWarning(e.currentTarget.checked)}
+              className={
+                !stockEnabled
+                  ? "form-pill__stock-checkbox-input input-min-qty-product check--no-av"
+                  : "form-pill__stock-checkbox-input input-min-qty-product"
+              }
+            />
+          </div>
+        </div>
+
+        <div className="form-pill__stock-qtys">
+          <div className="form-pill pill-qty">
+            <label
+              htmlFor="quantity"
+              className={
+                !stockEnabled
+                  ? "form-pill__stock-qtys-label label--no-av label-qty-product"
+                  : "form-pill__stock-qtys-label label-qty-product"
+              }
+            >
+              Stock inicial
+            </label>
+            <input
+              id="quantity"
+              type="number"
+              name="quantity"
+              value={stockEnabled ? quantity : ""}
+              step={1}
+              min={0}
+              disabled={!stockEnabled}
+              onChange={(e) => setQuantity(e.currentTarget.value)}
+              className={
+                !stockEnabled
+                  ? "form-pill__stock-qtys-input input--no-av input-qty-product"
+                  : "form-pill__stock-qtys-input input-qty-product"
+              }
+            />
+          </div>
+          <div className="form-pill pill-min-qty">
+            <label
+              htmlFor="minQuantity"
+              className={
+                !minQtyWarning || !stockEnabled
+                  ? "form-pill__stock-qtys-label label--no-av label-min-qty-product"
+                  : "form-pill__stock-qtys-label label-min-qty-product"
+              }
+            >
+              Stock mínimo
+            </label>
+            <input
+              id="minQuantity"
+              type="number"
+              name="minQuantity"
+              value={stockEnabled && minQtyWarning ? minQty : ""}
+              step={1}
+              min={0}
+              disabled={!minQtyWarning || !stockEnabled}
+              onChange={(e) => setMinQty(e.currentTarget.value)}
+              className={
+                !minQtyWarning || !stockEnabled
+                  ? "form-pill__stock-qtys-input input--no-av input-min-qty-product"
+                  : "form-pill__stock-qtys-input input-min-qty-product"
+              }
+            />
+          </div>
+        </div>
+      </div>
+      <div className="form-btns">
+        <p className="form-pill__hint">(*) Campos obligatorios.</p>
+        <div className="form-btns__div">
+          <button
+            type="button"
+            onClick={() => onCancel?.()}
+            className="secondary-btn form-btns__btn form-btns__btn-cancel"
+          >
+            Cancelar
+          </button>
+          <button
+            className="btn form-btns__btn form-btns__btn-save"
+            type="submit"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <FaSpinner className="action-icon spinner" />
+            ) : (
+              "Guardar"
+            )}
+          </button>
+        </div>
+      </div>
+
+      {actionError && (
+        <div className="inline-error form-inline-error" role="alert">
+          {actionError}
         </div>
       )}
-    </>
+
+      <input
+        type="hidden"
+        name="_action"
+        value={isEditing ? "update" : "create"}
+      />
+    </Form>
   );
 }

@@ -29,7 +29,7 @@ export async function handleCategoryReactivateSwap({ url, formData }: Ctx) {
     await reactivateCategorySwap(inactiveId, currentId, strategy);
     const p = new URLSearchParams();
     p.set("reactivated", "1");
-    return redirect(`/category?${p.toString()}`);
+    return redirect(`/settings/category?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

@@ -7,7 +7,7 @@ import {
   getOpenSaleById,
   getListOfSales,
   deleteSale,
-  closeSale,
+  paySale,
 } from "./sale.service.js";
 import { AppError } from "../../shared/errors/AppError.js";
 import { AppDataSource } from "@back/src/shared/database/data-source.js";
@@ -49,21 +49,23 @@ export const updateSaleHandler = async (
   }
 };
 
-export const closeSaleHandler = async (
+export const paySaleHandler = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   const id = parseInt(req.params.id, 10);
+  const { settlementMode, partialStrategy, ...rest } = req.body;
   try {
     const sessionUser = req.session?.user;
     if (!sessionUser) {
       return res.status(401).json({ message: "No autenticado" });
     }
-    const updated = await closeSale(saleRepo, {
+    const updated = await paySale(saleRepo, {
       id,
-      idPayment: req.body.idPayment,
-      closedById: sessionUser.id,
+      settlementMode,
+      partialStrategy,
+      paymentDetails: { ...rest, createdById: sessionUser.id },
     });
     res.status(200).json(updated);
   } catch (error) {

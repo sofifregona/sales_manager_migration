@@ -134,9 +134,9 @@ export const createProduct = async (
     normalizedName,
     code,
     price,
-    stockEnabled,
-    minQuantityWarning,
-    negativeQuantityWarning,
+    stockEnabled: stock,
+    minQuantityWarning: minStock,
+    negativeQuantityWarning: negStock,
     quantity: qty,
     minQuantity: minQty,
     imageUrl: imageUrl ?? null,
@@ -266,16 +266,21 @@ export const updateProduct = async (
   let qty: number | null = null;
   let minQty: number | null = null;
   if (stock) {
+    patch.stockEnabled = stock;
     if (quantity) {
       validatePositiveInteger(quantity, "Cantidad inicial");
       qty = Number(quantity);
+      patch.quantity = qty;
     } else {
       throw new AppError("(Error) Debe agregar una cantidad inicial");
     }
+    if (negStock) patch.negativeQuantityWarning = negStock;
     if (minStock) {
+      patch.minQuantityWarning = minStock;
       if (minQuantity) {
         validatePositiveInteger(minQuantity, "Cantidad mínima");
         minQty = Number(minQuantity);
+        patch.minQuantity = minQty;
       } else {
         throw new AppError("(Error) Debe agregar una cantidad mínima");
       }

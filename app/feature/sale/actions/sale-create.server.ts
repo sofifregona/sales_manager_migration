@@ -6,6 +6,7 @@ import { parseAppError } from "~/utils/errors/parseAppError";
 import {
   validateNumberId,
   validateRequired,
+  validateRequiredAndType,
 } from "~/utils/validation/validationHelpers";
 import { runWithRequest } from "~/lib/http/requestContext.server";
 
@@ -15,7 +16,7 @@ export async function createSaleAction({ request }: ActionFunctionArgs) {
 
     // Validations for idProp (input)
     const propParam = formData.get("prop");
-    const propParamError = validateRequired(
+    const propParamError = validateRequiredAndType(
       propParam,
       "string",
       "Propietario de la venta"
@@ -37,7 +38,7 @@ export async function createSaleAction({ request }: ActionFunctionArgs) {
     if (propParam === "bartable") {
       const idBartableStr = formData.get("idBartable");
       // Validations for idBartable (input) if exists
-      const idBartableStrError = validateRequired(
+      const idBartableStrError = validateRequiredAndType(
         idBartableStr,
         "string",
         "ID Mesa"
@@ -56,7 +57,7 @@ export async function createSaleAction({ request }: ActionFunctionArgs) {
       const idEmployeeStr = formData.get("idEmployee");
 
       // Validations for idEmployee (inputs) if exists
-      const idEmployeeStrError = validateRequired(
+      const idEmployeeStrError = validateRequiredAndType(
         idEmployeeStr,
         "string",
         "ID Empleado"

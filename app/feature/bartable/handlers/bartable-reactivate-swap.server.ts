@@ -25,7 +25,7 @@ export async function handleBartableReactivateSwap({ url, formData }: Ctx) {
     await reactivateBartableSwap(inactiveIdNum, currentIdNum);
     const p = new URLSearchParams();
     p.set("reactivated", "1");
-    return redirect(`/bartable?${p.toString()}`);
+    return redirect(`/settings/bartable?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

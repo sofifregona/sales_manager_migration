@@ -17,7 +17,7 @@ export async function handleBartableDeactivate({ url, formData }: Ctx) {
     const p = new URLSearchParams(url.search);
     p.delete("id");
     p.set("deactivated", "1");
-    return redirect(`/bartable?${p.toString()}`);
+    return redirect(`/settings/bartable?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

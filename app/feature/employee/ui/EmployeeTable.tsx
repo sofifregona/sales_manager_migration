@@ -1,10 +1,5 @@
-import React, { useState } from "react";
-import {
-  Link,
-  useFetcher,
-  useLocation,
-  useSearchParams,
-} from "react-router-dom";
+import { useEffect, useState } from "react";
+import { Link, useFetcher, useLocation, useSearchParams } from "react-router-dom";
 import type { EmployeeDTO } from "~/feature/employee/employee";
 import {
   type UseQuerySortingConfig,
@@ -12,6 +7,7 @@ import {
 } from "~/shared/hooks/useQuerySorting";
 import { ConfirmPrompt } from "~/shared/ui/prompts/ConfirmPrompt";
 import { SortToggle } from "~/shared/ui/form/SortToggle";
+import { FaSpinner } from "react-icons/fa";
 
 type Props = {
   employees: EmployeeDTO[];
@@ -19,7 +15,7 @@ type Props = {
 };
 
 const normalize = (s: string) =>
-  (s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  (s || "").normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const EMPLOYEE_SORT_CONFIG: UseQuerySortingConfig<EmployeeDTO> = {
   defaultKey: "normalizedName",
   keys: [
@@ -33,21 +29,29 @@ const EMPLOYEE_SORT_CONFIG: UseQuerySortingConfig<EmployeeDTO> = {
 
 export function EmployeeTable({ employees, editingId }: Props) {
   const deactivateFetcher = useFetcher();
-  const deactivating = deactivateFetcher.state !== "idle";
   const reactivateFetcher = useFetcher();
+  const deactivating = deactivateFetcher.state !== "idle";
   const reactivating = reactivateFetcher.state !== "idle";
+
   const [pendingDeactivateId, setPendingDeactivateId] = useState<number | null>(
     null
   );
   const [pendingReactivateId, setPendingReactivateId] = useState<number | null>(
     null
   );
-
   const [lastDeactivateId, setLastDeactivateId] = useState<number | null>(null);
 
   const [params] = useSearchParams();
   const includeInactive = params.get("includeInactive") === "1";
   const location = useLocation();
+
+  useEffect(() => {
+    if (reactivateFetcher.state !== "idle") return;
+    const data = reactivateFetcher.data as any;
+    if (!data || !data.code) {
+      setPendingDeactivateId(null);
+    }
+  }, [reactivateFetcher.data, reactivateFetcher.state]);
 
   const {
     sortedItems: sortedEmployees,
@@ -57,114 +61,142 @@ export function EmployeeTable({ employees, editingId }: Props) {
 
   return (
     <>
-      <h2>Lista de empleados</h2>
-      <div
-        style={{ display: "flex", justifyContent: "flex-end", marginBottom: 8 }}
-      >
-        <Link
-          replace
-          to={`?includeInactive=${includeInactive ? "0" : "1"}`}
-          className="btn btn--secondary"
-        >
-          {includeInactive ? "Ocultar inactivos" : "Ver inactivos"}
-        </Link>
-      </div>
-      {sortedEmployees.length === 0 ? (
-        <p>No hay empleados para mostrar.</p>
-      ) : (
-        <table>
-          <thead>
-            <tr>
-              <SortToggle
-                currentSort={sortBy}
-                currentDir={sortDir}
-                name="normalizedName"
-                label="Nombre"
-              />
-              <th>DNI</th>
-              <th>Teléfono</th>
-              <th>Email</th>
-              <th>Dirección</th>
-              {includeInactive && (
-                <SortToggle
-                  currentSort={sortBy}
-                  currentDir={sortDir}
-                  name="active"
-                  label="Estado"
-                />
-              )}
-              <th style={{ width: 220 }}>Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {sortedEmployees.map((employee) => (
-              <tr
-                key={employee.id}
-                className={
-                  editingId === employee.id ? "row row--editing" : "row"
-                }
-              >
-                <td>{employee.name}</td>
-                <td>{employee.dni}</td>
-                <td>{employee.telephone}</td>
-                <td>{employee.email}</td>
-                <td>{employee.address}</td>
-                {includeInactive && (
-                  <td>{employee.active ? "Activo" : "Inactivo"}</td>
-                )}
-                <td className="actions">
-                  {employee.active ? (
-                    <>
-                      <Link
-                        to={`?id=${employee.id}&includeInactive=${
-                          includeInactive ? "1" : "0"
-                        }`}
-                      >
-                        <button type="button">Modificar</button>
-                      </Link>
-                      <button
-                        type="button"
-                        style={{ display: "inline-block", marginLeft: 8 }}
-                        disabled={deactivating}
-                        onClick={() => setPendingDeactivateId(employee.id)}
-                      >
-                        {deactivating ? "Desactivando..." : "Desactivar"}
-                      </button>
-
-                      {(() => {
-                        const data = deactivateFetcher.data as any;
-                        if (
-                          data &&
-                          data.error &&
-                          lastDeactivateId === employee.id
-                        ) {
-                          return (
-                            <div className="inline-error" role="alert">
-                              {String(data.error)}
-                            </div>
-                          );
-                        }
-                        return null;
-                      })()}
-                    </>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        style={{ display: "inline-block", marginLeft: 8 }}
-                        disabled={reactivating}
-                        onClick={() => setPendingReactivateId(employee.id)}
-                      >
-                        {reactivating ? "Reactivando..." : "Reactivar"}
-                      </button>
-                    </>
+      <div className="table-section table-section-employee">
+        {sortedEmployees.length === 0 ? (
+          <p className="table__empty-msg">No hay empleados para mostrar.</p>
+        ) : (
+          <div className="table-wrapper">
+            <table className="table table-employee">
+              <thead className="table__head">
+                <tr className="table__head-tr">
+                  <SortToggle
+                    currentSort={sortBy}
+                    currentDir={sortDir}
+                    name="normalizedName"
+                    className="name-employee"
+                    label="Nombre"
+                  />
+                  <th className="table__head-th th-dni-employee">DNI</th>
+                  <th className="table__head-th th-telephone-employee">Teléfono</th>
+                  <th className="table__head-th th-email-employee">E-mail</th>
+                  <th className="table__head-th th-address-employee">Domicilio</th>
+                  {includeInactive && (
+                    <SortToggle
+                      currentSort={sortBy}
+                      currentDir={sortDir}
+                      name="active"
+                      className="active-employee"
+                      label="Estado"
+                    />
                   )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+                  <th className="table__head-th th-action th-action-employee">
+                    Acciones
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="table__body">
+                {sortedEmployees.map((employee) => (
+                  <tr
+                    key={employee.id}
+                    className={
+                      editingId === employee.id
+                        ? "table__item-tr table__item-tr--editing"
+                        : "table__item-tr"
+                    }
+                  >
+                    <td className="table__item-td td-name-employee">
+                      {employee.name}
+                    </td>
+                    <td className="table__item-td td-dni-employee">
+                      {employee.dni ?? <p className="td-empty">-</p>}
+                    </td>
+                    <td className="table__item-td td-telephone-employee">
+                      {employee.telephone ?? <p className="td-empty">-</p>}
+                    </td>
+                    <td className="table__item-td td-email-employee">
+                      {employee.email ? employee.email : <p className="td-empty">-</p>}
+                    </td>
+                    <td className="table__item-td td-address-employee">
+                      {employee.address ? employee.address : <p className="td-empty">-</p>}
+                    </td>
+                    {includeInactive && (
+                      <td className="table__item-td td-active-employee">
+                        {employee.active ? (
+                          <p className="status status--active">Activo</p>
+                        ) : (
+                          <p className="status status--inactive">Inactivo</p>
+                        )}
+                      </td>
+                    )}
+                    <td className="table__item-td td-action td-action-employee">
+                      {employee.active ? (
+                        <>
+                          <Link
+                            to={`?id=${employee.id}&includeInactive=${
+                              includeInactive ? "1" : "0"
+                            }`}
+                            className="modify-link"
+                          >
+                            <button
+                              type="button"
+                              className="modify-btn action-btn"
+                            >
+                              Editar
+                            </button>
+                          </Link>
+
+                          <button
+                            type="button"
+                            disabled={deactivating}
+                            onClick={() => setPendingDeactivateId(employee.id)}
+                            className="delete-btn action-btn"
+                          >
+                            {deactivating ? (
+                              <FaSpinner className="action-icon spinner" />
+                            ) : (
+                              "Desactivar"
+                            )}
+                          </button>
+
+                          {(() => {
+                            const data = deactivateFetcher.data as any;
+                            if (
+                              data &&
+                              data.error &&
+                              !data.code &&
+                              lastDeactivateId === employee.id
+                            ) {
+                              return (
+                                <div className="inline-error" role="alert">
+                                  {String(data.error)}
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={reactivating}
+                          onClick={() => setPendingReactivateId(employee.id)}
+                          className="reactivate-btn action-btn"
+                        >
+                          {reactivating ? (
+                            <FaSpinner className="action-icon spinner" />
+                          ) : (
+                            "Reactivar"
+                          )}
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {pendingDeactivateId != null && (
         <ConfirmPrompt
@@ -197,6 +229,12 @@ export function EmployeeTable({ employees, editingId }: Props) {
             );
           }}
         />
+      )}
+
+      {reactivateFetcher.data && (reactivateFetcher.data as any).error && (
+        <div className="inline-error" role="alert" style={{ marginTop: 8 }}>
+          {String((reactivateFetcher.data as any).error)}
+        </div>
       )}
     </>
   );

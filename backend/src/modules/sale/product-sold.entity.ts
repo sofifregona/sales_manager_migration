@@ -7,6 +7,7 @@
 } from "typeorm";
 import { Product } from "../product/product.entity.js";
 import { Sale } from "./sale.entity.js";
+import { Payment } from "./payment.entity.js";
 
 @Entity()
 export class ProductSold {
@@ -32,4 +33,7 @@ export class ProductSold {
 
   @ManyToOne(() => Sale, { nullable: false, onDelete: "CASCADE" })
   sale!: Sale;
+
+  @ManyToOne(() => Payment, { nullable: true })
+  payment!: Payment | null;
 }

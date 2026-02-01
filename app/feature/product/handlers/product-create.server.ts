@@ -11,6 +11,7 @@ import {
   validatePositiveInteger,
   validateRangeLength,
   validateRequired,
+  validateRequiredAndType,
   validateRequiredId,
   validateType,
 } from "~/utils/validation/validationHelpers";
@@ -21,14 +22,14 @@ export async function handleProductCreate({ url, formData }: Ctx) {
   console.log("DENTRO DEL HANDLER");
   const nameParam = formData.get("name");
   // Required name: must be non-empty string
-  const nameParamError = validateRequired(nameParam, "string", "Nombre");
+  const nameParamError = validateRequiredAndType(nameParam, "string", "Nombre");
   if (nameParamError) {
     return jsonResponse(422, nameParamError);
   }
   const name = nameParam!.toString().trim();
 
   const codeParam = formData.get("code");
-  const codeParamError = validateRequired(codeParam, "string", "Código");
+  const codeParamError = validateRequiredAndType(codeParam, "string", "Código");
   if (codeParamError) {
     return jsonResponse(422, codeParamError);
   }
@@ -44,7 +45,11 @@ export async function handleProductCreate({ url, formData }: Ctx) {
   }
 
   const priceParam = formData.get("price");
-  const priceParamError = validateRequired(priceParam, "string", "Precio");
+  const priceParamError = validateRequiredAndType(
+    priceParam,
+    "string",
+    "Precio"
+  );
   if (priceParamError) {
     return jsonResponse(422, priceParamError);
   }
@@ -135,6 +140,35 @@ export async function handleProductCreate({ url, formData }: Ctx) {
     }
   }
 
+  let selectedSampleImage: string | null = null;
+  const selectedSampleParam = formData.get("selectedSampleImage");
+  if (selectedSampleParam !== null) {
+    const selectedSampleError = validateType(
+      selectedSampleParam,
+      "string",
+      "Imagen de muestra"
+    );
+    if (selectedSampleError) {
+      return jsonResponse(422, selectedSampleError);
+    }
+    const sampleValue = selectedSampleParam.toString().trim();
+    if (sampleValue) {
+      selectedSampleImage = sampleValue;
+    }
+  }
+
+  let imageFile: File | null = null;
+  const imageParam = formData.get("image");
+  if (imageParam !== null) {
+    const imageParamError = validateType(imageParam, "object", "Imagen");
+    if (imageParamError) {
+      return jsonResponse(422, imageParamError);
+    }
+    if (imageParam instanceof File && imageParam.size > 0) {
+      imageFile = imageParam;
+    }
+  }
+
   const stockEnabled = Boolean(formData.get("stockEnabled"));
 
   const quantity = Number(formData.get("quantity"));
@@ -169,7 +203,10 @@ export async function handleProductCreate({ url, formData }: Ctx) {
   };
 
   try {
-    await createProduct(payload);
+    await createProduct(payload, {
+      selectedSampleImage,
+      imageFile,
+    });
 
     const p = new URLSearchParams(url.search);
     // Limpiar posible id residual de ediciÃ³n y preservar filtro
@@ -177,7 +214,7 @@ export async function handleProductCreate({ url, formData }: Ctx) {
       p.delete(k)
     );
     p.set("created", "1");
-    return redirect(`/product?${p.toString()}`);
+    return redirect(`/settings/product?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

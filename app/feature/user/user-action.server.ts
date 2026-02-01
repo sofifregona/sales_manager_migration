@@ -7,17 +7,16 @@ import { handleUserUpdate } from "./handlers/user-update.server";
 import { handleUserDeactivate } from "./handlers/user-deactivate.server";
 import { handleUserReactivate } from "./handlers/user-reactivate.server";
 import { handleResetUserPassword } from "./handlers/user-reset-password.server";
-import { handleResetUserPassword } from "./handlers/user-reset-password.server";
 
 export async function userAction({ request }: ActionFunctionArgs) {
   return runWithRequest(request, async () => {
     const url = new URL(request.url);
     const formData = await request.formData();
 
-    const parsed = parseCRUDIntent(formData.get("_action"), "Acción");
+    const parsed = parseCRUDIntent(formData.get("_action"), "Acciï¿½n");
     if (!parsed.ok) return parsed.response;
 
-    switch (parsed.intent) {`n      case "reset-password":`n        return await handleResetUserPassword({ url, formData });
+    switch (parsed.intent) {
       case "reactivate":
         return await handleUserReactivate({ url, formData });
       case "deactivate":
@@ -30,10 +29,9 @@ export async function userAction({ request }: ActionFunctionArgs) {
         return await handleResetUserPassword({ url, formData });
       default:
         return jsonResponse(400, {
-          error: "(Error) Acción no soportada.",
+          error: "(Error) AcciÃ³n no soportada.",
           source: "client",
         });
     }
   });
 }
-

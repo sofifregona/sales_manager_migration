@@ -24,7 +24,7 @@ export function makeTransactionRepository(
     async findDetailedById(id) {
       return repo.findOne({
         where: { id },
-        relations: { account: true, createdBy: true, sale: true },
+        relations: { account: true, createdBy: true, payment: true },
       });
     },
     async updateFields(id, patch: TransactionUpdateFields) {
@@ -35,10 +35,10 @@ export function makeTransactionRepository(
     },
     async listByDateRange({ start, end, origin }) {
       const where: Record<string, unknown> = {
-        dateTime: Raw(
-          (alias) => `${alias} >= :start AND ${alias} <= :end`,
-          { start, end }
-        ),
+        dateTime: Raw((alias) => `${alias} >= :start AND ${alias} <= :end`, {
+          start,
+          end,
+        }),
       };
       if (origin !== "all") {
         where.origin = origin;

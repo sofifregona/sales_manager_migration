@@ -59,6 +59,10 @@ export function CategoryTable({ categories, editingId }: Props) {
   useEffect(() => {
     if (deactivateFetcher.state !== "idle") return;
     const data = deactivateFetcher.data as any;
+    console.log("[CategoryTable] deactivateFetcher idle", {
+      data,
+      lastAttemptedDeactivateId,
+    });
     if (
       data &&
       data.code === "CATEGORY_IN_USE" &&
@@ -75,6 +79,18 @@ export function CategoryTable({ categories, editingId }: Props) {
     lastAttemptedDeactivateId,
   ]);
 
+  useEffect(() => {
+    if (reactivateFetcher.state !== "idle") return;
+    const data = reactivateFetcher.data as any;
+    console.log("[CategoryTable] reactivateFetcher idle", { data });
+    // Si reactivamos sin conflicto (sin code o sin data), limpiar estados de cascada/pending
+    if (!data || !data.code) {
+      setCascadeCategoryId(null);
+      setLastAttemptedDeactivateId(null);
+      setPendingDeactivateId(null);
+    }
+  }, [reactivateFetcher.data, reactivateFetcher.state]);
+
   const {
     sortedItems: sortedCategories,
     sortBy,
@@ -83,31 +99,19 @@ export function CategoryTable({ categories, editingId }: Props) {
 
   return (
     <>
-      <div className="table-section">
-        <h2 className="settings-panel__subtitle">Lista de categorías</h2>
-        <Link
-          replace
-          to={toggleIncludeHref}
-          className={
-            includeInactive
-              ? "inactive-btn inactive-btn--active"
-              : "inactive-btn"
-          }
-        >
-          {includeInactive ? "Ocultar inactivas" : "Ver inactivas"}
-        </Link>
-
+      <div className="table-section table-section-category">
         {sortedCategories.length === 0 ? (
           <p className="table__empty-msg">No hay categorías para mostrar.</p>
         ) : (
           <div className="table-wrapper">
-            <table className="table">
+            <table className="table table-category">
               <thead className="table__head">
                 <tr className="table__head-tr">
                   <SortToggle
                     currentSort={sortBy}
                     currentDir={sortDir}
                     name="normalizedName"
+                    className="name-category"
                     label="Nombre"
                   />
                   {includeInactive && (
@@ -115,10 +119,13 @@ export function CategoryTable({ categories, editingId }: Props) {
                       currentSort={sortBy}
                       currentDir={sortDir}
                       name="active"
+                      className="active-category"
                       label="Estado"
                     />
                   )}
-                  <th className="table__head-th action-th">Acciones</th>
+                  <th className="table__head-th th-action th-action-category">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody className="table__body">
@@ -131,15 +138,19 @@ export function CategoryTable({ categories, editingId }: Props) {
                         : "table__item-tr"
                     }
                   >
-                    <td className="table__item-td category-name-td">
+                    <td className="table__item-td td-name-category">
                       {category.name}
                     </td>
                     {includeInactive && (
-                      <td className="table__item-td active-td category-active-td">
-                        {category.active ? "Activa" : "Inactiva"}
+                      <td className="table__item-td td-active-category">
+                        {category.active ? (
+                          <p className="status status--active">Activa</p>
+                        ) : (
+                          <p className="status status--inactive">Inactiva</p>
+                        )}
                       </td>
                     )}
-                    <td className="table__item-td action-td category-action-td">
+                    <td className="table__item-td td-action">
                       {category.active ? (
                         <>
                           <Link
@@ -183,12 +194,14 @@ export function CategoryTable({ categories, editingId }: Props) {
                                   entityLabel="categoría"
                                   dependentLabel="Producto"
                                   count={Number(data.details.count) || 0}
+                                  strategyClear="clear-products-category"
                                   strategyProceed="cascade-deactivate-products"
+                                  clearLabel="Eliminar y desvincular productos"
+                                  proceedLabel="Desactivar categoría y productos"
                                   onCancel={() => {
                                     setCascadeCategoryId(null);
                                     setLastAttemptedDeactivateId(null);
                                   }}
-                                  proceedLabel="Aceptar"
                                 />
                               );
                             }

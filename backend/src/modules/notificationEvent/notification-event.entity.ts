@@ -7,7 +7,7 @@ import {
 } from "typeorm";
 
 @Entity()
-export class Account {
+export class NotificationEvent {
   @PrimaryGeneratedColumn()
   id!: number;
 

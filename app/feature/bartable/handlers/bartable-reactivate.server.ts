@@ -10,15 +10,15 @@ export async function handleBartableReactivate({ url, formData }: Ctx) {
   const idParam = formData.get("id");
   const idReqError = validateRequiredId(idParam, "Mesa");
   if (idReqError) return jsonResponse(422, idReqError);
-  const idNum = Number(idParam);
 
+  const idNum = Number(idParam);
   try {
     await reactivateBartable(idNum);
 
     const p = new URLSearchParams(url.search);
     p.delete("id");
     p.set("reactivated", "1");
-    return redirect(`/bartable?${p.toString()}`);
+    return redirect(`/settings/bartable?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

@@ -11,7 +11,7 @@ import bartableRoutes from "./modules/bartable/bartable.routes.js";
 import brandRoutes from "./modules/brand/brand.routes.js";
 import categoryRoutes from "./modules/category/category.routes.js";
 import employeeRoutes from "./modules/employee/employee.routes.js";
-import paymentRoutes from "./modules/payment/payment.routes.js";
+import paymentMethodRoutes from "./modules/paymentMethod/payment-method.routes.js";
 import providerRoutes from "./modules/provider/provider.routes.js";
 import productRoutes from "./modules/product/product.routes.js";
 import saleRoutes from "./modules/sale/sale.routes.js";
@@ -100,7 +100,7 @@ export async function buildApp() {
   app.use("/api/v1", brandRoutes);
   app.use("/api/v1", categoryRoutes);
   app.use("/api/v1", employeeRoutes);
-  app.use("/api/v1", paymentRoutes);
+  app.use("/api/v1", paymentMethodRoutes);
   app.use("/api/v1", providerRoutes);
   app.use("/api/v1", productRoutes);
   app.use("/api/v1", saleRoutes);

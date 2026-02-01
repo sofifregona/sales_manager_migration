@@ -17,7 +17,7 @@ import {
   validateRequiredId,
   validateNumberId,
 } from "~/utils/validation/validationHelpers";
-import { getAllPayments } from "~/feature/payment/payment-api.server";
+import { getAllPaymentMethods } from "~/feature/paymentMethod/payment-method-api.server";
 import { getListOfProducts } from "~/feature/product/product-api.server";
 import { getAllCategories } from "~/feature/category/category-api.server";
 import { getAllAccounts } from "~/feature/account/account-api.server";
@@ -173,11 +173,11 @@ export const saleLoader = async ({
     }
 
     try {
-      const [sale, products, categories, payments] = await Promise.all([
+      const [sale, products, categories, paymentMethods] = await Promise.all([
         getSaleById(id),
         getListOfProducts(filters),
         getAllCategories(),
-        getAllPayments(),
+        getAllPaymentMethods(),
       ]);
 
       const idBartable = sale.bartable?.id ?? null;
@@ -189,7 +189,7 @@ export const saleLoader = async ({
           sale,
           products: products ?? [],
           categories: categories ?? [],
-          payments: payments ?? [],
+          paymentMethods: paymentMethods ?? [],
           prop,
           propType: "bartable" as const,
         };
@@ -201,7 +201,7 @@ export const saleLoader = async ({
           sale,
           products,
           categories,
-          payments,
+          paymentMethods,
           prop,
           propType: "employee" as const,
         };

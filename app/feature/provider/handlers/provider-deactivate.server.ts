@@ -22,7 +22,7 @@ export async function handleProviderDeactivate({ url, formData }: Ctx) {
     await deactivateProvider(idNum, strategy);
     const p = new URLSearchParams(url.search);
     p.set("deactivated", "1");
-    return redirect(`/provider?${p.toString()}`);
+    return redirect(`/settings/provider?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

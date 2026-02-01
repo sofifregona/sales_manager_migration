@@ -10,6 +10,7 @@
 import { Account } from "../account/account.entity.js";
 import { Sale } from "../sale/sale.entity.js";
 import { User } from "../user/user.entity.js";
+import { Payment } from "../sale/payment.entity.js";
 
 @Entity()
 export class Transaction {
@@ -32,8 +33,8 @@ export class Transaction {
   @Column({ type: "enum", enum: ["sale", "movement"] })
   origin!: "sale" | "movement";
 
-  @OneToOne(() => Sale, { nullable: true })
-  sale!: Sale | null;
+  @OneToOne(() => Payment, { nullable: true })
+  payment!: Payment | null;
 
   @Column("decimal", {
     precision: 10,

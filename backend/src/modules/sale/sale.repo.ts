@@ -1,4 +1,5 @@
-﻿import type { Sale } from "./sale.entity.js";
+﻿import type { Payment } from "./payment.entity.js";
+import type { Sale } from "./sale.entity.js";
 
 export type GroupKey = "product" | "category" | "brand" | "provider";
 export type GroupedRow = {
@@ -12,14 +13,13 @@ export interface SaleRepository {
   create(
     data: Pick<
       Sale,
-      | "dateTime"
+      | "createdDateTime"
       | "createdBy"
       | "total"
       | "bartable"
       | "employee"
       | "open"
       | "discount"
-      | "payment"
       | "products"
     >
   ): Sale;
@@ -35,6 +35,6 @@ export interface SaleRepository {
   getGrouped(from: Date, to: Date, groupBy: GroupKey): Promise<GroupedRow[]>;
 
   updateTotal(id: number, total: number): Promise<void>;
-  closeSale(id: number, idPayment: number): Promise<void>;
+  closeSale(id: number): Promise<void>;
   delete(id: number): Promise<void>;
 }

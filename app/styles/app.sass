@@ -1,4 +1,5 @@
 @use "./tokens" as *
+@use "./settings"
 @use "sass:color"
 
 *, *::before, *::after
@@ -10,12 +11,12 @@ html, body
   background-color: $color-dark-primary
   color: $color-light
   margin: 0
-  padding: 1.5rem 4rem
+  padding: 0 4rem
   -webkit-font-smoothing: antialiased
   @media (max-width: 1280px)
-    padding: 2rem
+    padding: 0rem
   @media (max-width: 768px)
-    padding: 1rem
+    padding: 0rem
   @media (prefers-color-scheme: dark)
     color-scheme: dark
     background-color: $color-dark-primary
@@ -56,118 +57,244 @@ ul, ol
 body.dark .neumorphic
   box-shadow: $shadow-neumorphic-dark
 
-.product-form__image-field
-  border: 1px dashed $color-dark-tertiary
+.btn
+  width: auto
+  display: inline-flex
+  align-items: center
+  padding: 0.5rem 1rem // py-2 px-4
   border-radius: $radius-base
-  padding: 1rem
+  font-size: .9rem
+  justify-content: center
+  font-weight: 600 // font-semibold
+  text-decoration: none
+  background-color: $color-primary // hover:bg-zinc-200
+  color: $color-light
+  border: 1.5px solid $color-primary
+  font-family: $font-base
+  text-shadow: 0px 2px 6px rgba(0, 0, 0, 0.8)
+  transition: background-color 150ms ease // transition-colors
+  &:hover
+    background-color: color.mix($color-primary, $color-dark-tertiary, 50%)
+  &:visited
+    text-decoration: none
+    color: $color-light
+
+.secondary-btn
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  padding: 0.5rem 1rem // py-2 px-4
+  border-radius: $radius-base
+  font-weight: 600 // font-semibold
+  font-size: .9rem
+  text-decoration: none
+  transition: background-color 150ms ease // transition-colors
+  background-color: $color-dark-primary
+  border: 1.5px solid $color-primary
+  font-family: $font-base
+  text-shadow: 0px 2px 6px rgba(0, 0, 0, 0.4)
+  color: $color-primary
+  &:hover
+    background-color: color.mix($color-primary, $color-dark-tertiary, 50%)
+    text-shadow: 0px 2px 6px rgba(0, 0, 0, 0.8)
+    color: $color-light
+  &:visited
+    text-decoration: none
+
+.btn--icon-gap
+  display: inline-flex
+  align-items: center
+  justify-content: center
+  gap: 0.35rem
+  white-space: nowrap
+  .action-icon
+    display: inline-block
+    filter: drop-shadow(0px 2px 4px rgba(0, 0, 0, 0.65))
+
+.modify-link
+  text-decoration: none
+  &:visited
+    text-decoration: none
+
+.action-prompt-overlay
+  position: fixed,
+  inset: 0,
+  background: linear-gradient(
+    180deg,
+    rgba(0, 0, 0, 0.45) 0%,
+    rgba(0, 0, 0, 0.35) 60%,
+    rgba(0, 0, 0, 0.5) 100%
+  )
+  backdrop-filter: blur(4px)
+  display: flex,
+  align-items: center,
+  justify-content: center,
+  z-index: 1000,
+
+.action-prompt
+  padding: 1.5rem,
+  background-color: $color-dark-primary
+  border-radius: $radius-base,
+  box-shadow: 0 2px 40px rgba(0,0,0,0.5),
+  border: 1px solid #252525
+  max-width: 480px,
+  width: calc(100% - 32px),
+
+// App shell
+.app-shell
+  min-height: 100vh
   display: flex
   flex-direction: column
-  gap: 0.75rem
+  background-color: $color-dark-primary
+  color: $color-light
 
-.product-form__file-input
-  display: none
+.app-shell__content
+  width: 100%
+  max-width: 1200px
+  margin: 0 auto
+  flex: 1
+  display: flex
+  flex-direction: column
 
-.product-form__image-actions
+.app-shell__main
+  flex: 1
+  width: 100%
+  display: flex
+  flex-direction: column
+
+.settings-panel__header
   display: flex
   flex-wrap: wrap
-  gap: 0.5rem
-
-.product-form__image-trigger
-  flex: 1 1 180px
-  border: 1px solid $color-primary
-  border-radius: $radius-base
-  padding: 0.6rem 1rem
-  background-color: rgba(208, 141, 0, 0.08)
-  color: $color-light
-  text-align: center
-  transition: background-color 0.2s ease, border-color 0.2s ease
-
-.product-form__ghost-button
-  flex: 0 1 auto
-  border: 1px solid $color-dark-tertiary
-  border-radius: $radius-base
-  padding: 0.6rem 1rem
-  color: $color-light
-  background-color: transparent
-  text-align: center
-  transition: border-color 0.2s ease, color 0.2s ease
-
-.product-form__image-trigger:hover,
-.product-form__ghost-button:hover
-  border-color: $color-primary
-  color: $color-light
-
-.product-form__image-preview
-  display: flex
+  gap: 0.75rem
   align-items: center
-  gap: 1rem
+  justify-content: space-between
 
-.product-form__image-preview img
-  width: 160px
-  height: 120px
-  object-fit: cover
-  border-radius: $radius-base
-  border: 1px solid $color-dark-tertiary
+.prompt-msg
+  margin-bottom: 1.5rem,
+  white-space: pre-line
 
-.product-form__clear-image
-  border: 1px solid $color-dark-tertiary
-  border-radius: $radius-base
-  padding: 0.4rem 0.8rem
-  background-color: transparent
-  color: $color-light
+.prompt-div-btn
+  display: flex,
+  gap: 8px,
+  justify-content: flex-end,
+  flex-wrap: wrap,
 
-.product-form__image-hint
-  margin: 0
-  color: color.adjust($color-light, $lightness: -30%)
-
-.product-form__image-overlay
-  position: fixed
-  inset: 0
-  background-color: rgba(0, 0, 0, 0.75)
+// Login
+.login-screen
+  // min-height: 100vh
   display: flex
   align-items: center
   justify-content: center
-  padding: 2rem
-  z-index: 50
+  padding: 10rem
 
-.product-form__image-overlay-content
-  background-color: $color-dark-secondary
-  border-radius: $radius-containers
-  width: min(720px, 90vw)
-  max-height: 90vh
-  overflow: auto
-  padding: 1.5rem
-  display: flex
-  flex-direction: column
-  gap: 1rem
-
-.product-form__image-overlay-header
-  display: flex
-  align-items: center
-  justify-content: space-between
-  gap: 1rem
-
-.product-form__image-grid
-  display: grid
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr))
-  gap: 1rem
-
-.product-form__image-option
+.login-card
+  background-color: $color-dark-primary
   border: 1px solid $color-dark-tertiary
   border-radius: $radius-base
-  padding: 0.5rem
-  background-color: $color-dark-tertiary
+  box-shadow: 0 2px 40px rgba(0,0,0,0.5)
+  padding: 1.5rem
+  width: min(420px, 100%)
+  // height: 350px
   display: flex
   flex-direction: column
-  gap: 0.5rem
+  gap: 1rem
+
+.login-card__title
+  font-size: 1.35rem
+  font-weight: 700
+  text-align: center
+
+.login-card__error
+  color: #ff6b6b
+  font-size: .95rem
+  margin: 0
+  text-align: center
+
+.login-form
+  display: flex
+  flex-wrap: wrap
+  width: 100%
+  justify-content: center
+  gap: 1rem
+  .form-pill
+    text-align: left
+    width: 100%
+
+.login-form__btn
+  width: 80px
+  justify-content: center
+
+  // Icons
+.help-icon
+  width: 15px
+  height: 15px
+  line-height: 14px
+  color: $color-primary
+  margin-left: .35rem
+  vertical-align: middle
+
+.spinner
+  animation: spin 0.8s linear infinite
   color: $color-light
 
-.product-form__image-option img
-  width: 100%
-  height: 140px
-  object-fit: cover
+// Toast
+.toast-success-float
+  background-color: $color-light
+  color: $color-dark-primary
+  padding: 0.35rem 0.9rem
   border-radius: $radius-base
+  font-size: .95rem
+  font-weight: 600
+  box-shadow: 0 10px 22px rgba(0, 0, 0, 0.35)
+  animation: settings-toast 1.4s ease forwards
+  position: absolute
+  top: 0
+  left: 50%
+  transform: translate(-50%, -120%)
+  z-index: 1200
 
-.product-form__image-overlay-footer
-  display: flex
-  justify-content: flex-end
+/// NEUROMORPHIC
+// .neumorphic-inset
+//   box-shadow: inset 5px 5px 10px #bebebe, inset -5px -5px 10px #fff
+
+.neumorphic-inset
+  box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.4), inset -4px -4px 8px rgba(255, 255, 255, 0.05)
+
+.grainy-bg
+  background-image: url(https://lh3.googleusercontent.com/aida-public/AB6AXuA0Gfu3FKL6LFW8yQ00EbyYxYjzHbuptAtUmLycGOZMaGEUFEQ227KbAQ_NplJHvJIXDND5oZS0KBbDUnbiMRsTqvJTTBGaSG6x6RH-qK_XDfrJOJxgO7x7UAPUuOs1Zj4RBchA0rFHKGTXCnup5cWH3FwY9epHcIquLSUsdAOb0Zry3hLEQzYNs7KhOWlYaQcv482WT20OFDigX-5XG_6JAUfvjHf0uJrbEKlRNJewKQcswlJJ65bgRrVVQyyAL4z288yFrr6Cq1mF), linear-gradient(135deg, rgba(15, 19, 35, 0.95), rgba(25, 29, 45, 0.95));
+  background-blend-mode: overlay
+  background-size: 200px 200px, cover
+  opacity: 0.15
+  position: absolute
+  top: 0
+  left: 0
+  right: 0
+  bottom: 0
+  z-index: -1
+
+.neumorphic-flat
+  background-color: $color-dark-secondary
+  border-radius: 20px
+  padding: .25rem .5rem
+  box-shadow: 4px 4px 8px rgba(0, 0, 0, 0.4), -4px -4px 8px rgba(255, 255, 255, 0.05)
+  margin-top: .75rem
+  border: 1px solid $color-dark-primary
+
+  .btn
+    margin: .5rem 0rem
+    border-radius: .75rem
+    background-color: $color-primary
+    border: 1px solid $color-primary
+    text-shadow: none
+    &:hover
+      text-shadow: -2px -2px 8px rgba(0, 0, 0, 0.8)
+      box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.4), inset -4px -4px 8px rgba(255, 255, 255, 0.05)
+      // box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.4), inset -4px -4px 8px rgba(255, 255, 255, 0.05)
+
+  &-active
+    background-color: #607AFB
+    color: white
+    box-shadow: inset 4px 4px 8px rgba(0, 0, 0, 0.4), inset -4px -4px 8px rgba(255, 255, 255, 0.05)
+
+.action-icon
+  margin-right: .25rem

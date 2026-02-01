@@ -7,9 +7,11 @@ type Props = {
   count: number;
   entityLabel: string; // "cuenta"
   dependentLabel: string; // "método(s) de pago"
+  strategyClear?: string; // e.g. "clear-products-category"
   strategyProceed: string; // e.g. "cascade-delete-payments"
   onCancel: () => void;
   proceedLabel?: string;
+  clearLabel?: string;
 };
 
 export function ConfirmCascadeDeactivatePrompt({
@@ -17,9 +19,11 @@ export function ConfirmCascadeDeactivatePrompt({
   count,
   entityLabel,
   dependentLabel,
+  strategyClear,
   strategyProceed,
   onCancel,
   proceedLabel,
+  clearLabel,
 }: Props) {
   const fetcher = useFetcher();
   const location = useLocation();
@@ -31,6 +35,14 @@ Si continúa, también se eliminarán ${count === 1 ? `el ${dependentLabel}` : `
 
   const actions = [
     { label: "Cancelar", onClick: onCancel },
+    strategyClear && {
+      label: clearLabel ?? "Eliminar y limpiar vínculos",
+      onClick: () =>
+        fetcher.submit(
+          { _action: "deactivate", id: String(entityId), strategy: strategyClear },
+          { method: "post", action: `.${location.search}` }
+        ),
+    },
     {
       label: proceedLabel ?? "Aceptar",
       onClick: () =>
@@ -40,10 +52,9 @@ Si continúa, también se eliminarán ${count === 1 ? `el ${dependentLabel}` : `
         ),
       variant: "secondary" as const,
     },
-  ];
+  ].filter(Boolean) as { label: string; onClick: () => void; variant?: "secondary" }[];
 
   return (
-    <ActionPrompt open message={message} onClose={onCancel} actions={actions} busy={busy} />
+    <ActionPrompt open message={message} actions={actions} busy={busy} />
   );
 }
-

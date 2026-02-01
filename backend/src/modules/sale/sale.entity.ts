@@ -8,10 +8,11 @@
   Index,
 } from "typeorm";
 import { Bartable } from "../bartable/bartable.entity.js";
-import { Payment } from "../payment/payment.entity.js";
+import { PaymentMethod } from "../paymentMethod/payment-method.entity.js";
 import { ProductSold } from "./product-sold.entity.js";
 import { Employee } from "../employee/employee.entity.js";
 import { User } from "../user/user.entity.js";
+import { Payment } from "./payment.entity.js";
 
 @Entity()
 export class Sale {
@@ -20,7 +21,7 @@ export class Sale {
 
   @CreateDateColumn({ type: "datetime" })
   @Index()
-  dateTime!: Date;
+  createdDateTime!: Date;
 
   @ManyToOne(() => User, { nullable: false })
   createdBy!: User;
@@ -47,11 +48,17 @@ export class Sale {
   @Column("int", { nullable: true })
   discount!: number | null;
 
-  @ManyToOne(() => Payment, { nullable: true })
-  payment!: Payment | null;
+  @OneToMany(() => Payment, (payment) => payment.sale, {
+    onDelete: "CASCADE",
+    orphanedRowAction: "delete",
+    eager: false,
+  })
+  payments!: Payment[];
 
+  // @ManyToOne(() => PaymentMethod, { nullable: true })
+  // paymentMethod!: PaymentMethod | null;
   @OneToMany(() => ProductSold, (productSold) => productSold.sale, {
-    cascade: ["insert", "update"],
+    onDelete: "CASCADE",
     orphanedRowAction: "delete",
     eager: false,
   })

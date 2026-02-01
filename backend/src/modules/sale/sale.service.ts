@@ -4,29 +4,55 @@ import { AppError } from "../../shared/errors/AppError.js";
 import {
   validateNumberID,
   validatePositiveInteger,
+  validatePositiveNumber,
 } from "../../shared/utils/validations/validationHelpers.js";
 import { Bartable } from "../bartable/bartable.entity.js";
 import type { Employee } from "../employee/employee.entity.js";
 import { getBartableById } from "../bartable/bartable.service.js";
 import { getEmployeeById } from "../employee/employee.service.js";
 import { getProductById } from "../product/product.service.js";
-import { productSoldRepo } from "./product-sold.repo.js";
-import { getPaymentById } from "../payment/payment.service.js";
+import { getPaymentMethodById } from "../paymentMethod/payment-method.service.js";
 
 import { createTransaction } from "../transaction/transaction.service.js";
 import { makeBartableRepository } from "../bartable/bartable.repo.typeorm.js";
 import { AppDataSource } from "@back/src/shared/database/data-source.js";
 import { makeEmployeeRepository } from "../employee/employee.repo.typeorm.js";
 import { makeProductRepository } from "../product/product.repo.typeorm.js";
-import { makePaymentRepository } from "../payment/payment.repo.typeorm.js";
+import { makePaymentMethodRepository } from "../paymentMethod/payment-method.repo.typeorm.js";
 import { makeUserRepository } from "../user/user.repo.typeorm.js";
 import { getUserById } from "../user/user.service.js";
+import { makeProductSoldRepository } from "./product-sold.repo.typeorm.js";
+import {
+  deleteProductSold,
+  updateProductSold,
+  createProductSold,
+  getProductSoldById,
+} from "./product-sold.service.js";
+import type { Payment } from "./payment.entity.js";
+import type { ProductSold } from "./product-sold.entity.js";
+import type { PaymentMethod } from "../paymentMethod/payment-method.entity.js";
+import { createPayment } from "./payment.service.js";
+import { makePaymentRepository } from "./payment.repo.typeorm.js";
 
 const bartableRepo = makeBartableRepository(AppDataSource);
 const employeeRepo = makeEmployeeRepository(AppDataSource);
 const productRepo = makeProductRepository(AppDataSource);
+const productSoldRepo = makeProductSoldRepository(AppDataSource);
+const paymentMethodRepo = makePaymentMethodRepository(AppDataSource);
 const paymentRepo = makePaymentRepository(AppDataSource);
 const userRepo = makeUserRepository(AppDataSource);
+
+export const ALLOWED_SETTLEMENT_MODES = ["total", "partial"] as const;
+export type SettlementMode = (typeof ALLOWED_SETTLEMENT_MODES)[number];
+export function isSettlementMode(value: any): value is SettlementMode {
+  return ALLOWED_SETTLEMENT_MODES.includes(value as SettlementMode);
+}
+
+export const ALLOWED_PARTIAL_STRATEGIES = ["amount", "products"] as const;
+export type PartialStrategy = (typeof ALLOWED_PARTIAL_STRATEGIES)[number];
+export function isPartialStrategy(value: any): value is PartialStrategy {
+  return ALLOWED_PARTIAL_STRATEGIES.includes(value as PartialStrategy);
+}
 
 // SERVICE FOR CREATE A BARTABLE
 export const createSale = async (
@@ -82,14 +108,13 @@ export const createSale = async (
   }
 
   const newSale = repo.create({
-    dateTime: new Date(),
+    createdDateTime: new Date(),
     createdBy: user,
     total: 0,
     open: true,
     bartable: bartable,
     employee: employee,
     discount: employee ? 0.2 : 0,
-    payment: null,
     products: [],
   });
 
@@ -150,18 +175,18 @@ export const updateSale = async (
         : (newQuantity = existingItem.quantity - 1);
       if (newQuantity > 0) {
         const newSubtotal = newQuantity * price;
-        await productSoldRepo.update(
-          { id: existingItem.id },
-          { quantity: newQuantity, subtotal: newSubtotal }
-        );
+        await updateProductSold(productSoldRepo, {
+          id: existingItem.id,
+          quantity: newQuantity,
+          subtotal: newSubtotal,
+        });
       } else {
-        await productSoldRepo.delete({ id: existingItem.id });
+        await deleteProductSold(productSoldRepo, existingItem.id);
       }
       newQuantity > existingItem.quantity ? (total += price) : (total -= price);
     } else {
-      await productSoldRepo.insert({
+      await createProductSold(productSoldRepo, {
         product: productData,
-        quantity: 1,
         subtotal: price,
         sale: actualSale,
       });
@@ -173,15 +198,24 @@ export const updateSale = async (
   return await repo.findById(id);
 };
 
-export const closeSale = async (
+export const paySale = async (
   repo: SaleRepository,
   updatedData: {
     id: number;
-    idPayment: number;
-    closedById: number;
+    settlementMode: "total" | "partial";
+    partialStrategy?: "amount" | "products";
+    paymentDetails: {
+      createdById: number;
+      idPaymentMethod: number;
+      amount?: number;
+      idProductSolds?: number[];
+    };
   }
 ) => {
-  const { id, idPayment, closedById } = updatedData;
+  const { id, settlementMode, partialStrategy, paymentDetails } = updatedData;
+  const { createdById, idPaymentMethod, amount, idProductSolds } =
+    paymentDetails;
+  let close = false;
 
   validateNumberID(id, "Venta");
   const actualSale = await repo.findOpenById(id);
@@ -190,22 +224,71 @@ export const closeSale = async (
     throw new AppError("(Error) No se ha encontrado la venta.", 400);
   }
 
-  validatePositiveInteger(idPayment, "Método de pago");
-  const payment = await getPaymentById(paymentRepo, idPayment);
-  if (!payment) {
-    throw new AppError("(Error) No se pudo encontrar el método de pago.", 400);
+  const user = await getUserById(userRepo, createdById);
+  if (!user) {
+    throw new AppError("(Error) Usuario no encontrado.", 400);
   }
 
-  await createTransaction({
-    idAccount: payment.account.id,
-    type: "income",
-    amount: Number(actualSale.total),
-    origin: "sale",
-    idSale: id,
-    description: `ID Venta: ${id}`,
-    createdById: closedById,
-  });
-  await repo.closeSale(id, idPayment);
+  if (!isSettlementMode(settlementMode)) {
+    throw new AppError("(Error) Modo de cierre de venta inválido.", 400);
+  }
+
+  // validateNumberID(paymentDetails.idPaymentMethod, "Método de pago");
+  // const paymentMethod = getPaymentMethodById(
+  //   paymentMethodRepo,
+  //   paymentDetails.idPaymentMethod
+  // );
+  // if (!paymentMethod) {
+  //   throw new AppError("(Error) No se pudo encontrar el método de pago.", 400);
+  // }
+
+  if (settlementMode === "total") {
+    await createPayment(paymentRepo, actualSale, {
+      createdById,
+      idPaymentMethod,
+      amount: actualSale.total,
+      idProductSolds: [],
+    });
+    close = true;
+  }
+
+  if (settlementMode === "partial") {
+    if (!isPartialStrategy(partialStrategy)) {
+      throw new AppError("(Error) Estrategia de cierre parcial inválida.", 400);
+    }
+    validatePositiveNumber(amount!, "Monto");
+    if (partialStrategy === "amount") {
+      await createPayment(paymentRepo, actualSale, {
+        createdById,
+        idPaymentMethod,
+        amount: amount!,
+        idProductSolds: [],
+      });
+    } else if (partialStrategy === "products") {
+      await createPayment(paymentRepo, actualSale, {
+        createdById,
+        idPaymentMethod,
+        amount: amount!,
+        idProductSolds,
+      });
+      paymentDetails.idProductSolds?.map((idProductSold) => {
+        const productSold = getProductSoldById(productSoldRepo, idProductSold);
+        if (!productSold) {
+          throw new AppError(
+            "(Error) No se ha encontrado el producto que desea pagar."
+          );
+        }
+      });
+    }
+    await repo.updateTotal(id, actualSale.total - amount!);
+    if (actualSale.total === 0) {
+      close = true;
+    }
+  }
+
+  if (close) {
+    await repo.closeSale(id);
+  }
   return await repo.findById(id);
 };
 
@@ -274,20 +357,14 @@ export const getListOfSales = async (
 };
 
 // SERVICE FOR GETTING A SALE BY ID
-export const getSaleById = async (
-  repo: SaleRepository,
-  id: number
-) => {
+export const getSaleById = async (repo: SaleRepository, id: number) => {
   validateNumberID(id, "Venta");
   const existing = await repo.findById(id);
   if (!existing) throw new AppError("(Error) Venta no encontrada", 404);
   return existing;
 };
 
-export const getOpenSaleById = async (
-  repo: SaleRepository,
-  id: number
-) => {
+export const getOpenSaleById = async (repo: SaleRepository, id: number) => {
   validateNumberID(id, "Venta");
   const existing = await repo.findOpenById(id);
   if (!existing) {
@@ -305,9 +382,6 @@ export const getOpenSaleByBartableId = async (
 ) => {
   validateNumberID(bartableId, "Mesa");
   const sale = await repo.findOpenByBartableId(bartableId);
-  if (!sale) {
-    throw new AppError("(Error) No hay una venta abierta para esta mesa.", 404);
-  }
   return sale;
 };
 
@@ -317,12 +391,5 @@ export const getOpenSaleByEmployeeId = async (
 ) => {
   validateNumberID(employeeId, "Empleado");
   const sale = await repo.findOpenByEmployeeId(employeeId);
-  if (!sale) {
-    throw new AppError(
-      "(Error) No hay una venta abierta para este empleado.",
-      404
-    );
-  }
   return sale;
 };
-

@@ -24,11 +24,10 @@ export function ConfirmPrompt({
     <ActionPrompt
       open={open}
       message={message}
-      onClose={onCancel}
       busy={busy}
       actions={[
-        { label: cancelLabel, onClick: onCancel },
-        { label: confirmLabel, onClick: onConfirm, variant: "secondary" },
+        { label: cancelLabel, onClick: onCancel, variant: "secondary" },
+        { label: confirmLabel, onClick: onConfirm },
       ]}
     />
   );

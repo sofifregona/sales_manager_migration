@@ -18,7 +18,7 @@ export async function handleBrandReactivate({ url, formData }: Ctx) {
     const p = new URLSearchParams(url.search);
     p.delete("id");
     p.set("reactivated", "1");
-    return redirect(`/brand?${p.toString()}`);
+    return redirect(`/settings/brand?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

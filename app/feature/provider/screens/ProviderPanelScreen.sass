@@ -1,0 +1,74 @@
+@use "sass:color"
+@use "../../../styles/tokens" as *
+
+.settings-panel__section.settings-panel__provider
+    width: 100%
+    overflow: hidden
+    min-width: 0
+
+.provider-form
+    display: flex
+    flex-wrap: wrap
+    justify-content: space-between
+    .form-input__div
+        width: 100%
+        padding: 0
+        display: flex
+        flex-wrap: wrap
+        justify-content: space-between
+    .form-pill
+        margin: .25rem 0rem
+
+.pill-name-provider,
+.pill-cuit-provider,
+.pill-telephone-provider,
+.pill-email-provider
+    width: 48%
+
+.pill-address-provider
+    width: 100%
+
+.th-name-provider, .td-name-provider
+    text-align: left
+    padding: 0.75rem 0rem 0.75rem 1.5rem
+    width: 20%
+    white-space: nowrap
+    overflow: hidden
+    text-overflow: ellipsis
+
+.th-cuit-provider, .td-cuit-provider
+    width: 12%
+    padding: 0.75rem 0rem
+
+.th-telephone-provider, .td-telephone-provider
+    text-align: left
+    width: 15%
+    padding: 0.75rem .25rem
+
+.th-email-provider, .td-email-provider
+    text-align: left
+    padding: 0.75rem .25rem
+    white-space: nowrap
+    overflow: hidden
+    text-overflow: ellipsis
+
+.th-address-provider, .td-address-provider
+    text-align: left
+    padding: 0.75rem .25rem
+    white-space: nowrap
+    overflow: hidden
+    text-overflow: ellipsis
+
+.th-active-provider, .td-active-provider
+    white-space: nowrap
+    text-align: center
+    width: 10%
+    padding: 0.75rem 0rem
+
+.th-active-provider button
+    margin: auto
+
+.th-action-provider, .td-action-provider
+    width: 180px
+    text-align: center
+    padding: 0.75rem 1.5rem 0.75rem 0rem

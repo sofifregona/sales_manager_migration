@@ -17,6 +17,7 @@ import { makeTransactionRepository } from "./transaction.repo.typeorm.js";
 import { makeUserRepository } from "../user/user.repo.typeorm.js";
 import type { UserRepository } from "../user/user.repo.js";
 import { getUserById } from "../user/user.service.js";
+import type { Payment } from "../sale/payment.entity.js";
 
 const accountRepo: AccountRepository = makeAccountRepository(AppDataSource);
 const saleRepo = makeSaleRepository(AppDataSource);
@@ -30,18 +31,11 @@ export const createTransaction = async (data: {
   amount: number;
   description: string | null;
   origin: "sale" | "movement";
-  idSale: number | null;
+  payment: Payment | null;
   createdById: number;
 }) => {
-  const {
-    idAccount,
-    type,
-    amount,
-    description,
-    origin,
-    idSale,
-    createdById,
-  } = data;
+  const { idAccount, type, amount, description, origin, payment, createdById } =
+    data;
 
   validateNumberID(idAccount, "Cuenta");
   const account = await accountRepo.findById(idAccount);
@@ -64,22 +58,13 @@ export const createTransaction = async (data: {
     throw new AppError("(Error) Usuario no encontrado.", 404);
   }
 
-  let sale: Sale | null = null;
-  if (idSale) {
-    validateNumberID(idSale, "Venta");
-    sale = await getOpenSaleById(saleRepo, idSale);
-    if (!sale) {
-      throw new AppError("(Error) Venta no encontrada.", 404);
-    }
-  }
-
   const newTransaction = transactionRepo.create({
     account,
     type: origin === "sale" ? "income" : type,
     origin,
     amount,
     description: description ?? null,
-    sale: idSale ? sale : null,
+    payment: payment,
     createdBy,
   });
 

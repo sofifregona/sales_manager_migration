@@ -7,6 +7,7 @@ import { makeConflictCookie } from "~/services/conflictCookie";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import {
   validateRequired,
+  validateRequiredAndType,
   validateRequiredId,
 } from "~/utils/validation/validationHelpers";
 
@@ -14,7 +15,7 @@ type Ctx = { url: URL; formData: FormData };
 
 export async function handleBrandUpdate({ url, formData }: Ctx) {
   const nameParam = formData.get("name");
-  const nameParamError = validateRequired(nameParam, "string", "Nombre");
+  const nameParamError = validateRequiredAndType(nameParam, "string", "Nombre");
   if (nameParamError) return jsonResponse(422, nameParamError);
   const name = (nameParam as string).trim();
 
@@ -30,7 +31,7 @@ export async function handleBrandUpdate({ url, formData }: Ctx) {
     const p = new URLSearchParams(url.search);
     p.delete("id");
     p.set("updated", "1");
-    return redirect(`/brand?${p.toString()}`);
+    return redirect(`/settings/brand?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,
@@ -51,7 +52,12 @@ export async function handleBrandUpdate({ url, formData }: Ctx) {
           "Set-Cookie",
           makeConflictCookie({ scope: "brand", name })
         );
-        return redirect(`/brand?${p.toString()}` as any, { headers } as any);
+        return redirect(
+          `/settings/brand?${p.toString()}` as any,
+          {
+            headers,
+          } as any
+        );
       }
       return jsonResponse(409, {
         error: parsed.message,

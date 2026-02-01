@@ -11,6 +11,8 @@ import { ENDPOINTS } from "~/config/endpoints";
 // Stubs for create/update/deactivate if needed by existing screens
 export async function createUser(data: CreateUserPayload) {
   const { username, name, password, role } = data;
+  console.log("EN LA API");
+  console.log(data);
   return await fetchJson<UserDTO>(`${API_BASE_URL}/${ENDPOINTS.user}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },

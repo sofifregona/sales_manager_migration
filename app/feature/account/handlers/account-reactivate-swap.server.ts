@@ -8,17 +8,19 @@ type Ctx = { url: URL; formData: FormData };
 
 export async function handleReactivateSwapAccount({ url, formData }: Ctx) {
   const currentIdParam = formData.get("currentId");
+  const inactiveIdParam = formData.get("inactiveId");
+
   const currentIdReqError = validateRequiredId(currentIdParam, "Cuenta actual");
   if (currentIdReqError) return jsonResponse(422, currentIdReqError);
   const currentIdNum = Number(currentIdParam);
 
-  const inactiveIdParam = formData.get("inactiveId");
   const inactiveIdReqError = validateRequiredId(
     inactiveIdParam,
     "Cuenta inactiva"
   );
   if (inactiveIdReqError) return jsonResponse(422, inactiveIdReqError);
   const inactiveIdNum = Number(inactiveIdParam);
+
   const strategyParam = formData.get("strategy");
   const strategy = strategyParam
     ? (String(strategyParam) as "cascade-delete-payments" | "cancel")
@@ -26,9 +28,9 @@ export async function handleReactivateSwapAccount({ url, formData }: Ctx) {
 
   try {
     await reactivateAccountSwap(inactiveIdNum, currentIdNum, strategy);
-    const p = new URLSearchParams();
+    const p = new URLSearchParams(url.search);
     p.set("reactivated", "1");
-    return redirect(`/account?${p.toString()}`);
+    return redirect(`/settings/account?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

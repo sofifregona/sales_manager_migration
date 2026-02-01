@@ -3,7 +3,6 @@ import type { FetcherWithComponents } from "react-router-dom";
 import type { CategoryDTO } from "~/feature/category/category";
 import type { ProductDTO } from "~/feature/product/product";
 import { normalizeText } from "~/utils/strings/normalizeText";
-import exampleImg from "~/shared/assets/example.jpg";
 
 type Props = {
   products: ProductDTO[];
@@ -79,16 +78,16 @@ export function SaleAddProductFilter({
       </div>
 
       <div className="search-list">
-        <div className="search-list-category">
+        <div className="search-list__category">
           <h3 className="search-list__title">Categorías</h3>
-          <ul className="search-list-category__ul">
+          <ul className="search-list__category-ul">
             <li
               key="all"
               onMouseDown={() => onSelectCategory(undefined)}
               className={
                 selectedCategoryId === undefined
-                  ? "category category--selected"
-                  : "category"
+                  ? "search-list__category-item search-list__category-item--selected"
+                  : "search-list__category-item"
               }
             >
               Todos
@@ -99,8 +98,8 @@ export function SaleAddProductFilter({
                 onMouseDown={() => onSelectCategory(category.id)}
                 className={
                   selectedCategoryId === category.id
-                    ? "category category--selected"
-                    : "category"
+                    ? "search-list__category-item search-list__category-item--selected"
+                    : "search-list__category-item"
                 }
               >
                 {category.name}
@@ -111,8 +110,8 @@ export function SaleAddProductFilter({
               onMouseDown={() => onSelectCategory(null)}
               className={
                 selectedCategoryId === null
-                  ? "category category--selected"
-                  : "category"
+                  ? "search-list__category-item search-list__category-item--selected"
+                  : "search-list__category-item"
               }
             >
               Otros
@@ -128,43 +127,50 @@ export function SaleAddProductFilter({
             }
           />
         </div>
-        <div className="search-list-product">
+        <div className="search-list__product">
           <h3 className="search-list__title">Productos</h3>
-          <ul className="search-list-product__ul">
-            {filteredProducts.map((p) => (
-              <li key={`li_filteredProduct_${p.id}`} className="product__item">
-                <productFetcher.Form method="post" action=".">
-                  <input type="hidden" name="_action" value="update" />
-                  <button
-                    type="submit"
-                    name="idProduct"
-                    value={String(p.id)}
-                    className="product__btn"
-                  >
-                    <img
-                      className="product__img"
-                      src={exampleImg}
-                      alt="Sin imagen"
-                    />
-                    <p className="product__name">{p.name}</p>
-                    <div className="product__info">
-                      <span className="product__price">
-                        $ {p.price.toFixed(2)}
-                      </span>
-                      <span className="product__code">
-                        ({String(p.code ?? "").padStart(3, "0")})
-                      </span>
-                    </div>
+          <div className="search-list__product-wrapper">
+            <ul className="search-list__product-ul">
+              {filteredProducts.map((p) => (
+                <li
+                  key={`search-list__product-li-${p.id}`}
+                  className="search-list__product-item"
+                >
+                  <productFetcher.Form method="post" action=".">
+                    <input type="hidden" name="_action" value="update" />
+                    <button
+                      type="submit"
+                      name="idProduct"
+                      value={String(p.id)}
+                      className="search-list__product-btn"
+                    >
+                      <img
+                        className="search-list__product-img"
+                        src={p.imageUrl ?? undefined}
+                        alt="Sin imagen"
+                      />
+                      <p className="search-list__product-name">{p.name}</p>
+                      <div className="search-list__product-info">
+                        <span className="search-list__product-price">
+                          $ {p.price.toFixed(2)}
+                        </span>
+                        <span className="search-list__product-code">
+                          ({String(p.code ?? "").padStart(3, "0")})
+                        </span>
+                      </div>
 
-                    <input type="hidden" name="op" value="add" />
-                  </button>
-                </productFetcher.Form>
-              </li>
-            ))}
-            {filteredProducts.length === 0 && (
-              <li className="empty">No hay productos que coincidan.</li>
-            )}
-          </ul>
+                      <input type="hidden" name="op" value="add" />
+                    </button>
+                  </productFetcher.Form>
+                </li>
+              ))}
+              {filteredProducts.length === 0 && (
+                <li className="search-list__empty">
+                  No hay productos que coincidan.
+                </li>
+              )}
+            </ul>
+          </div>
         </div>
       </div>
     </>

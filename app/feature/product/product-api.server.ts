@@ -7,47 +7,35 @@ import type {
 import { API_BASE_URL } from "~/config/api";
 import { ENDPOINTS } from "~/config/endpoints";
 import { fetchJson } from "~/lib/http/fetchJson.server";
+import {
+  buildProductFormData,
+  type ProductImageOptions,
+} from "./ui/utils/buildProductFormData";
 
-// CREAR MESA
-export async function createProduct(data: CreateProductPayload) {
-  const { name, code, price, idCategory, idBrand, idProvider } = data;
-  return await fetchJson<ProductDTO>(
-    `${API_BASE_URL}/${ENDPOINTS.product}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name,
-        code,
-        price,
-        idCategory,
-        idBrand,
-        idProvider,
-      }),
-    }
-  );
+// CREAR PRODUCTO
+export async function createProduct(
+  data: CreateProductPayload,
+  image?: ProductImageOptions
+) {
+  const body = buildProductFormData(data, image);
+  return await fetchJson<ProductDTO>(`${API_BASE_URL}/${ENDPOINTS.product}`, {
+    method: "POST",
+    body,
+  });
 }
 
-// ACTUALIZAR MESA
-export async function updateProduct(data: UpdateProductPayload) {
-  const { id, name, code, price, idCategory, idBrand, idProvider } = data;
+// ACTUALIZAR PRODUCTO
+export async function updateProduct(
+  data: UpdateProductPayload,
+  image?: ProductImageOptions
+) {
+  const { id } = data;
+  const body = buildProductFormData(data, image);
   return await fetchJson<ProductDTO>(
     `${API_BASE_URL}/${ENDPOINTS.product}/${id}`,
     {
       method: "PATCH",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name,
-        code,
-        price,
-        idCategory,
-        idBrand,
-        idProvider,
-      }),
+      body,
     }
   );
 }
@@ -130,4 +118,3 @@ export async function getProductById(id: number) {
     }
   );
 }
-

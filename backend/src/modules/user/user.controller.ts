@@ -19,6 +19,7 @@ export const createUserHandler = async (
   res: Response,
   next: NextFunction
 ) => {
+  console.log(req);
   try {
     const user = await createUser(userRepo, req.body);
     res.status(201).json(user);

@@ -1,0 +1,83 @@
+@use "sass:color"
+@use "../../../styles/tokens" as *
+
+.form-modal
+    width: 70%
+    max-width: 620px
+
+.user-form
+    display: flex
+    flex-wrap: wrap
+    justify-content: space-between
+    .form-input__div
+        width: 100%
+        padding: 0
+        display: flex
+        flex-wrap: wrap
+        justify-content: space-between
+
+.pill-username-user,
+.pill-name-user,
+.pill-role-user,
+.pill-password-user,
+.pill-repeat-password-user
+    width: 48%
+
+.password__input-container, .repeat-password__input-container
+    width: 100%
+    display: flex
+    flex-wrap: nowrap
+    border-radius: $radius-full
+    margin-top: .35rem
+    &:focus-within
+        box-shadow: 0 0 0 2px #71717a
+
+.input-password-user, .input-repeat-password-user
+    border-radius: $radius-full 0 0 $radius-full
+    padding: 0.5rem 0rem 0.5rem 1rem
+    margin: 0
+    &:focus
+        box-shadow: none
+
+.password-btn
+    border: none
+    border-radius: 0 $radius-full $radius-full 0
+    background-color: #252525
+    padding: 0.5rem 1rem 0.5rem 0
+    margin: 0
+    color: #71717a
+    font: inherit
+
+.table-user
+    .table__item-td
+        max-width: 200px
+        white-space: nowrap
+        overflow: hidden
+        text-overflow: ellipsis
+
+    .th-username-user, .td-username-user
+        text-align: left
+        padding: 0.75rem 0rem 0.75rem 1.5rem
+        min-width: 180px
+
+    .th-name-user, .td-name-user
+        text-align: left
+        padding: 0.75rem 0rem
+        min-width: 180px
+
+    .th-role-user, .td-role-user
+        text-align: left
+        padding: 0.75rem 0rem
+        width: 120px
+
+    .th-active-user, .td-active-user
+        white-space: nowrap
+        padding: 0.75rem 0rem
+        width: 90px
+        text-align: center
+
+    .th-action-user, .td-action-user
+        width: 350px
+        min-width: 350px
+        text-align: center
+        padding: 0.75rem 1.5rem .75rem 0rem

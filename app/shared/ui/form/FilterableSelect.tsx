@@ -1,7 +1,23 @@
-﻿import { useState, useRef, useEffect } from "react";
-import { useLocation, Link } from "react-router-dom";
-import type { Flash } from "~/types/flash";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
+import { useLocation } from "react-router-dom";
 import { normalizeText } from "~/utils/strings/normalizeText";
+
+type Option = { id: number; name: string; normalizedName: string };
+
+type Props = {
+  name: string;
+  options: Option[];
+  label: [string, string];
+  url: string;
+  initialId?: number;
+  editing?: number;
+};
 
 export function FilterableSelect({
   name,
@@ -10,24 +26,22 @@ export function FilterableSelect({
   url,
   initialId,
   editing,
-}: {
-  name: string;
-  options: { id: number; name: string; normalizedName: string }[];
-  label: [string, string];
-  url: string;
-  initialId?: number;
-  editing?: number;
-}) {
+}: Props) {
   const location = useLocation();
   const containerRef = useRef<HTMLDivElement>(null);
-
   const [selectedId, setSelectedId] = useState<number | null>(
     initialId ?? null
   );
-  const [input, setInput] = useState(""); // que arranque vacío
+  const [input, setInput] = useState("");
   const [isOpen, setIsOpen] = useState(false);
-  const [filtered, setFiltered] = useState(options);
-  const [disabledSelection, setDisabledSelection] = useState(false);
+  const [highlightIndex, setHighlightIndex] = useState(-1);
+
+  const filteredOptions = useMemo(() => {
+    const trimmed = input.trim();
+    if (trimmed === "") return options;
+    const normalized = normalizeText(trimmed);
+    return options.filter((opt) => opt.normalizedName.startsWith(normalized));
+  }, [input, options]);
 
   useEffect(() => {
     if (editing) {
@@ -43,88 +57,118 @@ export function FilterableSelect({
       setInput("");
       return;
     }
-    const found = options.find((o) => o.id === selectedId);
+    const found = options.find((opt) => opt.id === selectedId);
     setInput(found?.name ?? "");
   }, [selectedId, options]);
 
   useEffect(() => {
-    const inputForm = input.trim();
-    if (inputForm === "") {
-      setFiltered(options);
-    } else {
-      const inputNorm = normalizeText(inputForm);
-      setFiltered(
-        options.filter((opt) => opt.normalizedName.startsWith(inputNorm))
-      );
-    }
-  }, [input, options]);
-
-  useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (event: MouseEvent) => {
       if (
         containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
+        !containerRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
         if (input.trim() === "") {
           setSelectedId(null);
           setInput("");
         }
+        setHighlightIndex(-1);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [input]);
 
+  useEffect(() => {
+    if (highlightIndex >= filteredOptions.length) {
+      setHighlightIndex(filteredOptions.length - 1);
+    }
+  }, [filteredOptions, highlightIndex]);
+
   const handleBlur = () => {
     setIsOpen(false);
-    const normalized_options = options.map((opt) => normalizeText(opt.name));
+    const normalized = options.map((opt) => opt.normalizedName);
     if (input.trim() === "") {
       setSelectedId(null);
       setInput("");
-    } else if (!normalized_options.includes(normalizeText(input).trim())) {
+    } else if (!normalized.includes(normalizeText(input).trim())) {
       setSelectedId(-1);
+    }
+    setHighlightIndex(-1);
+  };
+
+  const handleOptionSelect = (opt: Option) => {
+    setSelectedId(opt.id);
+    setInput(opt.name);
+    setIsOpen(false);
+    setHighlightIndex(-1);
+  };
+
+  const handleKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
+    if (!isOpen && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+      setIsOpen(true);
+    }
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      setHighlightIndex((prev) => {
+        const next = prev + 1;
+        return next >= filteredOptions.length
+          ? filteredOptions.length - 1
+          : next;
+      });
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      setHighlightIndex((prev) => {
+        if (prev <= 0) return -1;
+        return prev - 1;
+      });
+    } else if (event.key === "Enter" && highlightIndex >= 0) {
+      event.preventDefault();
+      const opt = filteredOptions[highlightIndex];
+      if (opt) {
+        handleOptionSelect(opt);
+      }
+    } else if (event.key === "Escape") {
+      setIsOpen(false);
+      setHighlightIndex(-1);
     }
   };
 
   return (
-    <div className="relative mb-4" ref={containerRef}>
-      {/* <p>{`No hay ${label[1]} disponibles`}</p>
-      <Link className="btn btn--secondary" to={`../${label}`}>
-        {`Ir al panel de ${label[1]}`}
-      </Link> */}
-      <label
-        htmlFor={`${name}`}
-        className="block mb-1 text-sm font-medium text-gray-700"
-      >
+    <div
+      className={`form-pill-select pill-${url} filterable-input`}
+      ref={containerRef}
+    >
+      <label className={`form-pill-select__label label-${url}-product`}>
         {label[0]}
       </label>
       <input
         type="text"
         value={input}
-        onChange={(e) => {
-          setInput(e.target.value);
+        onChange={(event) => {
+          setInput(event.target.value);
           setIsOpen(true);
         }}
         onFocus={() => setIsOpen(true)}
+        onKeyDown={handleKeyDown}
         onBlur={handleBlur}
-        className="border border-gray-300 rounded px-3 py-2 focus:outline-none"
+        className={`form-pill__input input-${url}-product`}
         placeholder={`— Sin ${label[0].toLowerCase()} —`}
       />
       <input type="hidden" name={name} value={selectedId ?? ""} />
 
-      {isOpen && filtered.length > 0 && (
-        <ul className="absolute z-10 mt-1 max-h-40 overflow-y-auto bg-white border border-gray-300 rounded shadow">
-          {filtered.map((opt) => (
+      {isOpen && filteredOptions.length > 0 && (
+        <ul className="form-pill-select__ul">
+          {filteredOptions.map((opt, index) => (
             <li
               key={opt.id}
-              className="px-3 py-2 hover:bg-blue-100 cursor-pointer"
-              onMouseDown={() => {
-                setSelectedId(opt.id);
-                setInput(opt.name);
-                setIsOpen(false);
-              }}
-              style={{ color: "black" }}
+              className={
+                highlightIndex === index
+                  ? "form-pill-select__li form-pill-select__li--active"
+                  : "form-pill-select__li"
+              }
+              onMouseDown={() => handleOptionSelect(opt)}
+              onMouseEnter={() => setHighlightIndex(index)}
             >
               {opt.name}
             </li>

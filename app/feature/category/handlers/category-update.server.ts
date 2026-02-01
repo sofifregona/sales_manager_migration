@@ -29,7 +29,7 @@ export async function handleCategoryUpdate({ url, formData }: Ctx) {
     const p = new URLSearchParams(url.search);
     p.delete("id");
     p.set("updated", "1");
-    return redirect(`/category?${p.toString()}`);
+    return redirect(`/settings/category?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,
@@ -53,7 +53,9 @@ export async function handleCategoryUpdate({ url, formData }: Ctx) {
           "Set-Cookie",
           makeConflictCookie({ scope: "category", name })
         );
-        return redirect(`/category?${p.toString()}` as any, { headers } as any);
+        return redirect(`/settings/category?${p.toString()}` as any, {
+          headers,
+        } as any);
       }
       return jsonResponse(409, {
         error: parsed.message,

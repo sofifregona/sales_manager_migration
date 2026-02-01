@@ -6,6 +6,7 @@ import { parseAppError } from "~/utils/errors/parseAppError";
 import {
   validateRangeLength,
   validateRequired,
+  validateRequiredAndType,
   validateRequiredId,
 } from "~/utils/validation/validationHelpers";
 import {
@@ -18,10 +19,10 @@ type Ctx = { url: URL; formData: FormData };
 
 export async function handleUserUpdate({ url, formData }: Ctx) {
   const usernameParam = formData.get("username");
-  const usernameParamError = validateRequired(
+  const usernameParamError = validateRequiredAndType(
     usernameParam,
     "string",
-    "Nombre de usuario"
+    "Nombre de usuario",
   );
   if (usernameParamError) return jsonResponse(422, usernameParamError);
   const username = (usernameParam as string).toLowerCase().replace(/\s+/g, "");
@@ -29,7 +30,7 @@ export async function handleUserUpdate({ url, formData }: Ctx) {
     username,
     5,
     32,
-    "Nombre de usuario"
+    "Nombre de usuario",
   );
   if (usernameLengthError) return jsonResponse(422, usernameLengthError);
   const usernameFormatError = validateUsernameFormat(username);
@@ -38,21 +39,21 @@ export async function handleUserUpdate({ url, formData }: Ctx) {
   }
 
   const nameParam = formData.get("name");
-  const nameParamError = validateRequired(nameParam, "string", "Nombre");
+  const nameParamError = validateRequiredAndType(nameParam, "string", "Nombre");
   if (nameParamError) return jsonResponse(422, nameParamError);
   const name = (nameParam as string).trim();
   const nameLengthError = validateRangeLength(name, 5, 80, "Nombre");
   if (nameLengthError) return jsonResponse(422, nameLengthError);
 
   const roleParam = formData.get("role");
-  const roleParamError = validateRequired(roleParam, "string", "Rol");
+  const roleParamError = validateRequiredAndType(roleParam, "string", "Rol");
   if (roleParamError) {
     return jsonResponse(422, roleParamError);
   }
 
   const role = (roleParam as string).replace(/\s+/g, " ").trim().toUpperCase();
   const roleError = parseUserRole(role);
-  if (roleError) {
+  if (!roleError.ok) {
     return jsonResponse(422, roleError);
   }
 
@@ -72,11 +73,11 @@ export async function handleUserUpdate({ url, formData }: Ctx) {
     await updateUser(updatedData);
     const p = new URLSearchParams(url.search);
     p.set("updated", "1");
-    return redirect(`/user?${p.toString()}`);
+    return redirect(`/settings/user?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,
-      "(Error) No se pudo modificar el usuario."
+      "(Error) No se pudo modificar el usuario.",
     );
     return jsonResponse(parsed.status ?? 500, {
       error: parsed.message,
@@ -84,4 +85,3 @@ export async function handleUserUpdate({ url, formData }: Ctx) {
     });
   }
 }
-

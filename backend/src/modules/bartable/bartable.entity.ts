@@ -1,4 +1,4 @@
-﻿import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+﻿import { Entity, PrimaryGeneratedColumn, Column, Check } from "typeorm";
 
 @Entity()
 export class Bartable {

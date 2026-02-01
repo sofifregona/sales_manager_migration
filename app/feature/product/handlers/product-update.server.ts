@@ -4,6 +4,7 @@ import { jsonResponse } from "~/lib/http/jsonResponse";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import {
   validateFilteredId,
+  validateIsInteger,
   validateIsPositive,
   validateNumberId,
   validatePositiveInteger,
@@ -56,6 +57,9 @@ export async function handleProductUpdate({ url, formData }: Ctx) {
     return jsonResponse(422, codeError);
   }
 
+  console.log("EN EL UPDATE");
+  console.log(code);
+  console.log(validateIsInteger(code, "Código"));
   const priceParam = formData.get("price");
   const priceParamError = validateRequired(priceParam, "string", "Precio");
   if (priceParamError) {
@@ -148,6 +152,35 @@ export async function handleProductUpdate({ url, formData }: Ctx) {
     }
   }
 
+  let selectedSampleImage: string | null = null;
+  const selectedSampleParam = formData.get("selectedSampleImage");
+  if (selectedSampleParam !== null) {
+    const selectedSampleError = validateType(
+      selectedSampleParam,
+      "string",
+      "Imagen de muestra"
+    );
+    if (selectedSampleError) {
+      return jsonResponse(422, selectedSampleError);
+    }
+    const sampleValue = selectedSampleParam.toString().trim();
+    if (sampleValue) {
+      selectedSampleImage = sampleValue;
+    }
+  }
+
+  let imageFile: File | null = null;
+  const imageParam = formData.get("image");
+  if (imageParam !== null) {
+    const imageParamError = validateType(imageParam, "object", "Imagen");
+    if (imageParamError) {
+      return jsonResponse(422, imageParamError);
+    }
+    if (imageParam instanceof File && imageParam.size > 0) {
+      imageFile = imageParam;
+    }
+  }
+
   const stockEnabled = Boolean(formData.get("stockEnabled"));
 
   const quantity = Number(formData.get("quantity"));
@@ -183,28 +216,32 @@ export async function handleProductUpdate({ url, formData }: Ctx) {
   };
 
   try {
-    await updateProduct(payload);
+    await updateProduct(payload, {
+      selectedSampleImage,
+      imageFile,
+    });
 
     const p = new URLSearchParams(url.search);
-    ["id", "conflict", "code", "elementId", "message"].forEach((k) => p.delete(k));
+    ["id", "conflict", "code", "elementId", "message"].forEach((k) =>
+      p.delete(k)
+    );
     p.set("updated", "1");
-    return redirect(`/product?${p.toString()}`);
+    return redirect(`/settings/product?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,
       "(Error) No se pudo modificar el producto seleccionado."
     );
 
-    if (parsed.status === 409) { return jsonResponse(409, { error: parsed.message, source: parsed.source ?? "server" }); }
+    if (parsed.status === 409) {
+      return jsonResponse(409, {
+        error: parsed.message,
+        source: parsed.source ?? "server",
+      });
+    }
     return jsonResponse(parsed.status ?? 500, {
       error: parsed.message,
       source: parsed.source ?? "server",
     });
   }
 }
-
-
-
-
-
-

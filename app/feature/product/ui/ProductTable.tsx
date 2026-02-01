@@ -12,13 +12,30 @@ import IncrementForm from "./IncrementPrices";
 import { ConfirmPrompt } from "~/shared/ui/prompts/ConfirmPrompt";
 import { FaEdit, FaTrashRestore } from "react-icons/fa";
 import { FaTrash, FaSpinner } from "react-icons/fa";
+import type { BrandDTO } from "~/feature/brand/brand";
+import type { CategoryDTO } from "~/feature/category/category";
+import type { ProviderDTO } from "~/feature/provider/provider";
+import { LuPackageCheck } from "react-icons/lu";
+import { LuPackageMinus } from "react-icons/lu";
+import LuPackageWarning from "~/feature/product/assets/svg/LuPackageWarning";
 
 type Props = {
   products: ProductDTO[];
+  brands: BrandDTO[];
+  categories: CategoryDTO[];
+  providers: ProviderDTO[];
   editingId?: number | null;
+  showIncrement: boolean;
 };
 
-export function ProductTable({ products, editingId }: Props) {
+export function ProductTable({
+  products,
+  editingId,
+  brands,
+  categories,
+  providers,
+  showIncrement,
+}: Props) {
   const deactivateFetcher = useFetcher();
   const deactivating = deactivateFetcher.state !== "idle";
   const reactivateFetcher = useFetcher();
@@ -56,136 +73,177 @@ export function ProductTable({ products, editingId }: Props) {
     toggleOne,
   } = useBulkSelection(visibleIds, editingId ?? null);
 
-  const [incrementForm, setIncrementForm] = useState(false);
-
   return (
     <>
-      <div className="table-section">
-        <h2 className="settings-panel__subtitle">Lista de productos</h2>
-        {(() => {
-          const p = new URLSearchParams(location.search);
-          p.set("includeInactive", includeInactive ? "0" : "1");
-          const toggleIncludeHref = `?${p.toString()}`;
-          return (
-            <Link
-              replace
-              to={toggleIncludeHref}
-              className={
-                includeInactive
-                  ? "inactive-btn inactive-btn--active"
-                  : "inactive-btn"
-              }
-            >
-              {includeInactive ? "Ocultar inactivos" : "Ver inactivos"}
-            </Link>
-          );
-        })()}
-      </div>
+      <div className="table-section table-section-product">
+        {showIncrement && <IncrementForm selectedIds={selectedIds} />}
 
-      {displayedProducts.length === 0 ? (
-        <p className="table__empty-msg">No hay productos para mostrar.</p>
-      ) : (
-        <div className="table-wrapper">
-          <table className="table">
-            <thead className="table__head">
-              <tr className="table__head-tr">
-                <SortToggle
-                  currentSort={sortBy}
-                  currentDir={sortDir}
-                  name="name"
-                  label="Nombre"
-                />
-                <SortToggle
-                  currentSort={sortBy}
-                  currentDir={sortDir}
-                  name="code"
-                  label="Código"
-                />
-                <SortToggle
-                  currentSort={sortBy}
-                  currentDir={sortDir}
-                  name="price"
-                  label="Precio"
-                />
-                <SortToggle
-                  currentSort={sortBy}
-                  currentDir={sortDir}
-                  name="brand"
-                  label="Marca"
-                />
-                <SortToggle
-                  currentSort={sortBy}
-                  currentDir={sortDir}
-                  name="category"
-                  label="Categoría"
-                />
-                <SortToggle
-                  currentSort={sortBy}
-                  currentDir={sortDir}
-                  name="provider"
-                  label="Proveedor"
-                />
-                {includeInactive && (
+        {displayedProducts.length === 0 ? (
+          <p className="table__empty-msg">No hay productos para mostrar.</p>
+        ) : (
+          <div className="table-wrapper">
+            <table className="table product-table">
+              <thead className="table__head">
+                <tr className="table__head-tr">
+                  <th className="table__head-th th-img-product">Foto</th>
                   <SortToggle
                     currentSort={sortBy}
                     currentDir={sortDir}
-                    name="active"
-                    label="Estado"
+                    name="normalizedName"
+                    className="name-product"
+                    label="Nombre"
                   />
-                )}
-                {incrementForm ? (
-                  <th className="table__head-th check-th">
-                    <input
-                      type="checkbox"
-                      ref={masterRef}
-                      checked={allVisibleSelected}
-                      onChange={(e) => toggleAllVisible(e.currentTarget.checked)}
-                      className="check-th check__all"
-                    />
-                    {" Seleccionar todo"}
-                  </th>
-                ) : (
-                  <th className="table__head-th action-th">Acciones</th>
-                )}
-              </tr>
-            </thead>
-            <tbody className="table__body">
-              {displayedProducts.map((product) => (
-                <tr
-                  key={product.id}
-                  className={
-                    editingId === product.id
-                      ? "table__item-tr table__item-tr--editing"
-                      : "table__item-tr"
-                  }
-                >
-                  <td className="table__item-td product-name-td">
-                    {product.name}
-                  </td>
-                  <td className="table__item-td product-code-td">
-                    {product.code.toString().padStart(3, "0")}
-                  </td>
-                  <td className="table__item-td product-price-td">
-                    {product.price}
-                  </td>
-                  <td className="table__item-td product-brand-td">
-                    {product.brand?.name}
-                  </td>
-                  <td className="table__item-td product-category-td">
-                    {product.category?.name}
-                  </td>
-                  <td className="table__item-td product-provider-td">
-                    {product.provider?.name}
-                  </td>
+                  <th className="table__head-th th-stock-product">Stock</th>
+                  <SortToggle
+                    currentSort={sortBy}
+                    currentDir={sortDir}
+                    name="code"
+                    className="code-product"
+                    label="Cód."
+                  />
+                  <SortToggle
+                    currentSort={sortBy}
+                    currentDir={sortDir}
+                    name="price"
+                    className="price-product"
+                    label="Precio"
+                  />
+                  <SortToggle
+                    currentSort={sortBy}
+                    currentDir={sortDir}
+                    name="brand"
+                    className="brand-product"
+                    label="Marca"
+                  />
+                  <SortToggle
+                    currentSort={sortBy}
+                    currentDir={sortDir}
+                    name="category"
+                    className="category-product"
+                    label="Cat."
+                  />
+                  <SortToggle
+                    currentSort={sortBy}
+                    currentDir={sortDir}
+                    name="provider"
+                    className="provider-product"
+                    label="Prov."
+                  />
                   {includeInactive && (
-                    <td className="table__item-td active-td product-active-td">
-                      {product.active ? "Activo" : "Inactivo"}
-                    </td>
+                    <SortToggle
+                      currentSort={sortBy}
+                      currentDir={sortDir}
+                      name="active"
+                      className="active-product"
+                      label="Estado"
+                    />
                   )}
+                  {showIncrement ? (
+                    <th className="table__head-th th-check">
+                      <input
+                        type="checkbox"
+                        ref={masterRef}
+                        checked={allVisibleSelected}
+                        onChange={(e) =>
+                          toggleAllVisible(e.currentTarget.checked)
+                        }
+                        className="th-check__input check__all"
+                      />
+                      {" Seleccionar todo"}
+                    </th>
+                  ) : (
+                    <th className="table__head-th th-action-product">
+                      Acciones
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody className="table__body">
+                {displayedProducts.map((product) => (
+                  <tr
+                    key={product.id}
+                    className={
+                      editingId === product.id
+                        ? "table__item-tr table__item-tr--editing"
+                        : "table__item-tr"
+                    }
+                  >
+                    <td className="table__item-td td-foto-product">
+                      {product.imageUrl && (
+                        <img
+                          src={product.imageUrl}
+                          alt="Previsualización de la imagen del producto"
+                          className="table-img-prev"
+                        />
+                      )}
+                    </td>
+                    <td
+                      className="table__item-td td-name-product"
+                      title={product.name}
+                    >
+                      {product.name}
+                    </td>
+                    <td className="table__item-td td-stock-product">
+                      <div className="td-stock__icons">
+                        <LuPackageCheck
+                          className={
+                            product.stockEnabled
+                              ? "stock-icon stock-icon--active"
+                              : "stock-icon"
+                          }
+                        />
+                        <LuPackageMinus
+                          className={
+                            product.negativeQuantityWarning
+                              ? "stock-icon stock-icon--active"
+                              : "stock-icon"
+                          }
+                        />
+                        <LuPackageWarning
+                          className={
+                            product.minQuantityWarning
+                              ? "stock-icon stock-icon--active"
+                              : "stock-icon"
+                          }
+                        />
+                      </div>
+                    </td>
+                    <td className="table__item-td td-code-product">
+                      {product.code.toString().padStart(3, "0")}
+                    </td>
+                    <td className="table__item-td td-price-product">
+                      $ {product.price}
+                    </td>
+                    <td
+                      className="table__item-td td-brand-product"
+                      title={product.brand?.name}
+                    >
+                      {product.brand?.name ?? ""}
+                    </td>
+                    <td
+                      className="table__item-td td-category-product"
+                      title={product.category?.name}
+                    >
+                      {product.category?.name ?? ""}
+                    </td>
+                    <td
+                      className="table__item-td td-provider-product"
+                      title={product.provider?.name}
+                    >
+                      {product.provider?.name ?? ""}
+                    </td>
+                    {includeInactive && (
+                      <td className="table__item-td active-td td-active-product">
+                        {product.active ? (
+                          <p className="status status--active">Activo</p>
+                        ) : (
+                          <p className="status status--inactive">Inactivo</p>
+                        )}
+                      </td>
+                    )}
 
-                  <td className="table__item-td action-td product-action-td">
-                    {incrementForm ? (
-                      <td className="table__item-td product-check-td">
+                    <td className="table__item-td td-action td-action-product">
+                      {showIncrement ? (
                         <input
                           type="checkbox"
                           form="incrementForm"
@@ -197,80 +255,80 @@ export function ProductTable({ products, editingId }: Props) {
                             toggleOne(product.id, e.currentTarget.checked)
                           }
                         />
-                      </td>
-                    ) : product.active ? (
-                      <>
-                        {(() => {
-                          const p = new URLSearchParams(location.search);
-                          p.set("id", String(product.id));
-                          const href = `?${p.toString()}`;
-                          return (
-                            <Link to={href}>
-                              <button
-                                className="modify-btn action-btn"
-                                type="button"
-                              >
-                                Editar
-                              </button>
-                            </Link>
-                          );
-                        })()}
-                        <button
-                          type="button"
-                          disabled={deactivating}
-                          onClick={() => setPendingDeactivateId(product.id)}
-                          className="delete-btn action-btn"
-                        >
-                          {deactivating ? (
-                            <FaSpinner className="action-icon spinner" />
-                          ) : (
-                            "Desactivar"
-                          )}
-                        </button>
-                        {(() => {
-                          const data = deactivateFetcher.data as any;
-                          if (
-                            data &&
-                            data.error &&
-                            lastDeactivateId === product.id
-                          ) {
+                      ) : product.active ? (
+                        <>
+                          {(() => {
+                            const p = new URLSearchParams(location.search);
+                            p.set("id", String(product.id));
+                            const href = `?${p.toString()}`;
                             return (
-                              <div className="inline-error" role="alert">
-                                {String(data.error)}
-                              </div>
+                              <Link to={href}>
+                                <button
+                                  className="modify-btn action-btn"
+                                  type="button"
+                                >
+                                  Editar
+                                </button>
+                              </Link>
                             );
-                          }
-                          return null;
-                        })()}
-                      </>
-                    ) : (
-                      <>
-                        <button
-                          type="button"
-                          className="reactivate-btn action-btn"
-                          disabled={reactivating}
-                          onClick={() => setPendingReactivateId(product.id)}
-                        >
-                          {reactivating ? (
-                            <FaSpinner className="action-icon spinner" />
-                          ) : (
-                            "Reactivar"
+                          })()}
+                          <button
+                            type="button"
+                            disabled={deactivating}
+                            onClick={() => setPendingDeactivateId(product.id)}
+                            className="delete-btn action-btn"
+                          >
+                            {deactivating ? (
+                              <FaSpinner className="action-icon spinner" />
+                            ) : (
+                              "Desactivar"
+                            )}
+                          </button>
+                          {(() => {
+                            const data = deactivateFetcher.data as any;
+                            if (
+                              data &&
+                              data.error &&
+                              lastDeactivateId === product.id
+                            ) {
+                              return (
+                                <div className="inline-error" role="alert">
+                                  {String(data.error)}
+                                </div>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </>
+                      ) : (
+                        <div className="section-increment-price">
+                          <button
+                            type="button"
+                            className="reactivate-btn action-btn"
+                            disabled={reactivating}
+                            onClick={() => setPendingReactivateId(product.id)}
+                          >
+                            {reactivating ? (
+                              <FaSpinner className="action-icon spinner" />
+                            ) : (
+                              "Reactivar"
+                            )}
+                          </button>
+                          {reactivateFetcher.data?.error && (
+                            <div className="inline-error" role="alert">
+                              {String((reactivateFetcher.data as any).error)}
+                            </div>
                           )}
-                        </button>
-                        {reactivateFetcher.data?.error && (
-                          <div className="inline-error" role="alert">
-                            {String((reactivateFetcher.data as any).error)}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
 
       {pendingDeactivateId != null && (
         <ConfirmPrompt
@@ -304,11 +362,6 @@ export function ProductTable({ products, editingId }: Props) {
           }}
         />
       )}
-
-      <button type="button" onClick={() => setIncrementForm((prev) => !prev)}>
-        Incrementar precios por grupo
-      </button>
-      {incrementForm && <IncrementForm selectedIds={selectedIds} />}
     </>
   );
 }

@@ -1,188 +1,233 @@
-import React, { useEffect, useRef, useState } from "react";
-import { useFetcher } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { FaSpinner } from "react-icons/fa";
+import { Form, useLocation, useNavigation } from "react-router-dom";
 import type { ProviderDTO } from "~/feature/provider/provider";
 
 type Props = {
   isEditing: boolean;
   editing?: ProviderDTO | null;
-  formAction: string; // "." o `.${search}`
+  formAction: string;
+  cancelHref: string;
+  onCancel?: () => void;
+  actionError?: string;
 };
 
-export function ProviderForm({ isEditing, editing, formAction }: Props) {
-  const fetcher = useFetcher();
-  const isSubmitting = fetcher.state === "submitting";
-  const originalRef = useRef<ProviderDTO | null>(editing ?? null);
-  const [name, setName] = useState<string>(editing?.name ?? "");
-  const [cuit, setCuit] = useState<string>(
-    editing?.cuit
-      ? `${editing?.cuit.toString().slice(0, 2)}-${editing?.cuit
-          .toString()
-          .slice(2, 10)}-${editing?.cuit.toString().slice(10)}`
-      : ""
-  );
-  const [telephone, setTelephone] = useState<string>(
-    editing?.telephone?.toString() ?? ""
-  );
-  const [email, setEmail] = useState<string>(editing?.email ?? "");
-  const [address, setAddress] = useState<string>(editing?.address ?? "");
+const formatCuit = (value: number | string | null | undefined) => {
+  if (value == null) return "";
+  const digits = value.toString();
+  const clean = digits.replace(/\D/g, "");
+  if (clean.length <= 2) return clean;
+  if (clean.length <= 10) return `${clean.slice(0, 2)}-${clean.slice(2)}`;
+  return `${clean.slice(0, 2)}-${clean.slice(2, 10)}-${clean.slice(10, 11)}`;
+};
+
+export function ProviderForm({
+  isEditing,
+  editing,
+  formAction,
+  cancelHref: _cancelHref,
+  onCancel,
+  actionError,
+}: Props) {
+  void _cancelHref;
+  const [name, setName] = useState(editing?.name ?? "");
+  const [cuit, setCuit] = useState(formatCuit(editing?.cuit ?? null));
+  const [telephone, setTelephone] = useState(editing?.telephone?.toString() ?? "");
+  const [email, setEmail] = useState(editing?.email ?? "");
+  const [address, setAddress] = useState(editing?.address ?? "");
+  const navigation = useNavigation();
+  const isSubmitting = navigation.state === "submitting";
+  const location = useLocation();
 
   useEffect(() => {
-    originalRef.current = editing ?? null;
     if (isEditing) {
       setName(editing?.name ?? "");
-      setCuit(
-        editing?.cuit
-          ? `${editing?.cuit.toString().slice(0, 2)}-${editing?.cuit
-              .toString()
-              .slice(2, 10)}-${editing?.cuit.toString().slice(10)}`
-          : ""
-      );
+      setCuit(formatCuit(editing?.cuit ?? null));
       setTelephone(editing?.telephone?.toString() ?? "");
       setEmail(editing?.email ?? "");
       setAddress(editing?.address ?? "");
-    } else {
+    }
+  }, [isEditing, editing]);
+
+  const p = new URLSearchParams(location.search);
+  const successFlags = ["created", "updated", "deactivated", "reactivated"];
+  const hasSuccess = successFlags.some((k) => p.get(k) === "1");
+
+  useEffect(() => {
+    if (hasSuccess && !isEditing) {
       setName("");
       setCuit("");
       setTelephone("");
       setEmail("");
       setAddress("");
     }
-  }, [isEditing, editing]);
+  }, [location.search, hasSuccess, isEditing]);
 
   const handleCuitChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const raw = e.target.value.replace(/\D/g, "");
     let formatted = raw;
-    if (raw.length > 2 && raw.length <= 10)
+    if (raw.length > 2 && raw.length <= 10) {
       formatted = `${raw.slice(0, 2)}-${raw.slice(2)}`;
+    }
     if (raw.length > 10) {
-      formatted = `${raw.slice(0, 2)}-${raw.slice(2, 10)}-${raw.slice(10)}`;
+      formatted = `${raw.slice(0, 2)}-${raw.slice(2, 10)}-${raw.slice(10, 11)}`;
     }
     setCuit(formatted);
   };
 
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    const formElement = event.currentTarget;
+    if (isEditing && editing) {
+      const trimmedName = (name || "").replace(/\s+/g, " ").trim();
+      const originalName = (editing.name || "").replace(/\s+/g, " ").trim();
+      const digits = cuit.replace(/\D/g, "");
+      const originalDigits = editing.cuit?.toString() ?? "";
+      const telephoneValue = (telephone || "").trim();
+      const originalTelephone = editing.telephone?.toString() ?? "";
+      const emailValue = (email || "").trim();
+      const originalEmail = editing.email ?? "";
+      const addressValue = (address || "").trim();
+      const originalAddress = editing.address ?? "";
 
-    if (!isEditing) {
-      const formData = new FormData(formElement);
-      fetcher.submit(formData, { method: "post", action: formAction });
-      return;
+      const hasChanges =
+        trimmedName !== originalName ||
+        digits !== originalDigits ||
+        telephoneValue !== originalTelephone ||
+        emailValue !== originalEmail ||
+        addressValue !== originalAddress;
+
+      if (!hasChanges) {
+        event.preventDefault();
+        onCancel?.();
+      }
     }
-
-    const original = originalRef.current;
-    if (!original) return;
-
-    const patch = new FormData();
-    const trimmedName = name.replace(/\s+/g, " ").trim();
-    const originalName = (original.name ?? "").replace(/\s+/g, " ").trim();
-    let hasChanges = false;
-
-    if (trimmedName !== originalName) {
-      patch.append("name", trimmedName);
-      hasChanges = true;
-    }
-
-    const digits = cuit.replace(/\D/g, "");
-    const originalDigits = original.cuit?.toString() ?? "";
-    if (digits !== originalDigits) {
-      patch.append("cuit", cuit);
-      hasChanges = true;
-    }
-
-    const telephoneValue = telephone;
-    const originalTelephone = original.telephone?.toString() ?? "";
-    if (telephoneValue !== originalTelephone) {
-      patch.append("telephone", telephoneValue);
-      hasChanges = true;
-    }
-
-    const emailValue = email.trim();
-    const originalEmail = original.email ?? "";
-    if (emailValue !== originalEmail) {
-      patch.append("email", emailValue);
-      hasChanges = true;
-    }
-
-    const addressValue = address.trim();
-    const originalAddress = original.address ?? "";
-    if (addressValue !== originalAddress) {
-      patch.append("address", addressValue);
-      hasChanges = true;
-    }
-
-    if (!hasChanges) {
-      return;
-    }
-
-    patch.append("_action", "update");
-    fetcher.submit(patch, { method: "post", action: formAction });
   };
 
   return (
-    <fetcher.Form
+    <Form
       method="post"
       action={formAction}
-      className="provider-form"
+      className="form provider-form"
       onSubmit={handleSubmit}
     >
-      <label htmlFor="name">Nombre *</label>
-      <input
-        id="name"
-        name="name"
-        type="text"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-        onBlur={(e) => setName(e.target.value.replace(/\s+/g, " ").trim())}
-        maxLength={80}
-        minLength={8}
-        required
-      />
+      <div className="form-input__div">
+        <div className="form-pill pill-name-provider">
+          <label htmlFor="name" className="form-pill__label label-name-provider">
+            Nombre *
+          </label>
+          <input
+            id="name"
+            name="name"
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            onBlur={(e) =>
+              setName((e.target.value ?? "").replace(/\s+/g, " ").trim())
+            }
+            maxLength={80}
+            minLength={8}
+            required
+            className="form-pill__input input-name-provider"
+          />
+        </div>
 
-      <label htmlFor="cuit">CUIT</label>
-      <input
-        id="cuit"
-        name="cuit"
-        value={cuit}
-        onChange={handleCuitChange}
-        maxLength={13}
-      />
-      <label htmlFor="telephone">Telefono</label>
-      <input
-        id="telephone"
-        name="telephone"
-        type="tel"
-        value={telephone}
-        onChange={(e) => setTelephone(e.target.value)}
-        pattern="\d{6,13}"
-      />
-      <label htmlFor="email">E-mail</label>
-      <input
-        id="email"
-        name="email"
-        type="email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-        pattern="^[a-zA-Z0-9._-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
-      />
-      <label htmlFor="address">Domicilio</label>
-      <input
-        id="address"
-        name="address"
-        value={address}
-        onChange={(e) => setAddress(e.target.value)}
-      />
+        <div className="form-pill pill-cuit-provider">
+          <label htmlFor="cuit" className="form-pill__label label-cuit-provider">
+            CUIT
+          </label>
+          <input
+            id="cuit"
+            name="cuit"
+            value={cuit}
+            onChange={handleCuitChange}
+            maxLength={13}
+            className="form-pill__input input-cuit-provider"
+          />
+        </div>
 
-      <input
-        type="hidden"
-        name="_action"
-        value={isEditing ? "update" : "create"}
-      />
-      <button type="submit" disabled={isSubmitting}>
-        {isSubmitting ? "Guardando..." : "Guardar"}
-      </button>
+        <div className="form-pill pill-telephone-provider">
+          <label
+            htmlFor="telephone"
+            className="form-pill__label label-telephone-provider"
+          >
+            Teléfono
+          </label>
+          <input
+            id="telephone"
+            name="telephone"
+            type="tel"
+            value={telephone}
+            onChange={(e) => setTelephone(e.target.value)}
+            pattern="\d{6,13}"
+            className="form-pill__input input-telephone-provider"
+          />
+        </div>
 
-      <p className="hint">(*) Campos obligatorios.</p>
-    </fetcher.Form>
+        <div className="form-pill pill-email-provider">
+          <label htmlFor="email" className="form-pill__label label-email-provider">
+            E-mail
+          </label>
+          <input
+            id="email"
+            name="email"
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="form-pill__input input-email-provider"
+          />
+        </div>
+
+        <div className="form-pill pill-address-provider">
+          <label
+            htmlFor="address"
+            className="form-pill__label label-address-provider"
+          >
+            Domicilio
+          </label>
+          <input
+            id="address"
+            name="address"
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            className="form-pill__input input-address-provider"
+          />
+        </div>
+
+        <input
+          type="hidden"
+          name="_action"
+          value={isEditing ? "update" : "create"}
+        />
+      </div>
+
+      {actionError && (
+        <div className="inline-error form-inline-error" role="alert">
+          {actionError}
+        </div>
+      )}
+
+      <div className="form-btns">
+        <p className="form-pill__hint">(*) Campos obligatorios.</p>
+        <div className="form-btns__div">
+          <button
+            type="button"
+            onClick={() => onCancel?.()}
+            className="secondary-btn form-btns__btn form-btns__btn-cancel"
+          >
+            Cancelar
+          </button>
+          <button
+            className="btn form-btns__btn form-btns__btn-save"
+            type="submit"
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <FaSpinner className="action-icon spinner" />
+            ) : (
+              "Guardar"
+            )}
+          </button>
+        </div>
+      </div>
+    </Form>
   );
 }

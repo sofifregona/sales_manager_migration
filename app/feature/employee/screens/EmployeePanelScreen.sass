@@ -1,0 +1,64 @@
+@use "sass:color"
+@use "../../../styles/tokens" as *
+
+.settings-panel__section.settings-panel__employee
+    width: 100%
+    overflow: hidden
+    min-width: 0
+
+.form-modal
+    width: 70%
+
+.employee-form
+    display: flex
+    flex-wrap: wrap
+    justify-content: space-between
+    .form-input__div
+        width: 100%
+        padding: 0
+        display: flex
+        flex-wrap: wrap
+        justify-content: space-between
+
+.pill-name-employee,
+.pill-dni-employee,
+.pill-telephone-employee,
+.pill-email-employee,
+.pill-address-employee
+    width: 48%
+
+.table-employee
+    table-layout: fixed
+    width: 100%
+
+    .table__item-td
+        max-width: 220px
+        white-space: nowrap
+        overflow: hidden
+        text-overflow: ellipsis
+
+    .th-name-employee, .td-name-employee
+        text-align: left
+        padding: 0.75rem 0rem 0.75rem 1.5rem
+        width: 20%
+
+    .th-dni-employee, .td-dni-employee
+        width: 12%
+        padding: 0.75rem 0rem
+
+    .th-telephone-employee, .td-telephone-employee,
+    .th-email-employee, .td-email-employee,
+    .th-address-employee, .td-address-employee
+        text-align: left
+        padding: 0.75rem .25rem
+
+    .th-active-employee, .td-active-employee
+        white-space: nowrap
+        text-align: center
+        width: 10%
+        padding: 0.75rem 0rem
+
+    .th-action-employee, .td-action-employee
+        width: 180px
+        text-align: center
+        padding: 0.75rem 1.5rem 0.75rem 0rem

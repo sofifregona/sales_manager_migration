@@ -17,12 +17,18 @@ export default function IncrementForm({
 
   return (
     <>
-      <incrementFetcher.Form id="incrementForm" method="post" action=".">
-        <label>
+      <incrementFetcher.Form
+        id="incrementForm"
+        className="form-incrementPrice"
+        method="post"
+        action="."
+      >
+        <label htmlFor="percent" className="label-incrementPrice">
           % a aumentar:
           <input
             form="incrementForm"
             name="percent"
+            className="input-incrementPrice"
             type="number"
             step={1}
             value={percent}
@@ -41,6 +47,7 @@ export default function IncrementForm({
           type="submit"
           form="incrementForm"
           name="intent"
+          className="btn incrementPrice-btn"
           value="increase"
           disabled={selectedIds.size === 0}
           onClick={(e) => {
@@ -60,6 +67,7 @@ export default function IncrementForm({
           Aumentar
         </button>
       </incrementFetcher.Form>
+
       {incrementFetcher.data?.error && (
         <p style={{ color: "red" }}>{incrementFetcher.data.error}</p>
       )}

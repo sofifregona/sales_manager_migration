@@ -18,7 +18,7 @@ export async function handleProductDeactivate({ url, formData }: Ctx) {
     const p = new URLSearchParams(url.search);
     ["id", "conflict", "code", "elementId", "message"].forEach((k) => p.delete(k));
     p.set("deactivated", "1");
-    return redirect(`/product?${p.toString()}`);
+    return redirect(`/settings/product?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

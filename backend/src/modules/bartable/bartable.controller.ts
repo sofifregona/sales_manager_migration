@@ -55,7 +55,8 @@ export const deactivateBartableHandler = async (
   next: NextFunction
 ) => {
   const id = parseInt(req.params.id, 10);
-
+  console.log("DENTRO DEL CONTROLLER");
+  console.log(id);
   try {
     const deactivated = await deactivateBartable(bartableRepo, id);
     res.status(200).json(deactivated);
@@ -102,7 +103,9 @@ export const getAllBartablesHandler = async (
   next: NextFunction
 ) => {
   try {
-    const includeInactive = ["1", "true"].includes(String(req.query.includeInactive));
+    const includeInactive = ["1", "true"].includes(
+      String(req.query.includeInactive)
+    );
     const bartables = await getAllBartables(bartableRepo, includeInactive);
     res.status(200).json(bartables);
   } catch (error) {

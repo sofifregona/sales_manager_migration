@@ -41,7 +41,6 @@ export function validateFilteredId(
 // VALIDACIONES GENÉRICAS
 export function validateRequired(
   value: unknown,
-  type: string,
   title: string
 ): ValidationError | null {
   if (
@@ -51,13 +50,6 @@ export function validateRequired(
   ) {
     return { error: `(Error) ${title} es obligatorio/a.`, source: "client" };
   }
-  if (type === "number") {
-    value = Number(value);
-  }
-  if (type === "boolean") {
-    value = Boolean(value);
-  }
-  validateType(value, type, title);
   return null;
 }
 
@@ -66,6 +58,12 @@ export function validateType(
   type: string,
   title: string
 ): ValidationError | null {
+  if (type === "number" && typeof value !== "boolean") {
+    value = Number(value);
+  }
+  if (type === "boolean") {
+    value = Boolean(value);
+  }
   if (typeof value !== type) {
     return { error: `(Error) ${title}: Formato inválido.`, source: "client" };
   }
@@ -79,7 +77,7 @@ export function validateNumber(
 ): ValidationError | null {
   if (Number.isNaN(value)) {
     return {
-      error: `(Error) ${title}: Número inválido.`,
+      error: `(Error) ${title}: Formato inválido.`,
       source: "client",
     };
   }
@@ -90,7 +88,6 @@ export function validateIsInteger(
   value: number,
   title: string
 ): ValidationError | null {
-  validateNumber(value, title);
   if (!Number.isInteger(value)) {
     return {
       error: `(Error) ${title}: El número debe ser entero.`,
@@ -104,7 +101,6 @@ export function validateIsPositive(
   value: number,
   title: string
 ): ValidationError | null {
-  validateNumber(value, title);
   if (value < 0) {
     return {
       error: `(Error) ${title}: El número debe ser mayor o igual a 0.`,
@@ -114,8 +110,27 @@ export function validateIsPositive(
   return null;
 }
 
+export function validateRequiredAndType(
+  value: unknown,
+  type: string,
+  title: string
+) {
+  return runValidations(
+    validateRequired(value, title),
+    validateType(value, type, title)
+  );
+}
+
+export function validatePositiveNumber(num: number, title: string) {
+  return runValidations(
+    validateNumber(num, title),
+    validateIsPositive(num, title)
+  );
+}
+
 export function validatePositiveInteger(num: number, title: string) {
   return runValidations(
+    validateNumber(num, title),
     validateIsPositive(num, title),
     validateIsInteger(num, title)
   );

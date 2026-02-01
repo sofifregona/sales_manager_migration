@@ -3,7 +3,6 @@ import { ActionPrompt } from "~/shared/ui/prompts/ActionPrompt";
 
 type Args = {
   conflict: any;
-  isUpdate: boolean;
   inactiveId?: number;
   currentId?: number;
   busy: boolean;
@@ -25,7 +24,6 @@ export function makeRenderSwapOverlay(config: OverlayConfig) {
   const { inUseCode, buildMessage, actions } = config;
   return function render({
     conflict,
-    isUpdate,
     inactiveId,
     currentId,
     busy,
@@ -34,7 +32,6 @@ export function makeRenderSwapOverlay(config: OverlayConfig) {
   }: Args): React.ReactNode | null {
     const code = String(conflict?.code || "").toUpperCase();
     if (
-      isUpdate &&
       code === inUseCode.toUpperCase() &&
       typeof currentId === "number" &&
       typeof inactiveId === "number"
@@ -58,7 +55,6 @@ export function makeRenderSwapOverlay(config: OverlayConfig) {
         <ActionPrompt
           open
           message={message}
-          onClose={onDismiss}
           actions={[{ label: "Cancelar", onClick: onDismiss }, ...builtActions]}
           busy={busy}
         />

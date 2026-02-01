@@ -1,0 +1,44 @@
+@use "sass:color"
+@use "../../../styles/tokens" as *
+
+.settings-menu
+  background-color: $color-dark-secondary
+  padding: 1.5rem 1rem 1rem 1rem
+  width: 17%
+  border-radius: 0
+  display: flex
+  flex-direction: column
+  min-height: 100%
+  align-self: stretch
+
+  &__title
+    font-size: 1.25rem
+    padding-top: 0
+    padding-bottom: 0
+    text-align: center
+
+  &__subtitle
+    font-size: 1.25rem
+    align-content: center
+
+  &__list
+    padding-top: 1rem
+    display: flex
+    flex-direction: column
+    gap: .75rem
+
+  &__item
+    display: block
+    padding: 0.5rem 1rem
+    border-radius: $radius-base
+    font-weight: 500
+    text-decoration: none
+    color: $color-light
+    font-size: .9rem
+    transition: background-color 150ms ease
+    &:hover
+      background-color: $color-primary
+      color: $color-light
+    &:active, &--selected
+      background-color: color.mix($color-primary, $color-dark-tertiary, 30%)
+      color: $color-primary

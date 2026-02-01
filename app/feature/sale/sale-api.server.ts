@@ -4,7 +4,7 @@ import type {
   UpdateSalePayload,
   TotalSalesDTO,
   GroupedSaleDTO,
-  CloseSalePayload,
+  PaySalePayload,
 } from "~/feature/sale/types/sale";
 import { API_BASE_URL } from "~/config/api";
 import { ENDPOINTS } from "~/config/endpoints";
@@ -37,8 +37,8 @@ export async function updateSale(data: UpdateSalePayload) {
   });
 }
 
-export async function closeSale(data: CloseSalePayload) {
-  const { id, idPayment } = data;
+export async function paySale(data: PaySalePayload) {
+  const { id, idPaymentMethod } = data;
   return await fetchJson<SaleDTO>(
     `${API_BASE_URL}/${ENDPOINTS.sale}/${id}/close`,
     {
@@ -47,7 +47,7 @@ export async function closeSale(data: CloseSalePayload) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        idPayment,
+        idPaymentMethod,
       }),
     }
   );

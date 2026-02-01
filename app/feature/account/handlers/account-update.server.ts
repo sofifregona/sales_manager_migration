@@ -6,16 +6,16 @@ import { parseAppError } from "~/utils/errors/parseAppError";
 import { makeConflictCookie } from "~/services/conflictCookie";
 import {
   validateRequiredId,
-  validateRequired,
   validateType,
   validateRangeLength,
+  validateRequiredAndType,
 } from "~/utils/validation/validationHelpers";
 
 type Ctx = { url: URL; formData: FormData };
 
 export async function handleUpdateAccount({ url, formData }: Ctx) {
   const nameParam = formData.get("name");
-  const nameParamError = validateRequired(nameParam, "string", "Nombre");
+  const nameParamError = validateRequiredAndType(nameParam, "string", "Nombre");
   if (nameParamError) return jsonResponse(422, nameParamError);
   const name = (nameParam as string).replace(/\s+/g, " ").trim();
   const nameLengthError = validateRangeLength(name, 5, 80, "Nombre");
@@ -42,7 +42,7 @@ export async function handleUpdateAccount({ url, formData }: Ctx) {
     const p = new URLSearchParams(url.search);
     p.delete("id");
     p.set("updated", "1");
-    return redirect(`/account?${p.toString()}`);
+    return redirect(`/settings/account?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,
@@ -66,7 +66,12 @@ export async function handleUpdateAccount({ url, formData }: Ctx) {
           "Set-Cookie",
           makeConflictCookie({ scope: "account", name, description: desc })
         );
-        return redirect(`/account?${p.toString()}` as any, { headers } as any);
+        return redirect(
+          `/settings/account?${p.toString()}` as any,
+          {
+            headers,
+          } as any
+        );
       } else {
         return jsonResponse(409, {
           error: parsed.message,

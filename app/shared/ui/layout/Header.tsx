@@ -64,7 +64,7 @@ export function Header() {
         >
           <span className="material-symbols-outlined">notifications</span>
         </button>
-        <NavLink to="/settings" className="app-header__settings">
+        <NavLink to="/settings/product" className="app-header__settings">
           <span className="material-symbols-outlined">settings</span>
           <span className="app-header__settings-label">Configuración</span>
         </NavLink>

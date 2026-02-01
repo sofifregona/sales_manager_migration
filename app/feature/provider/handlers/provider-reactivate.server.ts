@@ -16,7 +16,7 @@ export async function handleProviderReactivate({ url, formData }: Ctx) {
     await reactivateProvider(idNum);
     const p = new URLSearchParams(url.search);
     p.set("reactivated", "1");
-    return redirect(`/provider?${p.toString()}`);
+    return redirect(`/settings/provider?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

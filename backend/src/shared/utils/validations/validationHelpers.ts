@@ -1,14 +1,48 @@
 import { AppError } from "../../errors/AppError.js";
 
 // VALIDACIONES DE ID
+export function validateRequiredId(id: number, title: string) {
+  if (typeof id !== "number") {
+    throw new AppError(`(Error) ${title}: ID requerido.`, 400);
+  }
+  validateNumberID(id, title);
+  return null;
+}
+
 export function validateNumberID(id: number, title: string) {
   if (Number.isNaN(id) || !Number.isInteger(id) || id <= 0) {
     throw new AppError(`(Error) ${title}: ID inválido.`, 400);
   }
 }
 
+export function validateRequiredAndType(
+  value: unknown,
+  type: string,
+  title: string
+) {
+  if (
+    value === null ||
+    value === undefined ||
+    (typeof value === "string" && value.trim() === "")
+  ) {
+    throw new AppError(`(Error) ${title} es obligatorio/a.`, 400);
+  }
+  validateType(value, type, title);
+}
+
+export function validateType(value: unknown, type: string, title: string) {
+  console.log(value, type, typeof value !== type);
+  if (typeof value !== type) {
+    console.log("DENTRO DEL ERROR");
+    throw new AppError(`(Error) ${title}: Formato inválido.`, 400);
+  }
+}
+
 // VALIDACIONES NUMÉRICAS
 export function validateNumber(value: number, title: string) {
+  console.log("DENTRO DEL VALIDATE NUMBER");
+  console.log(value);
+  console.log(Number.isNaN(value));
   if (Number.isNaN(value)) {
     throw new AppError(
       `(Error) ${title}: Debe ingresar un número válido.`,

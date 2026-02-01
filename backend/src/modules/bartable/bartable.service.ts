@@ -4,6 +4,8 @@ import { AppError } from "@back/src/shared/errors/AppError.js";
 import {
   validateNumberID,
   validatePositiveInteger,
+  validateRequiredAndType,
+  validateRequiredId,
 } from "@back/src/shared/utils/validations/validationHelpers.js";
 import { makeSaleRepository } from "../sale/sale.repo.typeorm.js";
 import { AppDataSource } from "@back/src/shared/database/data-source.js";
@@ -17,6 +19,9 @@ export const createBartable = async (
 ) => {
   const { number } = data;
 
+  console.log("ESTOY EN EL SERVICE (:");
+
+  validateRequiredAndType(number, "number", "Número");
   validatePositiveInteger(number, "Número");
 
   // Validations for repeting bartables
@@ -59,12 +64,18 @@ export const updateBartable = async (
   }
 ) => {
   const { id, number } = updatedData;
-  validateNumberID(id, "Mesa");
+
+  validateRequiredId(id, "Mesa");
 
   const existing = await repo.findActiveById(id);
   if (!existing) throw new AppError("(Error) Mesa no encontrada", 404);
 
+  if (existing.active === false) {
+    throw new AppError("(Error) No se puede modifiar una mesa inactiva.", 400);
+  }
+
   const patch: Partial<Bartable> = {};
+  validateRequiredAndType(number, "number", "Número");
 
   if (number !== undefined) {
     validatePositiveInteger(number, "Número");
@@ -102,17 +113,25 @@ export const deactivateBartable = async (
   repo: BartableRepository,
   id: number
 ) => {
+  console.log("DENTRO DEL SERVICE");
   validateNumberID(id, "Mesa");
 
   const existing = await repo.findActiveById(id);
+  console.log("MESA EXISTENTE ACTIVA");
+  console.log(existing);
   if (!existing) throw new AppError("(Error) Mesa no encontrada.", 404);
   const openSale = await getOpenSaleByBartableId(saleRepo, id);
+  console.log("VENTA ABIERTA");
+  console.log(openSale);
   if (openSale) {
+    console.log("DENTRO DEL ERROR DEL SERVICE");
     throw new AppError(
       "(Error) No se puede eliminar una mesa que tenga una venta activa.",
-      404
+      409,
+      "BARTABLE_IN_USE"
     );
   }
+  console.log("FLUJO OK EN EL SERVICE");
   await repo.deactivate(id);
 };
 
@@ -170,7 +189,7 @@ export const reactivateBartableSwap = async (
   if (openSale) {
     throw new AppError(
       "(Error) No se puede eliminar una mesa que tenga una venta activa.",
-      404
+      409
     );
   }
 

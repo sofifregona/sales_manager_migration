@@ -1,107 +1,143 @@
 ﻿@use "sass:color"
 @use "../../../styles/tokens" as *
 
-.open-sale-panel
+.open-sale
     display: flex
     flex-wrap: wrap
     width: 100%
-    padding-top: .5rem
     justify-content: space-between
-
-.added-products-panel
-    width: 28%
-    display: flex
-    flex-wrap: wrap
-    background-color: $color-dark-secondary
-    padding: 1.5rem 1rem
-    border-radius: $radius-containers
+    padding-top: .5rem
+    &__added
+        width: 28%
+        display: flex
+        flex-wrap: wrap
+        flex-direction: column
+        background-color: $color-dark-secondary
+        padding: 1.5rem
+        border-radius: $radius-containers
+        height: 80vh
+        min-height: 0
+    &__search
+        width: 68%
+    &__payment
+        height: 120px
+        display: flex
+        flex-wrap: wrap
+        justify-content: space-between
 
 .added-products
     width: 100%
+    display: flex
+    flex-direction: column
+    justify-content: space-between
+    flex: 1 1 auto
+    min-height: 0
+    padding: 1rem 0rem
     &__title
         font-size: 1.25rem
-
-.added-products-table
-    width: 100%
-    margin: 1.5rem 0rem 5rem 0rem
-    border-collapse: collapse
-    &__header-row
         width: 100%
-    &__header
-        font-weight: 500 // font-medium
-        padding-bottom: 0.5rem
-        color: #71717a
-        &--left
-            text-align: left
-            width: 50%
-        &--center
-            text-align: center
-            width: 30%
-        &--right
-            text-align: right
-            width: 20%
-
-    &__row
+        height: fit-content
+    &__list-wrapper
+        overflow-y: auto
+        scrollbar-gutter: stable
+        padding-right: .5rem
+        margin-right: -1.5rem
+        min-height: 0
+        flex: 1 1 auto
+        min-height: 0
+    &__list-item
+        width: 100%
+        display: flex
+        flex-wrap: wrap
         border-bottom: 1px solid $color-dark-tertiary
-
-    &__cell
-        padding-top: 0.75rem // py-3
-        padding-bottom: 0.75rem
-        &--left
-            text-align: left
-            width: 50%
+        justify-content: space-between
+        align-items: baseline
+        padding: .5rem 0rem
+        gap: .4rem
+        &:last-child
+            border-bottom: none
+    &__name
+        width: 100%
+        font-size: .9rem
+        font-family: $font-base
+        white-space: nowrap
+        overflow: hidden
+        text-overflow: ellipsis
+    &__subtotal
+        width: fit-content
+        margin: 0
+        color: #71717a
+        font-size: .9rem
+    &__form
+        width: 70px
+        margin: 0
+        display: inline-flex
+        justify-content: space-between
+        align-items: center
+        gap: 0.5rem
+    &__quantity
+        font-size: .9rem
+    &__btn
+        width: 1.15rem // w-6
+        height: 1.15rem // h-6
+        border-radius: $radius-full
+        border: none
+        background-color: color.mix($color-primary, $color-dark-tertiary, 65%)
+        color: $color-dark-secondary
+        cursor: pointer
+        transition: background-color 150ms ease // transition-colors
+        padding: 0
+        display: flex
+        align-items: center // centra verticalmente
+        justify-content: center
+        &:hover
+            background-color: $color-primary
+        &-icon
+            width: .65rem
+    &__total
+        border-top: 1px solid $color-dark-tertiary
+        border-bottom: 1px solid $color-dark-tertiary
+        padding: .75rem 0rem
+        display: flex
+        flex-wrap: nowrap
+        justify-content: space-between
+        width: 100%
+        &-span
+            color: $color-primary
             font-weight: 500
-            color: $color-light
-        &--center
-            text-align: center
-            width: 30%
-        &--right
-            text-align: right
-            width: 20%
 
-.added-products-fetcher
-    display: inline-flex
-    align-items: center
-    gap: 0.5rem
-
-.added-btn
-    width: 1.25rem // w-6
-    height: 1.25rem // h-6
-    border-radius: $radius-full
-    border: none
-    background-color: $color-dark-tertiary
-    cursor: pointer
-    transition: background-color 150ms ease // transition-colors
-    padding: 0
-    display: flex
-    align-items: center // centra verticalmente
-    justify-content: center
-
-    &:hover
-        background-color: #71717a
-
-    &__icon
-        width: .65rem
-
-.search-product-panel
-    width: 68%
+.open-sale__payment
+    width: 100%
+    &-title
+        font-size: 1rem
+        padding: 0
+    &-select
+        width: 100%
+        padding: 0.5rem 1rem
+        margin: .75rem 0rem
+        border: none
+        border-radius: 0.5rem
+        font-weight: 600
+        background-color: $color-dark-tertiary
+    .btn, .secondary-btn
+        width: 48%
+        margin: .25rem 0rem
+        padding: 0.5rem 1rem // py-2 px-4
+        margin: 0
 
 .filter-products
     display: flex
     flex-wrap: wrap
-
     &__title
         width: 100%
         padding-top: 1.5rem
         font-size: 1.25rem
-
     &__fields
         width: 100%
         display: flex
         flex-wrap: wrap
         justify-content: space-between
         padding-top: 1.5rem
-
     &__input
         width: 48%
         border: none // border-none
@@ -110,10 +146,8 @@
         padding: 0.75rem 1rem
         color: #71717a
         font: inherit
-
         &::placeholder
             color: #71717a // placeholder-zinc-500
-
         &:focus
             outline: none
             box-shadow: 0 0 0 2px #71717a // focus:ring-2 focus:ring-primary
@@ -123,108 +157,81 @@
     flex-wrap: nowrap
     justify-content: space-between
     padding-top: 1.5rem
+    min-height: 0
     &__title
         padding-bottom: 1rem
-
-.search-list-category
-    width: 23%
-    &__ul
+    &__category
+        width: 23%
+        &-ul
+            display: flex
+            flex-direction: column
+            gap: 0.5rem
+        &-item
+            display: block // block
+            padding: 0.5rem 1rem // py-2 px-4
+            border-radius: $radius-base
+            font-weight: 600 // font-semibold
+            text-decoration: none
+            color: $color-light
+            transition: background-color 150ms ease // transition-colors
+            &:hover
+                background-color: $color-primary // hover:bg-zinc-200
+                color: $color-light
+            &--selected
+                background-color: color.mix($color-primary, $color-dark-primary, 30%)
+                color: $color-primary
+    &__product
+        width: 73%
         display: flex
         flex-direction: column
-        gap: 0.5rem
-
-.category
-    display: block // block
-    padding: 0.5rem 1rem // py-2 px-4
-    border-radius: $radius-base
-    font-weight: 600 // font-semibold
-    text-decoration: none
-    color: $color-light
-    transition: background-color 150ms ease // transition-colors
-    &:hover
-        background-color: $color-primary // hover:bg-zinc-200
-        color: $color-light
-    &:active, &--selected
-        background-color: color.mix($color-primary, $color-dark-tertiary, 30%)
-        color: $color-primary
-
-.search-list-product
-    width: 73%
-    &__ul
-        display: flex
-        flex-wrap: wrap
-        justify-content: start
-        gap: 2%
-
-.product
-    &__item
-        width: 23.5%
-
-    &__btn
-        display: flex
-        flex-wrap: nowrap
-        flex-direction: column
-        justify-content: space-between
-        width: 100%
-        height: 230px
-        background-color: $color-dark-secondary
-        padding: .75rem
-        border-radius: $radius-base
-    &__img
-        width: 100%
-        height: 130px
-        aspect-ratio: 1 / 1
-        object-fit: cover // recorta manteniendo proporción
-        display: block
-        border-radius: $radius-base
-    &__name
-        padding: 0
-        margin: 0
-        width: 100%
-        text-align: left
-        font-weight: 500
-        color: $color-light
-    &__info
-        display: flex
-        justify-content: space-between
-        width: 100%
-    &__price
-        display: inline
-        align-content: left
-        font-weight: 500
-        color: $color-primary
-    &__code
-        display: inline
-        text-align: right
-        font-weight: 400
+        min-height: 0
+        &-wrapper
+            flex: 1 1 auto
+            min-height: 0
+            overflow-y: auto
+        &-ul
+            display: flex
+            flex-wrap: wrap
+            justify-content: start
+            gap: 2%
+        &-item
+            width: 23.5%
+        &-btn
+            display: flex
+            flex-wrap: nowrap
+            flex-direction: column
+            justify-content: space-between
+            width: 100%
+            height: 230px
+            background-color: $color-dark-secondary
+            padding: .75rem
+            border-radius: $radius-base
+        &-img
+            width: 100%
+            height: 130px
+            aspect-ratio: 1 / 1
+            object-fit: cover // recorta manteniendo proporción
+            display: block
+            border-radius: $radius-base
+        &-name
+            padding: 0
+            margin: 0
+            width: 100%
+            text-align: left
+            font-weight: 500
+            color: $color-light
+        &-info
+            display: flex
+            justify-content: space-between
+            width: 100%
+        &-price
+            display: inline
+            align-content: left
+            font-weight: 500
+            color: $color-primary
+        &-code
+            display: inline
+            text-align: right
+            font-weight: 400
+    &__empty
         color: #71717a
-
-.added-products-total
-    border-top: 1px solid $color-dark-tertiary
-    border-bottom: 1px solid $color-dark-tertiary
-    padding: .75rem 0rem
-    &__span
-        width: 100%
-        color: $color-primary
-        font-weight: 500
-        text-align: right
-
-.payment
-    width: 100%
-    &__title
-        font-size: 1.25rem
-        padding: .75rem 0rem
-    &__select
-        width: 100%
-        padding: 0.75rem 1rem
-        margin: .75rem 0rem
-        border: none
-        border-radius: 0.5rem
-        font-weight: 600
-        background-color: $color-dark-tertiary
-    &__btn
-        width: 100%
-        background-color: $color-primary
-        margin: .25rem 0rem
-        padding: 0.5rem 1rem // py-2 px-4
-        border-radius: $radius-base

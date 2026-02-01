@@ -5,6 +5,7 @@ import { jsonResponse } from "~/lib/http/jsonResponse";
 import { parseAppError } from "~/utils/errors/parseAppError";
 import {
   validateRequired,
+  validateRequiredAndType,
   validateRequiredId,
   validateType,
 } from "~/utils/validation/validationHelpers";
@@ -27,7 +28,11 @@ export async function handleProviderUpdate({ url, formData }: Ctx) {
 
   if (formData.has("name")) {
     const nameParam = formData.get("name");
-    const nameParamError = validateRequired(nameParam, "string", "Nombre");
+    const nameParamError = validateRequiredAndType(
+      nameParam,
+      "string",
+      "Nombre",
+    );
     if (nameParamError) return jsonResponse(422, nameParamError);
     payload.name = (nameParam as string).trim();
     hasChanges = true;
@@ -92,18 +97,18 @@ export async function handleProviderUpdate({ url, formData }: Ctx) {
   if (!hasChanges) {
     const params = new URLSearchParams(url.search);
     params.set("updated", "1");
-    return redirect(`/provider?${params.toString()}`);
+    return redirect(`/settings/provider?${params.toString()}`);
   }
 
   try {
     await updateProvider(payload);
     const p = new URLSearchParams(url.search);
     p.set("updated", "1");
-    return redirect(`/provider?${p.toString()}`);
+    return redirect(`/settings/provider?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,
-      "(Error) No se pudo modificar el proveedor seleccionado."
+      "(Error) No se pudo modificar el proveedor seleccionado.",
     );
     return jsonResponse(parsed.status ?? 500, {
       error: parsed.message,

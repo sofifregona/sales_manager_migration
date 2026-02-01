@@ -1,7 +1,7 @@
 ﻿import { redirect, type ActionFunctionArgs } from "react-router-dom";
-import { closeSale, updateSale } from "~/feature/sale/sale-api.server";
+import { paySale, updateSale } from "~/feature/sale/sale-api.server";
 import type {
-  CloseSalePayload,
+  PaySalePayload,
   UpdateSalePayload,
 } from "~/feature/sale/types/sale";
 import { jsonResponse } from "~/lib/http/jsonResponse";
@@ -11,6 +11,7 @@ import {
   validateRequiredId,
   validatePositiveInteger,
   validateRequired,
+  validateRequiredAndType,
 } from "~/utils/validation/validationHelpers";
 import { runWithRequest } from "~/lib/http/requestContext.server";
 import { parseCRUDIntent } from "~/utils/validation/intents";
@@ -36,8 +37,8 @@ export async function updateSaleAction({
     switch (parsedIntent.intent) {
       case "update":
         return handleProductUpdate(id, formData);
-      case "close":
-        return handleCloseSale(id, formData);
+      case "pay":
+        return handlePaySale(id, formData);
       default:
         return jsonResponse(400, {
           error: "(Error) Acción no soportada para ventas.",
@@ -49,7 +50,11 @@ export async function updateSaleAction({
 
 async function handleProductUpdate(id: number, formData: FormData) {
   const idProductStr = formData.get("idProduct");
-  const idProductStrError = validateRequired(idProductStr, "string", "Producto");
+  const idProductStrError = validateRequiredAndType(
+    idProductStr,
+    "string",
+    "Producto"
+  );
   if (idProductStrError) {
     return jsonResponse(422, idProductStrError);
   }
@@ -61,7 +66,7 @@ async function handleProductUpdate(id: number, formData: FormData) {
   }
 
   const opStr = formData.get("op");
-  const opStrError = validateRequired(opStr, "string", "Operación");
+  const opStrError = validateRequiredAndType(opStr, "string", "Operación");
   if (opStrError) {
     return jsonResponse(422, opStrError);
   }
@@ -94,32 +99,29 @@ async function handleProductUpdate(id: number, formData: FormData) {
   }
 }
 
-async function handleCloseSale(id: number, formData: FormData) {
-  const idPaymentStr = formData.get("idPayment");
-  const idPaymentStrError = validateRequired(
-    idPaymentStr,
+async function handlePaySale(id: number, formData: FormData) {
+  const idPaymentMethodStr = formData.get("idPayment");
+  const idPaymentMethodStrError = validateRequiredAndType(
+    idPaymentMethodStr,
     "string",
     "Método de pago"
   );
-  if (idPaymentStrError) return jsonResponse(422, idPaymentStrError);
+  if (idPaymentMethodStrError)
+    return jsonResponse(422, idPaymentMethodStrError);
 
-  const idPayment = Number(idPaymentStr);
-  const idPaymentError = validatePositiveInteger(
-    idPayment,
+  const idPaymentMethod = Number(idPaymentMethodStr);
+  const idPaymentMethodError = validatePositiveInteger(
+    idPaymentMethod,
     "Método de pago"
   );
-  if (idPaymentError) return jsonResponse(422, idPaymentError);
-
-  const data: CloseSalePayload = { id, idPayment };
+  if (idPaymentMethodError) return jsonResponse(422, idPaymentMethodError);
+  const data: PaySalePayload = { id, idPaymentMethod };
 
   try {
-    await closeSale(data);
+    await paySale(data);
     return redirect("/sale/order");
   } catch (error) {
-    const parsed = parseAppError(
-      error,
-      "(Error) No se pudo cerrar la venta."
-    );
+    const parsed = parseAppError(error, "(Error) No se pudo cerrar la venta.");
     return jsonResponse(parsed.status ?? 500, {
       error: parsed.message,
       source: parsed.source ?? "server",

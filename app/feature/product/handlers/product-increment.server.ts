@@ -10,6 +10,7 @@ import {
   validatePositiveInteger,
   validateRangeLength,
   validateRequired,
+  validateRequiredAndType,
   validateRequiredId,
   validateType,
 } from "~/utils/validation/validationHelpers";
@@ -44,7 +45,11 @@ export async function handleProductIncrement({ url, formData }: Ctx) {
 
   // Validations for price (input)
   const percentStr = formData.get("percent");
-  const percentStrError = validateRequired(percentStr, "string", "Porcentaje");
+  const percentStrError = validateRequiredAndType(
+    percentStr,
+    "string",
+    "Porcentaje"
+  );
   if (percentStrError) {
     return jsonResponse(422, percentStrError);
   }
@@ -65,9 +70,11 @@ export async function handleProductIncrement({ url, formData }: Ctx) {
 
     const p = new URLSearchParams(url.search);
     // Limpiar claves efímeras de conflicto/edición y selección
-    ["id", "ids", "conflict", "code", "elementId", "message"].forEach((k) => p.delete(k));
+    ["id", "ids", "conflict", "code", "elementId", "message"].forEach((k) =>
+      p.delete(k)
+    );
     p.set("incremented", "1");
-    return redirect(`/product?${p.toString()}`);
+    return redirect(`/settings/product?${p.toString()}`);
   } catch (error) {
     const parsed = parseAppError(
       error,

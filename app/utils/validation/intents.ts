@@ -3,6 +3,7 @@ import { jsonResponse } from "~/lib/http/jsonResponse";
 export const CRUD_INTENTS = [
   "create",
   "update",
+  "pay",
   "delete",
   "deactivate",
   "reactivate",

@@ -59,6 +59,10 @@ export function BrandTable({ brands, editingId }: Props) {
       return;
     }
     const data = deactivateFetcher.data as any;
+    console.log("[BrandTable] deactivateFetcher idle", {
+      data,
+      lastAttemptedDeactivateId,
+    });
     if (
       data &&
       data.code === "BRAND_IN_USE" &&
@@ -75,6 +79,17 @@ export function BrandTable({ brands, editingId }: Props) {
     lastAttemptedDeactivateId,
   ]);
 
+  useEffect(() => {
+    if (reactivateFetcher.state !== "idle") return;
+    const data = reactivateFetcher.data as any;
+    console.log("[BrandTable] reactivateFetcher idle", { data });
+    if (!data || !data.code) {
+      setCascadeBrandId(null);
+      setLastAttemptedDeactivateId(null);
+      setPendingDeactivateId(null);
+    }
+  }, [reactivateFetcher.data, reactivateFetcher.state]);
+
   const {
     sortedItems: sortedBrands,
     sortBy,
@@ -83,31 +98,19 @@ export function BrandTable({ brands, editingId }: Props) {
 
   return (
     <>
-      <div className="table-section">
-        <h2 className="settings-panel__subtitle">Lista de marcas</h2>
-        <Link
-          replace
-          to={toggleIncludeHref}
-          className={
-            includeInactive
-              ? "inactive-btn inactive-btn--active"
-              : "inactive-btn"
-          }
-        >
-          {includeInactive ? "Ocultar inactivas" : "Ver inactivas"}
-        </Link>
-
+      <div className="table-section table-section-brand">
         {sortedBrands.length === 0 ? (
           <p className="table__empty-msg">No hay marcas para mostrar.</p>
         ) : (
           <div className="table-wrapper">
-            <table className="table">
+            <table className="table table-brand">
               <thead className="table__head">
                 <tr className="table__head-tr">
                   <SortToggle
                     currentSort={sortBy}
                     currentDir={sortDir}
                     name="normalizedName"
+                    className="name-brand"
                     label="Nombre"
                   />
                   {includeInactive && (
@@ -115,10 +118,13 @@ export function BrandTable({ brands, editingId }: Props) {
                       currentSort={sortBy}
                       currentDir={sortDir}
                       name="active"
+                      className="active-brand"
                       label="Estado"
                     />
                   )}
-                  <th className="table__head-th action-th">Acciones</th>
+                  <th className="table__head-th th-action th-action-brand">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody className="table__body">
@@ -131,15 +137,19 @@ export function BrandTable({ brands, editingId }: Props) {
                         : "table__item-tr"
                     }
                   >
-                    <td className="table__item-td brand-name-td">
+                    <td className="table__item-td td-name-brand">
                       {brand.name}
                     </td>
                     {includeInactive && (
-                      <td className="table__item-td active-td brand-active-td">
-                        {brand.active ? "Activa" : "Inactiva"}
+                      <td className="table__item-td td-active-brand">
+                        {brand.active ? (
+                          <p className="status status--active">Activa</p>
+                        ) : (
+                          <p className="status status--inactive">Inactiva</p>
+                        )}
                       </td>
                     )}
-                    <td className="table__item-td action-td brand-action-td">
+                    <td className="table__item-td td-action">
                       {brand.active ? (
                         <>
                           <Link
@@ -183,12 +193,14 @@ export function BrandTable({ brands, editingId }: Props) {
                                   entityLabel="marca"
                                   dependentLabel="Producto"
                                   count={Number(data.details.count) || 0}
+                                  strategyClear="clear-products-brand"
                                   strategyProceed="cascade-deactivate-products"
+                                  clearLabel="Eliminar y desvincular productos"
+                                  proceedLabel="Desactivar marca y productos"
                                   onCancel={() => {
                                     setCascadeBrandId(null);
                                     setLastAttemptedDeactivateId(null);
                                   }}
-                                  proceedLabel="Aceptar"
                                 />
                               );
                             }

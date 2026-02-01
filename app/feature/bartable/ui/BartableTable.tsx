@@ -12,6 +12,7 @@ import {
 } from "~/shared/hooks/useQuerySorting";
 import { SortToggle } from "~/shared/ui/form/SortToggle";
 import { ConfirmPrompt } from "~/shared/ui/prompts/ConfirmPrompt";
+import { ActionPrompt } from "~/shared/ui/prompts/ActionPrompt";
 import { FaSpinner } from "react-icons/fa";
 
 type Props = {
@@ -36,11 +37,12 @@ export function BartableTable({ bartables, editingId }: Props) {
   const [pendingDeactivateId, setPendingDeactivateId] = useState<number | null>(
     null
   );
+  const [lastAttemptedDeactivateId, setLastAttemptedDeactivateId] = useState<
+    number | null
+  >(null);
   const [pendingReactivateId, setPendingReactivateId] = useState<number | null>(
     null
   );
-
-  const [lastDeactivateId, setLastDeactivateId] = useState<number | null>(null);
 
   const [params] = useSearchParams();
   const includeInactive = params.get("includeInactive") === "1";
@@ -58,33 +60,38 @@ export function BartableTable({ bartables, editingId }: Props) {
     sortDir,
   } = useQuerySorting(bartables, BARTABLE_SORT_CONFIG);
 
+  useEffect(() => {
+    if (deactivateFetcher.state !== "idle") return;
+    const data = deactivateFetcher.data as any;
+    if (!data) {
+      setPendingDeactivateId(null);
+      setLastAttemptedDeactivateId(null);
+      return;
+    }
+    if (data.code === "BARTABLE_IN_USE") {
+      // mantenemos lastAttempted para mostrar el aviso, pero liberamos el pending
+      setPendingDeactivateId(null);
+      return;
+    }
+    setPendingDeactivateId(null);
+    setLastAttemptedDeactivateId(null);
+  }, [deactivateFetcher.data, deactivateFetcher.state]);
+
   return (
     <>
-      <div className="table-section">
-        <h2 className="settings-panel__subtitle">Lista de mesas</h2>
-        <Link
-          replace
-          to={toggleIncludeHref}
-          className={
-            includeInactive
-              ? "inactive-btn inactive-btn--active"
-              : "inactive-btn"
-          }
-        >
-          {includeInactive ? "Ocultar inactivas" : "Ver inactivas"}
-        </Link>
-
+      <div className="table-section table-section-bartable">
         {sortedBartables.length === 0 ? (
           <p className="table__empty-msg">No hay mesas para mostrar.</p>
         ) : (
           <div className="table-wrapper">
-            <table className="table">
+            <table className="table table-bartable">
               <thead className="table__head">
                 <tr className="table__head-tr">
                   <SortToggle
                     currentSort={sortBy}
                     currentDir={sortDir}
                     name="number"
+                    className="number-bartable"
                     label="Número"
                   />
                   {includeInactive && (
@@ -92,10 +99,13 @@ export function BartableTable({ bartables, editingId }: Props) {
                       currentSort={sortBy}
                       currentDir={sortDir}
                       name="active"
+                      className="active-bartable"
                       label="Estado"
                     />
                   )}
-                  <th className="table__head-th action-th">Acciones</th>
+                  <th className="table__head-th th-action th-action-bartable">
+                    Acciones
+                  </th>
                 </tr>
               </thead>
               <tbody className="table__body">
@@ -108,15 +118,19 @@ export function BartableTable({ bartables, editingId }: Props) {
                         : "table__item-tr"
                     }
                   >
-                    <td className="table__item-td bartable-number-td">
+                    <td className="table__item-td td-number-bartable">
                       {bartable.number}
                     </td>
                     {includeInactive && (
-                      <td className="table__item-td active-td bartable-active-td">
-                        {bartable.active ? "Activa" : "Inactiva"}
+                      <td className="table__item-td td-active-bartable">
+                        {bartable.active ? (
+                          <p className="status status--active">Activa</p>
+                        ) : (
+                          <p className="status status--inactive">Inactiva</p>
+                        )}
                       </td>
                     )}
-                    <td className="table__item-td action-td bartable-action-td">
+                    <td className="table__item-td td-action">
                       {bartable.active ? (
                         <>
                           <Link
@@ -136,7 +150,10 @@ export function BartableTable({ bartables, editingId }: Props) {
                           <button
                             type="button"
                             disabled={deactivating}
-                            onClick={() => setPendingDeactivateId(bartable.id)}
+                            onClick={() => {
+                              setPendingDeactivateId(bartable.id);
+                              setLastAttemptedDeactivateId(bartable.id);
+                            }}
                             className="delete-btn action-btn"
                           >
                             {deactivating ? (
@@ -150,13 +167,27 @@ export function BartableTable({ bartables, editingId }: Props) {
                             const data = deactivateFetcher.data as any;
                             if (
                               data &&
-                              data.error &&
-                              lastDeactivateId === bartable.id
+                              data.code === "BARTABLE_IN_USE" &&
+                              lastAttemptedDeactivateId === bartable.id
                             ) {
+                              const handleClose = () => {
+                                setPendingDeactivateId(null);
+                                setLastAttemptedDeactivateId(null);
+                              };
                               return (
-                                <div className="inline-error" role="alert">
-                                  {String(data.error)}
-                                </div>
+                                <ActionPrompt
+                                  open
+                                  message={String(
+                                    data.error ||
+                                      "(Error) No se puede eliminar una mesa que tenga una venta activa."
+                                  )}
+                                  actions={[
+                                    {
+                                      label: "Aceptar",
+                                      onClick: handleClose,
+                                    },
+                                  ]}
+                                />
                               );
                             }
                             return null;
@@ -192,8 +223,6 @@ export function BartableTable({ bartables, editingId }: Props) {
           onCancel={() => setPendingDeactivateId(null)}
           onConfirm={() => {
             const id = pendingDeactivateId;
-            setPendingDeactivateId(null);
-            setLastDeactivateId(id);
             deactivateFetcher.submit(
               { id: String(id), _action: "deactivate" },
               { method: "post", action: `.${location.search}` }
